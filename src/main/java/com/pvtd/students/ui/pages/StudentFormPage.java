@@ -161,8 +161,7 @@ public class StudentFormPage extends JPanel {
         grid.add(createLabel("التخصص"));
         specCombo = new JComboBox<>();
         specCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        // Department 1 represents the root
-        for (Specialization sp : SpecializationService.getSpecializationsByDepartment(1)) {
+        for (Specialization sp : SpecializationService.getAllSpecializations()) {
             specCombo.addItem(new SpecializationItem(sp.getId(), sp.getName()));
         }
         specCombo.addActionListener(e -> {
