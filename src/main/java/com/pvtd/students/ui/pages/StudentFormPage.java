@@ -29,8 +29,9 @@ public class StudentFormPage extends JPanel {
     private boolean isEditMode;
 
     // Academic Main Fields
-    private JTextField nameField, seatNoField, nationalIdField, serialField, registrationNoField, centerNameField,
+    private JTextField nameField, seatNoField, nationalIdField, serialField, registrationNoField,
             schoolField, academicYearField;
+    private JComboBox<String> centerNameCombo;
     private JComboBox<SpecializationItem> specCombo;
     private JComboBox<String> statusCombo;
 
@@ -155,7 +156,17 @@ public class StudentFormPage extends JPanel {
         nameField = addLabeledField(grid, "الاسم الرباعي");
         registrationNoField = addLabeledField(grid, "رقم التسجيل");
         nationalIdField = addLabeledField(grid, "الرقم القومي");
-        centerNameField = addLabeledField(grid, "اسم المركز");
+
+        // Center Name Combo
+        grid.add(createLabel("اسم المركز"));
+        centerNameCombo = new JComboBox<>();
+        centerNameCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        centerNameCombo.setEditable(true); // Allow typinig new centers
+        centerNameCombo.addItem(""); // Add empty item for new students
+        for (String c : StudentService.getDistinctCenters()) {
+            centerNameCombo.addItem(c);
+        }
+        grid.add(centerNameCombo);
 
         // Specialization Combo
         grid.add(createLabel("التخصص"));
@@ -236,7 +247,12 @@ public class StudentFormPage extends JPanel {
         genderCombo = new JComboBox<>(new String[] { "ذكر", "أنثى" });
         grid.add(genderCombo);
 
-        govCombo = new JComboBox<>(new String[] { "القاهرة", "الجيزة", "الإسكندرية", "بورسعيد", "السويس", "أخرى" });
+        govCombo = new JComboBox<>();
+        govCombo.setEditable(true); // Allow typing new governorate
+        govCombo.addItem(""); // Add empty item
+        for (String g : StudentService.getDistinctGovernorates()) {
+            govCombo.addItem(g);
+        }
         grid.add(createLabel("محافظة السكن"));
         grid.add(govCombo);
 
@@ -341,31 +357,27 @@ public class StudentFormPage extends JPanel {
         return panel;
     }
 
+    // Data Holder for calculations
+    private List<Subject> currentSubjectsList;
+
     private JPanel buildGradesCard() {
-        JPanel card = createCardContainer("الدرجات الديناميكية (تُحسب تلقائياً)");
-        gradesPanel = new JPanel(new GridLayout(0, 4, 15, 15));
+        JPanel card = createCardContainer("درجات الطالب (الشهادة)");
+
+        gradesPanel = new JPanel();
+        gradesPanel.setLayout(new BoxLayout(gradesPanel, BoxLayout.Y_AXIS));
         gradesPanel.setOpaque(false);
-        gradesPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        gradesPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
 
         card.add(gradesPanel, BorderLayout.CENTER);
 
         // Add calc preview button
         JPanel bottomAction = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomAction.setOpaque(false);
-        JButton calcBtn = new JButton("حساب وتقييم الحالة التلقائية");
+        JButton calcBtn = new JButton("حساب وتقييم النتيجة بالتفصيل");
         calcBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        calcBtn.addActionListener(e -> {
-            try {
-                SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
-                Map<Integer, Integer> currentGrades = collectGrades();
-                String result = StudentService.calculateStatus(sel.id, currentGrades);
-                JOptionPane.showMessageDialog(this, "الحالة المتوقعة بناءً على الدرجات هي: " + result, "معاينة",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "تأكد من إدخال الأرقام فقط في الدرجات.", "خطأ",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        calcBtn.setBackground(UITheme.PRIMARY);
+        calcBtn.setForeground(Color.WHITE);
+        calcBtn.addActionListener(e -> evaluateDetailedGrades());
         bottomAction.add(calcBtn);
         card.add(bottomAction, BorderLayout.SOUTH);
 
@@ -390,28 +402,146 @@ public class StudentFormPage extends JPanel {
         gradesPanel.removeAll();
         dynamicGradeFields.clear();
 
-        List<Subject> subjects = SubjectService.getSubjectsBySpecialization(specId);
-        if (subjects.isEmpty()) {
+        currentSubjectsList = SubjectService.getSubjectsBySpecialization(specId);
+        if (currentSubjectsList == null || currentSubjectsList.isEmpty()) {
             JLabel noSubjLabel = new JLabel("لا توجد مواد مسجلة لهذا التخصص.", SwingConstants.CENTER);
-            noSubjLabel.setForeground(Color.RED);
+            noSubjLabel.setForeground(UITheme.DANGER);
+            noSubjLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             gradesPanel.add(noSubjLabel);
         } else {
-            for (Subject sub : subjects) {
-                gradesPanel.add(createLabel(sub.getName() + " (" + sub.getMaxMark() + "):"));
+            // Header Row
+            JPanel headerRow = new JPanel(new GridLayout(1, 4, 10, 0));
+            headerRow.setBackground(UITheme.BG_SIDEBAR);
+            headerRow.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+            JLabel h1 = new JLabel("اسم المادة (النوع)", SwingConstants.CENTER);
+            JLabel h2 = new JLabel("النهاية العظمى", SwingConstants.CENTER);
+            JLabel h3 = new JLabel("درجة النجاح", SwingConstants.CENTER);
+            JLabel h4 = new JLabel("درجة الطالب", SwingConstants.CENTER);
+
+            Font hFont = new Font("Segoe UI", Font.BOLD, 14);
+            h1.setFont(hFont);
+            h2.setFont(hFont);
+            h3.setFont(hFont);
+            h4.setFont(hFont);
+            h1.setForeground(Color.WHITE);
+            h2.setForeground(Color.WHITE);
+            h3.setForeground(Color.WHITE);
+            h4.setForeground(Color.WHITE);
+
+            headerRow.add(h4);
+            headerRow.add(h3);
+            headerRow.add(h2);
+            headerRow.add(h1);
+            gradesPanel.add(headerRow);
+
+            // Data Rows
+            int i = 0;
+            for (Subject sub : currentSubjectsList) {
+                JPanel row = new JPanel(new GridLayout(1, 4, 10, 0));
+                row.setBackground(i % 2 == 0 ? Color.WHITE : new Color(0xF8FAFC));
+                row.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+                String typeStr = sub.getType() != null ? sub.getType() : "نظري";
+                JLabel nameL = new JLabel(sub.getName() + " (" + typeStr + ")", SwingConstants.CENTER);
+                JLabel maxL = new JLabel(String.valueOf(sub.getMaxMark()), SwingConstants.CENTER);
+                JLabel passL = new JLabel(String.valueOf(sub.getPassMark()), SwingConstants.CENTER);
+
+                Font vFont = new Font("Segoe UI", Font.BOLD, 14);
+                nameL.setFont(vFont);
+                maxL.setFont(vFont);
+                passL.setFont(vFont);
+
                 JTextField field = new JTextField("0");
-                field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                field.setFont(new Font("Segoe UI", Font.BOLD, 15));
                 field.setHorizontalAlignment(JTextField.CENTER);
+                field.setBorder(BorderFactory.createLineBorder(UITheme.BORDER));
 
                 if (isEditMode && student.getGrades() != null && student.getGrades().containsKey(sub.getId())) {
                     field.setText(String.valueOf(student.getGrades().get(sub.getId())));
                 }
 
-                gradesPanel.add(field);
+                row.add(field);
+                row.add(passL);
+                row.add(maxL);
+                row.add(nameL);
                 dynamicGradeFields.put(sub.getId(), field);
+                gradesPanel.add(row);
+                i++;
             }
         }
         gradesPanel.revalidate();
         gradesPanel.repaint();
+    }
+
+    private void evaluateDetailedGrades() {
+        if (currentSubjectsList == null || currentSubjectsList.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "لا توجد مواد لتقييمها!", "تنبيه", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            int totalMax = 0, totalAttained = 0;
+            int practicalMax = 0, practicalAttained = 0;
+            int theoreticalMax = 0, theoreticalAttained = 0;
+            int failedCount = 0;
+            StringBuilder failedSubjects = new StringBuilder();
+
+            Map<Integer, Integer> currentGrades = collectGrades();
+
+            for (Subject sub : currentSubjectsList) {
+                int mark = currentGrades.getOrDefault(sub.getId(), 0);
+                totalMax += sub.getMaxMark();
+                totalAttained += mark;
+
+                boolean isPractical = sub.getType() != null && sub.getType().contains("عمل");
+                if (isPractical) {
+                    practicalMax += sub.getMaxMark();
+                    practicalAttained += mark;
+                } else {
+                    theoreticalMax += sub.getMaxMark();
+                    theoreticalAttained += mark;
+                }
+
+                if (mark < sub.getPassMark()) {
+                    failedCount++;
+                    failedSubjects.append(" - ").append(sub.getName()).append(" ( جاب ").append(mark)
+                            .append(" من ").append(sub.getPassMark()).append(" )<br>");
+                }
+            }
+
+            SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
+            String overallStatus = StudentService.calculateStatus(sel.id, currentGrades);
+
+            // Build detailed HTML message
+            String color = overallStatus.equals("ناجح") ? "green" : (overallStatus.equals("راسب") ? "red" : "orange");
+            StringBuilder msg = new StringBuilder();
+            msg.append("<html><div style='text-align:right; font-family:tahoma; font-size:14px; direction:rtl;'>");
+            msg.append("<h2>تقييم درجات الطالب بالتفصيل</h2>");
+            msg.append("<hr>");
+            msg.append("<b>المجموع الكلي:</b> ").append(totalAttained).append(" من ").append(totalMax)
+                    .append("<br><br>");
+            msg.append("<b>مجموع النظري:</b> ").append(theoreticalAttained).append(" من ").append(theoreticalMax)
+                    .append("<br>");
+            msg.append("<b>مجموع العملي:</b> ").append(practicalAttained).append(" من ").append(practicalMax)
+                    .append("<br><br>");
+
+            msg.append("<b>عدد المواد التي رسب فيها:</b> ").append(failedCount).append("<br>");
+            if (failedCount > 0) {
+                msg.append("<div style='color:red; margin-top:5px;'>").append(failedSubjects.toString())
+                        .append("</div><br>");
+            }
+
+            msg.append("<h3 style='color:").append(color).append(";'>الحالة النهائية المتوقعة: ").append(overallStatus)
+                    .append("</h3>");
+            msg.append("</div></html>");
+
+            JOptionPane.showMessageDialog(this, msg.toString(), "تفاصيل التقييم", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التقييم. تأكد من إدخال الدرجات كأرقام.", "خطأ",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void populateFields() {
@@ -420,7 +550,11 @@ public class StudentFormPage extends JPanel {
         nameField.setText(student.getName());
         registrationNoField.setText(student.getRegistrationNo());
         nationalIdField.setText(student.getNationalId());
-        centerNameField.setText(student.getCenterName());
+
+        if (student.getCenterName() != null) {
+            centerNameCombo.setSelectedItem(student.getCenterName());
+        }
+
         schoolField.setText(student.getSchool());
         academicYearField.setText(student.getAcademicYear());
         regionField.setText(student.getRegion());
@@ -486,24 +620,40 @@ public class StudentFormPage extends JPanel {
         return map;
     }
 
-    private String saveImageLocally(String sourcePath) {
+    private String copyToStudentFolder(String sourcePath, String nationalId, String targetFileName) {
         if (sourcePath == null || sourcePath.isEmpty())
             return null;
+
         File source = new File(sourcePath);
-        if (!source.exists() || source.getParentFile().getName().equals("images")) {
-            return sourcePath; // already saved locally
+        if (!source.exists())
+            return null;
+
+        // Skip copying if it's already exactly the target file we want
+        String userHome = System.getProperty("user.home");
+        String safeId = (nationalId != null && !nationalId.trim().isEmpty()) ? nationalId.trim() : "unknown_id";
+        // To remove invalid filename chars safely
+        safeId = safeId.replaceAll("[^a-zA-Z0-9.-]", "_");
+
+        File studentFolder = new File(userHome, ".student_mgmt/students/" + safeId);
+        if (!studentFolder.exists()) {
+            studentFolder.mkdirs();
+        }
+
+        // Keep extension from original file if no explicit target name was forced
+        String extension = "";
+        int i = source.getName().lastIndexOf('.');
+        if (i > 0) {
+            extension = source.getName().substring(i);
+        }
+
+        File dest = new File(studentFolder, targetFileName + extension);
+
+        // If the source is already the destination, do nothing
+        if (source.getAbsolutePath().equals(dest.getAbsolutePath())) {
+            return dest.getAbsolutePath();
         }
 
         try {
-            String userHome = System.getProperty("user.home");
-            File installDir = new File(userHome, ".student_mgmt/images");
-            if (!installDir.exists())
-                installDir.mkdirs();
-
-            String extension = source.getName().substring(source.getName().lastIndexOf("."));
-            String newName = UUID.randomUUID().toString() + extension;
-
-            File dest = new File(installDir, newName);
             Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return dest.getAbsolutePath();
         } catch (IOException e) {
@@ -519,12 +669,25 @@ public class StudentFormPage extends JPanel {
             return;
         }
 
+        String natId = nationalIdField.getText().trim();
+        if (natId.isEmpty()) {
+            // Warn if national ID is missing, as it's needed for folders
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "لم يتم إدخال 'الرقم القومي'. سيؤدي ذلك لإنشاء مجلد ببيانات غير مسماة (unknown_id).\nهل تريد المتابعة على أية حال؟",
+                    "تحذير فصيح",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION)
+                return;
+        }
+
         student.setSerial(serialField.getText().trim());
         student.setSeatNo(seatNoField.getText().trim());
         student.setName(nameField.getText().trim());
         student.setRegistrationNo(registrationNoField.getText().trim());
-        student.setNationalId(nationalIdField.getText().trim());
-        student.setCenterName(centerNameField.getText().trim());
+        student.setNationalId(natId);
+
+        Object selectedCenter = centerNameCombo.getSelectedItem();
+        student.setCenterName(selectedCenter != null ? selectedCenter.toString() : "");
 
         SpecializationItem selSpec = (SpecializationItem) specCombo.getSelectedItem();
         student.setSpecializationId(selSpec != null ? selSpec.id : 0);
@@ -561,10 +724,10 @@ public class StudentFormPage extends JPanel {
         student.setNationality(nationalityField.getText().trim());
         student.setAddress(addressField.getText().trim());
 
-        // Process images
-        student.setImagePath(saveImageLocally(currentPicPath));
-        student.setIdFrontPath(saveImageLocally(currentIdFrontPath));
-        student.setIdBackPath(saveImageLocally(currentIdBackPath));
+        // Process images dynamically into student's unique folder
+        student.setImagePath(copyToStudentFolder(currentPicPath, natId, "profile"));
+        student.setIdFrontPath(copyToStudentFolder(currentIdFrontPath, natId, "id_front"));
+        student.setIdBackPath(copyToStudentFolder(currentIdBackPath, natId, "id_back"));
 
         // Process Grades
         student.setGrades(collectGrades());

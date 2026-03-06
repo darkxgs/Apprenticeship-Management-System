@@ -139,6 +139,42 @@ public class StudentService {
         return students;
     }
 
+    public static List<String> getDistinctGovernorates() {
+        List<String> list = new ArrayList<>();
+        String query = "SELECT DISTINCT governorate FROM students WHERE governorate IS NOT NULL";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String val = rs.getString("governorate");
+                if (val != null && !val.trim().isEmpty()) {
+                    list.add(val.trim());
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public static List<String> getDistinctCenters() {
+        List<String> list = new ArrayList<>();
+        String query = "SELECT DISTINCT center_name FROM students WHERE center_name IS NOT NULL";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String val = rs.getString("center_name");
+                if (val != null && !val.trim().isEmpty()) {
+                    list.add(val.trim());
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     // Helper to map DB ResultSet to Student
     private static Student extractStudent(ResultSet rs) throws SQLException {
         Student s = new Student();

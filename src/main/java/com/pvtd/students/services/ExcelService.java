@@ -11,23 +11,15 @@ import java.sql.PreparedStatement;
 
 public class ExcelService {
 
-    /**
-     * Imports students from Excel file into the new relational schema.
-     * Old grade columns (grade_english, grade_mechanics, etc.) and center_name
-     * are removed. specialization_id is left NULL on import; users must assign it
-     * via the student form afterward.
-     *
-     * Expected Excel columns (0-indexed):
-     * 0=serial, 1=name, 2=national_id, 3=registration_no, 4=seat_no,
-     * 5=region, 6=profession, 7=exam_system, 8=secret_no, 9=professional_group,
-     * 10=coordination_no, 11=dob_day, 12=dob_month, 13=dob_year, 14=gender,
-     * 15=neighborhood, 16=governorate, 17=religion, 18=nationality, 19=address,
-     * 20=other_notes
-     */
-    public static int importStudentsFromExcel(File file) {
-        int importedCount = 0;
+    public interface ProgressCallback {
+        void onProgress(int current, int total, String message);
+    }
 
-        // Oracle MERGE INTO with new schema - no grade columns, no center_name
+    public static int importStudentsFromExcel(File file, File profileFolder, File frontIdFolder, File backIdFolder,
+            ProgressCallback callback) {
+        int importedCount = 0;
+        int totalRows = 0;
+
         String mergeQuery = "MERGE INTO students s " +
                 "USING (SELECT ? as seat FROM DUAL) src " +
                 "ON (s.seat_no = src.seat) " +
@@ -35,12 +27,13 @@ public class ExcelService {
                 "  UPDATE SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, " +
                 "  exam_system=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, " +
                 "  dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, " +
-                "  other_notes=? " +
+                "  other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=? " +
                 "WHEN NOT MATCHED THEN " +
                 "  INSERT (seat_no, serial, name, registration_no, national_id, region, profession, " +
                 "  exam_system, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, " +
-                "  gender, neighborhood, governorate, religion, nationality, address, other_notes, status) " +
-                "  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'غير محدد')";
+                "  gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status) "
+                +
+                "  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'غير محدد')";
 
         try (FileInputStream fis = new FileInputStream(file);
                 Workbook workbook = new XSSFWorkbook(fis);
@@ -48,13 +41,20 @@ public class ExcelService {
                 PreparedStatement stmt = conn.prepareStatement(mergeQuery)) {
 
             Sheet sheet = workbook.getSheetAt(0);
+            totalRows = sheet.getPhysicalNumberOfRows() - 1; // subtract header
+            if (totalRows <= 0)
+                return 0;
+
             boolean isFirstRow = true;
+            int currentRowCount = 0;
 
             for (Row row : sheet) {
                 if (isFirstRow) {
                     isFirstRow = false;
                     continue;
-                } // Skip header
+                }
+
+                currentRowCount++;
 
                 String seatNo = getCellValue(row.getCell(4));
                 if (seatNo == null || seatNo.trim().isEmpty())
@@ -80,11 +80,33 @@ public class ExcelService {
                 String nationality = getCellValue(row.getCell(18));
                 String address = getCellValue(row.getCell(19));
                 String otherNotes = getCellValue(row.getCell(20));
+                String centerName = getCellValue(row.getCell(21));
 
-                // MERGE ON seat parameter (1)
+                String savedProfilePath = "";
+                String savedFrontIdPath = "";
+                String savedBackIdPath = "";
+
+                if (nationalId != null && !nationalId.trim().isEmpty()) {
+                    String cleanId = nationalId.trim();
+                    if (profileFolder != null) {
+                        savedProfilePath = findAndCopyImage(profileFolder, cleanId, "profile.jpg");
+                    }
+                    if (frontIdFolder != null) {
+                        savedFrontIdPath = findAndCopyImage(frontIdFolder, cleanId, "id_front.jpg");
+                    }
+                    if (backIdFolder != null) {
+                        savedBackIdPath = findAndCopyImage(backIdFolder, cleanId, "id_back.jpg");
+                    }
+                }
+
+                if (callback != null && (currentRowCount % 10 == 0 || currentRowCount == totalRows)) {
+                    callback.onProgress(currentRowCount, totalRows, "جاري استيراد الطالب: " + name);
+                }
+
+                // MERGE ON
                 stmt.setString(1, seatNo);
 
-                // WHEN MATCHED UPDATE parameters (2..21)
+                // MATCHED UPDATE
                 stmt.setString(2, serial);
                 stmt.setString(3, name);
                 stmt.setString(4, registrationNo);
@@ -105,37 +127,57 @@ public class ExcelService {
                 stmt.setString(19, nationality);
                 stmt.setString(20, address);
                 stmt.setString(21, otherNotes);
+                stmt.setString(22, savedProfilePath);
+                stmt.setString(23, centerName);
+                stmt.setString(24, savedFrontIdPath);
+                stmt.setString(25, savedBackIdPath);
 
-                // WHEN NOT MATCHED INSERT parameters (22..42)
-                stmt.setString(22, seatNo);
-                stmt.setString(23, serial);
-                stmt.setString(24, name);
-                stmt.setString(25, registrationNo);
-                stmt.setString(26, nationalId);
-                stmt.setString(27, region);
-                stmt.setString(28, profession);
-                stmt.setString(29, examSystem);
-                stmt.setString(30, secretNo);
-                stmt.setString(31, profGroup);
-                stmt.setString(32, coordNo);
-                stmt.setString(33, dobDay);
-                stmt.setString(34, dobMonth);
-                stmt.setString(35, dobYear);
-                stmt.setString(36, gender);
-                stmt.setString(37, neighborhood);
-                stmt.setString(38, governorate);
-                stmt.setString(39, religion);
-                stmt.setString(40, nationality);
-                stmt.setString(41, address);
-                stmt.setString(42, otherNotes);
+                // NOT MATCHED INSERT
+                stmt.setString(26, seatNo);
+                stmt.setString(27, serial);
+                stmt.setString(28, name);
+                stmt.setString(29, registrationNo);
+                stmt.setString(30, nationalId);
+                stmt.setString(31, region);
+                stmt.setString(32, profession);
+                stmt.setString(33, examSystem);
+                stmt.setString(34, secretNo);
+                stmt.setString(35, profGroup);
+                stmt.setString(36, coordNo);
+                stmt.setString(37, dobDay);
+                stmt.setString(38, dobMonth);
+                stmt.setString(39, dobYear);
+                stmt.setString(40, gender);
+                stmt.setString(41, neighborhood);
+                stmt.setString(42, governorate);
+                stmt.setString(43, religion);
+                stmt.setString(44, nationality);
+                stmt.setString(45, address);
+                stmt.setString(46, otherNotes);
+                stmt.setString(47, savedProfilePath);
+                stmt.setString(48, centerName);
+                stmt.setString(49, savedFrontIdPath);
+                stmt.setString(50, savedBackIdPath);
 
                 stmt.addBatch();
                 importedCount++;
 
-                if (importedCount % 100 == 0)
-                    stmt.executeBatch();
+                if (importedCount % 100 == 0) {
+                    try {
+                        stmt.executeBatch();
+                        conn.commit();
+                    } catch (Exception ex) {
+                        System.err.println("Batch error, skipping block.");
+                    }
+                }
             }
-            stmt.executeBatch();
+            try {
+                stmt.executeBatch();
+                conn.commit();
+            } catch (Exception ex) {
+                System.err.println("Final batch error.");
+            }
+
             LogService.logAction("SYSTEM", "EXCEL_IMPORT",
                     "تم استيراد/تحديث " + importedCount + " سجل من الإكسل");
 
@@ -144,6 +186,59 @@ public class ExcelService {
             return -1;
         }
         return importedCount;
+    }
+
+    private static String findAndCopyImage(File sourceFolder, String nationalId, String targetFilename) {
+        if (sourceFolder == null || !sourceFolder.exists() || !sourceFolder.isDirectory()) {
+            return "";
+        }
+
+        String safeId = nationalId.replaceAll("[^a-zA-Z0-9.-]", "_");
+
+        // Find any file in the directory whose name (without extension) matches the
+        // National ID exactly
+        File[] matchingFiles = sourceFolder.listFiles((dir, name) -> {
+            int dotIndex = name.lastIndexOf('.');
+            String nameWithoutExt = (dotIndex == -1) ? name : name.substring(0, dotIndex);
+            return nameWithoutExt.equals(nationalId) || nameWithoutExt.equals(safeId);
+        });
+
+        if (matchingFiles != null && matchingFiles.length > 0) {
+            File srcFile = matchingFiles[0]; // Take the first match
+            try {
+                String userHome = System.getProperty("user.home");
+                File studentFolder = new File(userHome, ".student_mgmt/students/" + safeId + "/images");
+                if (!studentFolder.exists()) {
+                    studentFolder.mkdirs();
+                }
+
+                // Keep the original extension if possible
+                String ext = ".jpg";
+                int dotIndex = srcFile.getName().lastIndexOf('.');
+                if (dotIndex > 0) {
+                    ext = srcFile.getName().substring(dotIndex);
+                }
+
+                // If targetFilename is like "profile.jpg", strip its extension and use the real
+                // one.
+                String baseTarget = targetFilename;
+                int targetDot = targetFilename.lastIndexOf('.');
+                if (targetDot > 0) {
+                    baseTarget = targetFilename.substring(0, targetDot);
+                }
+
+                File destFile = new File(studentFolder, baseTarget + ext);
+
+                if (!destFile.exists() || srcFile.length() != destFile.length()) {
+                    java.nio.file.Files.copy(srcFile.toPath(), destFile.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                return destFile.getAbsolutePath();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return "";
     }
 
     private static String getCellValue(Cell cell) {

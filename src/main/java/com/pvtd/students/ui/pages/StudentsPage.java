@@ -128,7 +128,12 @@ public class StudentsPage extends JPanel {
         searchSeatField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         searchSeatField.setPreferredSize(new Dimension(120, 36));
 
-        govCombo = makeCombo("الكل", "القاهرة", "الجيزة", "الإسكندرية", "بورسعيد", "السويس");
+        govCombo = makeCombo(); // will add items manually
+        govCombo.addItem("الكل");
+        for (String g : StudentService.getDistinctGovernorates()) {
+            govCombo.addItem(g);
+        }
+
         profCombo = makeCombo("الكل", "ميكانيكا", "كهرباء سيارات", "خراطة", "تشغيل مكني");
         statusCombo = makeCombo(); // will add items manually
         statusCombo.addItem("الكل");
@@ -306,6 +311,7 @@ public class StudentsPage extends JPanel {
         JButton btnDelete = actionBtn("حذف", new Color(0xFEF2F2), UITheme.DANGER, false);
         JButton btnSelectAll = actionBtn("تحديد الكل", new Color(0xF1F5F9), UITheme.TEXT_PRIMARY, false);
         JButton btnPdf = actionBtn("شهادة نجاح", new Color(0xF0FDF4), new Color(0x15803D), false);
+        JButton btnForm = actionBtn("استمارة طالب", new Color(0xFEF3C7), new Color(0xB45309), false);
         JButton btnIdCard = actionBtn("عرض الهوية", new Color(0xFAFAF9), UITheme.TEXT_SECONDARY, false);
 
         // ── Actions ───────────────────────────────────────────────────────────
@@ -353,25 +359,42 @@ public class StudentsPage extends JPanel {
         btnPdf.addActionListener(e -> {
             List<Student> sel = getSelectedStudents();
             if (sel.isEmpty()) {
-                warn("يرجى تحديد طالب لإصدار الشهادة.");
+                warn("يرجى تحديد طالب (أو أكثر) لإصدار الشهادة.");
                 return;
             }
-            if (sel.size() > 1) {
-                warn("شهادة النجاح تصدر لطالب واحد في المرة الواحدة.");
-                return;
-            }
-            Student s = sel.get(0);
-            JFileChooser fc = new JFileChooser();
-            fc.setSelectedFile(new File("شهادة_" + s.getName() + ".pdf"));
-            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    ReportService.generateSuccessCertificate(s, fc.getSelectedFile());
-                    JOptionPane.showMessageDialog(this, "تم حفظ الشهادة بنجاح!", "نجاح",
-                            JOptionPane.INFORMATION_MESSAGE);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    warn("حدث خطأ أثناء إنشاء التقرير.");
+            try {
+                int successCount = 0;
+                for (Student s : sel) {
+                    com.pvtd.students.services.PdfService.generatePassCertificate(s);
+                    successCount++;
                 }
+                JOptionPane.showMessageDialog(this, "تم إنشاء " + successCount + " شهادة بنجاح في مجلدات الطلاب!",
+                        "نجاح",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                warn("حدث خطأ أثناء إنشاء الشهادات.");
+            }
+        });
+
+        btnForm.addActionListener(e -> {
+            List<Student> sel = getSelectedStudents();
+            if (sel.isEmpty()) {
+                warn("يرجى تحديد طالب (أو أكثر) لإصدار الاستمارة.");
+                return;
+            }
+            try {
+                int successCount = 0;
+                for (Student s : sel) {
+                    com.pvtd.students.services.PdfService.generateStudentForm(s);
+                    successCount++;
+                }
+                JOptionPane.showMessageDialog(this, "تم إنشاء " + successCount + " استمارة بنجاح في مجلدات الطلاب!",
+                        "نجاح",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                warn("حدث خطأ أثناء إنشاء الاستمارات.");
             }
         });
 
@@ -403,6 +426,7 @@ public class StudentsPage extends JPanel {
 
         bar.add(btnSelectAll);
         bar.add(btnIdCard);
+        bar.add(btnForm);
         bar.add(btnPdf);
         bar.add(btnDelete);
         bar.add(btnEdit);
