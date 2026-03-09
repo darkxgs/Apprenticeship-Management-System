@@ -9,6 +9,7 @@ import com.pvtd.students.db.DatabaseConnection;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -32,8 +33,8 @@ public class successful extends javax.swing.JFrame {
     public successful() {
         initComponents();
         this.setBackground(Color.WHITE);
-        this.setSize(1200 , 800);
-        jPanel1.setSize(1123, 794);
+        this.setSize(1200, 800);
+        jPanel1.setPreferredSize(new Dimension(1123, 794));
            jTable2.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
          jTable2.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
          

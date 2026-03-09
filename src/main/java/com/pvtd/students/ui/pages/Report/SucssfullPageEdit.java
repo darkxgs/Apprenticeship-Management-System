@@ -9,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.JComboBox;
+import javax.swing.JFrame;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -26,7 +27,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         jPanel1.setPreferredSize(new Dimension(1123, 794));
          jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
          jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-         
+         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
          jTable1.setShowGrid(true);
 jTable1.setGridColor(Color.GRAY);
 

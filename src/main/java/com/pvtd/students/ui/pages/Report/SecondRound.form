@@ -132,7 +132,7 @@
             <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="98" green="52" red="2a" type="rgb"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="&#x62a;&#x644;&#x627;&#x645;&#x64a;&#x630; &#x645;&#x641;&#x635;&#x648;&#x644;&#x648;&#x646;"/>
+            <Property name="text" type="java.lang.String" value="&#x62a;&#x644;&#x627;&#x645;&#x64a;&#x630; &#x62f;&#x648;&#x631; &#x62b;&#x627;&#x646;&#x64a;"/>
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">

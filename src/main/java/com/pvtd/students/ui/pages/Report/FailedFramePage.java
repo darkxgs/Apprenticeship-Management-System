@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import javax.swing.JFrame;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -30,7 +31,7 @@ public class FailedFramePage extends javax.swing.JFrame {
      */
     public FailedFramePage() {
         initComponents();
-        
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
          jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
          

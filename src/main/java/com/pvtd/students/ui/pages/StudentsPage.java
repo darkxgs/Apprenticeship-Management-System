@@ -5,6 +5,8 @@ import com.pvtd.students.services.ReportService;
 import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.ui.AppFrame;
+import com.pvtd.students.ui.pages.Report.CertificateOfSuccess1;
+import com.pvtd.students.ui.pages.Report.SuccessfulCandidatesRevealedByRrades;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 
@@ -362,45 +364,69 @@ public class StudentsPage extends JPanel {
         });
 
         btnPdf.addActionListener(e -> {
-            List<Student> sel = getSelectedStudents();
-            if (sel.isEmpty()) {
-                warn("يرجى تحديد طالب (أو أكثر) لإصدار الشهادة.");
-                return;
-            }
-            try {
-                int successCount = 0;
-                for (Student s : sel) {
-                    com.pvtd.students.services.PdfService.generatePassCertificate(s);
-                    successCount++;
-                }
-                JOptionPane.showMessageDialog(this, "تم إنشاء " + successCount + " شهادة بنجاح في مجلدات الطلاب!",
-                        "نجاح",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                warn("حدث خطأ أثناء إنشاء الشهادات.");
-            }
+           
+            
+             
+    List<Student> selectedStudents = new ArrayList<>();
+
+    int[] selectedRows = studentsTable.getSelectedRows();
+
+    if (selectedRows.length == 0) {
+        JOptionPane.showMessageDialog(this, "اختار طالب واحد على الأقل");
+        return;
+    }
+
+    for (int row : selectedRows) {
+
+        String seatNo = studentsTable.getValueAt(row, 9).toString(); // عمود رقم الجلوس
+
+        Student s = new Student();
+        s.setSeatNo(seatNo);
+
+        selectedStudents.add(s);
+    }
+
+    CertificateOfSuccess1 cert = new CertificateOfSuccess1();
+
+    cert.printCertificates(selectedStudents);
+
+            
         });
 
         btnForm.addActionListener(e -> {
-            List<Student> sel = getSelectedStudents();
-            if (sel.isEmpty()) {
-                warn("يرجى تحديد طالب (أو أكثر) لإصدار الاستمارة.");
-                return;
-            }
-            try {
-                int successCount = 0;
-                for (Student s : sel) {
-                    com.pvtd.students.services.PdfService.generateStudentForm(s);
-                    successCount++;
-                }
-                JOptionPane.showMessageDialog(this, "تم إنشاء " + successCount + " استمارة بنجاح في مجلدات الطلاب!",
-                        "نجاح",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                warn("حدث خطأ أثناء إنشاء الاستمارات.");
-            }
+         String seatNo = null;
+int[] selectedRows = studentsTable.getSelectedRows();
+
+if (selectedRows.length == 0) {
+    JOptionPane.showMessageDialog(this, "اختر الطلاب أولاً");
+    return;
+}
+
+List<Student> students = new ArrayList<>();
+
+for (int row : selectedRows) {
+
+    Object value = studentsTable.getValueAt(row, 9);
+
+    if (value != null) {
+        seatNo = value.toString();
+    } else {
+        seatNo = ""; // يخليها فاضية بدل ما يعمل Exception
+    }
+
+    Student s = new Student();
+    s.setSeatNo(seatNo);
+
+    students.add(s);
+    }
+
+    // إنشاء نسخة من كلاس الاستمارة
+    SuccessfulCandidatesRevealedByRrades form =
+            new SuccessfulCandidatesRevealedByRrades();
+    form.loadStudentData(seatNo);
+    // استدعاء الميثود
+    form.printCertificates(students);   
+            
         });
 
         btnIdCard.addActionListener(e -> {

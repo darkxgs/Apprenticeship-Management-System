@@ -15,20 +15,23 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
-
-public class DetailersFRamepage extends javax.swing.JFrame {
+/**
+ *
+ * @author Seif
+ */
+public class absentFramePage extends javax.swing.JFrame {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(DetailersFRamepage.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(absentFramePage.class.getName());
 
-  
-    
-    public DetailersFRamepage() {
+    /**
+     * Creates new form absentFramePage
+     */
+    public absentFramePage() {
         initComponents();
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-          jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        this.setSize(1200, 800);
+         jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
          jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-         
+         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
          jTable1.setShowGrid(true);
 jTable1.setGridColor(Color.GRAY);
 
@@ -60,8 +63,11 @@ c.setForeground(Color.BLACK);
     }
 });
         loadCenters();
+        
+        
     }
-    public void loadCenters() {
+
+     public void loadCenters() {
 
     try {
 
@@ -104,7 +110,7 @@ public void loadStudents(String center, int count) {
         "SELECT name, profession, registration_no, seat_no, status " +
         "FROM students " +
         "WHERE center_name = ? " +
-        "AND status = 'مفصول' " +
+        "AND status = 'غائب' " +
         "AND ROWNUM <= ?";
 
         PreparedStatement ps = con.prepareStatement(sql);
@@ -142,7 +148,7 @@ public void loadCount(String center) {
 
         Connection con = DatabaseConnection.getConnection();
 
-        String sql = "SELECT COUNT(*) FROM students WHERE status='مفصول' AND center_name=?";
+        String sql = "SELECT COUNT(*) FROM students WHERE status='راسب' AND center_name=?";
 
         PreparedStatement ps = con.prepareStatement(sql);
         ps.setString(1, center);
@@ -164,8 +170,7 @@ public void loadCount(String center) {
     }
 }
     
-    
-   
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -196,7 +201,7 @@ public void loadCount(String center) {
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 139;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(28, 224, 30, 0);
+        gridBagConstraints.insets = new java.awt.Insets(29, 191, 29, 0);
         jPanel2.add(cmdcount, gridBagConstraints);
 
         cmdcenter.setLabeText("المركز");
@@ -206,7 +211,7 @@ public void loadCount(String center) {
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 134;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(28, 98, 30, 287);
+        gridBagConstraints.insets = new java.awt.Insets(29, 98, 29, 192);
         jPanel2.add(cmdcenter, gridBagConstraints);
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.PAGE_START);
@@ -225,7 +230,7 @@ public void loadCount(String center) {
         gridBagConstraints.gridy = 0;
         gridBagConstraints.gridheight = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(21, 225, 23, 0);
+        gridBagConstraints.insets = new java.awt.Insets(32, 164, 32, 0);
         jPanel3.add(buttonGradient3, gridBagConstraints);
 
         jButton1.setBackground(new java.awt.Color(51, 0, 255));
@@ -237,7 +242,7 @@ public void loadCount(String center) {
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 28;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(28, 172, 0, 232);
+        gridBagConstraints.insets = new java.awt.Insets(39, 172, 0, 165);
         jPanel3.add(jButton1, gridBagConstraints);
 
         jPanel1.add(jPanel3, java.awt.BorderLayout.PAGE_END);
@@ -265,74 +270,68 @@ public void loadCount(String center) {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 516, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void buttonGradient3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient3ActionPerformed
+    private void cmdcountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcountActionPerformed
 
-               Detailers report = new Detailers();
+        if (cmdcenter.getSelectedItem() != null && cmdcount.getSelectedItem() != null) {
 
-    DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
-    DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
+            String center = cmdcenter.getSelectedItem().toString();
+            int count = Integer.parseInt(cmdcount.getSelectedItem().toString());
 
-    model2.setRowCount(0);
-
-    int[] selectedRows = jTable1.getSelectedRows();
-
-    for (int i = 0; i < selectedRows.length; i++) {
-
-        Object[] row = new Object[model1.getColumnCount()];
-
-        for (int j = 0; j < model1.getColumnCount(); j++) {
-
-            row[j] = model1.getValueAt(selectedRows[i], j);
+            loadStudents(center, count);
 
         }
-
-        model2.addRow(row);
-    }
-
-    report.createPDF();
-    }                                               
-    {
-        
-        
-    }//GEN-LAST:event_buttonGradient3ActionPerformed
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-
-        jTable1.selectAll();
-
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }//GEN-LAST:event_cmdcountActionPerformed
 
     private void cmdcenterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcenterActionPerformed
 
         if (cmdcenter.getSelectedItem() != null) {
 
-        String center = cmdcenter.getSelectedItem().toString();
+            String center = cmdcenter.getSelectedItem().toString();
 
-        loadCount(center);
+            loadCount(center);
 
-    }
-        
+        }
     }//GEN-LAST:event_cmdcenterActionPerformed
 
-    private void cmdcountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcountActionPerformed
-   
-         if (cmdcenter.getSelectedItem() != null && cmdcount.getSelectedItem() != null) {
+    private void buttonGradient3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient3ActionPerformed
 
-        String center = cmdcenter.getSelectedItem().toString();
-        int count = Integer.parseInt(cmdcount.getSelectedItem().toString());
+        Failed report = new Failed();
 
-        loadStudents(center, count);
+        DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
+        DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
 
-    }
-    
-        
-    }//GEN-LAST:event_cmdcountActionPerformed
+        model2.setRowCount(0);
+
+        int[] selectedRows = jTable1.getSelectedRows();
+
+        for (int i = 0; i < selectedRows.length; i++) {
+
+            Object[] row = new Object[model1.getColumnCount()];
+
+            for (int j = 0; j < model1.getColumnCount(); j++) {
+
+                row[j] = model1.getValueAt(selectedRows[i], j);
+
+            }
+
+            model2.addRow(row);
+        }
+
+        report.createPDF();
+        }
+        {
+    }//GEN-LAST:event_buttonGradient3ActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+
+        jTable1.selectAll();
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -356,7 +355,7 @@ public void loadCount(String center) {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new DetailersFRamepage().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> new absentFramePage().setVisible(true));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

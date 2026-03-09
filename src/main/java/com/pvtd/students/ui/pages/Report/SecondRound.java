@@ -175,7 +175,7 @@ public void createPDF() {
 
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(42, 82, 152));
-        jLabel6.setText("تلاميذ مفصولون");
+        jLabel6.setText("تلاميذ دور ثاني");
         jPanel1.add(jLabel6);
         jLabel6.setBounds(442, 122, 170, 60);
 
