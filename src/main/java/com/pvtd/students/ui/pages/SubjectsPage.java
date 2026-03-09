@@ -1,9 +1,8 @@
 package com.pvtd.students.ui.pages;
 
-import com.pvtd.students.models.Specialization;
 import com.pvtd.students.models.Subject;
-import com.pvtd.students.services.SpecializationService;
 import com.pvtd.students.services.SubjectService;
+import com.pvtd.students.services.StudentService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.utils.DropShadowBorder;
@@ -21,23 +20,8 @@ public class SubjectsPage extends JPanel {
 
     private JPanel gridPanel;
     private List<Subject> currentSubjectsList;
-    private JComboBox<SpecializationItem> specCombo;
+    private JComboBox<String> professionCombo;
     private JLabel subjectCountLabel;
-
-    private static class SpecializationItem {
-        int id;
-        String name;
-
-        SpecializationItem(int id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 
     public SubjectsPage(AppFrame frame) {
         setLayout(new BorderLayout(0, 20));
@@ -84,23 +68,23 @@ public class SubjectsPage extends JPanel {
                 new DropShadowBorder(Color.BLACK, 3, 0.04f, 10, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 8, 0, 8)));
 
-        JLabel filterLbl = new JLabel("⎇  اختر التخصص:");
+        JLabel filterLbl = new JLabel("⎇  اختر المهنة:");
         filterLbl.setFont(UITheme.FONT_HEADER);
         filterLbl.setForeground(UITheme.TEXT_PRIMARY);
 
-        specCombo = new JComboBox<>();
-        specCombo.setFont(UITheme.FONT_BODY);
-        specCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        specCombo.setPreferredSize(new Dimension(280, 38));
-        loadSpecializationsIntoCombo();
-        specCombo.addActionListener(e -> loadSubjects());
+        professionCombo = new JComboBox<>();
+        professionCombo.setFont(UITheme.FONT_BODY);
+        professionCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        professionCombo.setPreferredSize(new Dimension(280, 38));
+        loadProfessionsIntoCombo();
+        professionCombo.addActionListener(e -> loadSubjects());
 
         subjectCountLabel = new JLabel("", SwingConstants.LEFT);
         subjectCountLabel.setFont(UITheme.FONT_BODY);
         subjectCountLabel.setForeground(UITheme.TEXT_SECONDARY);
 
         filterBar.add(subjectCountLabel);
-        filterBar.add(specCombo);
+        filterBar.add(professionCombo);
         filterBar.add(filterLbl);
 
         headerPanel.add(topHeader, BorderLayout.NORTH);
@@ -122,9 +106,9 @@ public class SubjectsPage extends JPanel {
     }
 
     private void showAddSubjectDialog() {
-        SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
-        if (sel == null) {
-            warn("يرجى اختيار تخصص أولاً من القائمة المنسدلة.");
+        String sel = (String) professionCombo.getSelectedItem();
+        if (sel == null || sel.trim().isEmpty()) {
+            warn("يرجى اختيار مهنة أولاً من القائمة المنسدلة.");
             return;
         }
 
@@ -163,7 +147,7 @@ public class SubjectsPage extends JPanel {
                     warn("درجة النجاح لا يمكن أن تتجاوز الدرجة العظمى.");
                     return;
                 }
-                SubjectService.addSubject(sel.id, name, type, ps, mx);
+                SubjectService.addSubject(sel, name, type, ps, mx);
                 loadSubjects();
             } catch (NumberFormatException ex) {
                 warn("يرجى إدخال أرقام صحيحة للدرجات.");
@@ -171,25 +155,24 @@ public class SubjectsPage extends JPanel {
         }
     }
 
-    private void loadSpecializationsIntoCombo() {
-        specCombo.removeAllItems();
-        List<Specialization> specs = SpecializationService.getSpecializationsByDepartment(
-                SpecializationService.getDefaultDepartmentId());
-        for (Specialization sp : specs) {
-            specCombo.addItem(new SpecializationItem(sp.getId(), sp.getName()));
+    private void loadProfessionsIntoCombo() {
+        professionCombo.removeAllItems();
+        List<String> profs = StudentService.getDistinctProfessions();
+        for (String p : profs) {
+            professionCombo.addItem(p);
         }
     }
 
     private void loadSubjects() {
         gridPanel.removeAll();
-        SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
-        if (sel == null) {
+        String sel = (String) professionCombo.getSelectedItem();
+        if (sel == null || sel.trim().isEmpty()) {
             subjectCountLabel.setText("");
             gridPanel.revalidate();
             gridPanel.repaint();
             return;
         }
-        currentSubjectsList = SubjectService.getSubjectsBySpecialization(sel.id);
+        currentSubjectsList = SubjectService.getSubjectsByProfession(sel);
         for (Subject sub : currentSubjectsList) {
             gridPanel.add(buildSubjectCard(sub));
         }

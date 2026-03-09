@@ -2,25 +2,15 @@ package com.pvtd.students.services;
 
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
-//import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
-//import com.itextpdf.kernel.pdf.PdfWriter;
-//import com.itextpdf.layout.Document;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
 import com.pvtd.students.models.Student;
 import com.pvtd.students.models.Subject;
 import com.pvtd.students.ui.utils.UITheme;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.pdf.PdfWriter;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfTemplate;
-
-import java.awt.Graphics2D;
-import java.io.File;
-import java.io.FileOutputStream;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -30,9 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-
-
-
 
 public class PdfService {
 
@@ -78,8 +65,7 @@ public class PdfService {
                         "قد أتم بنجاح متطلبات التخرج واجتاز جميع الاختبارات المقررة بحالة: " +
                         "<b style='color:green;'>ناجح</b>.<br>" +
                         "ونتمنى له دوام التوفيق والنجاح في مسيرته المهنية.</div></html>",
-                student.getName(), student.getDobYear(), student.getDobMonth(), student.getDobDay(),
-                student.getNationalId(), student.getSeatNo(), getSpecializationName(student.getSpecializationId()));
+                student.getNationalId(), student.getSeatNo(), student.getProfession());
 
         JLabel bodyLabel = new JLabel(bodyText, SwingConstants.CENTER);
         bodyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -109,7 +95,7 @@ public class PdfService {
         g2d.dispose();
 
         // 3. Write Image to PDF
-//        writeImageToPdf(image, destPath);
+        writeImageToPdf(image, destPath);
         return destPath;
     }
 
@@ -134,14 +120,14 @@ public class PdfService {
         content.add(createRightAlignedLabel("الرقم القومي: " + student.getNationalId(), f));
         content.add(createRightAlignedLabel("رقم الجلوس: " + student.getSeatNo(), f));
         content.add(createRightAlignedLabel("مركز التدريب: " + student.getCenterName(), f));
-        content.add(createRightAlignedLabel("التخصص: " + getSpecializationName(student.getSpecializationId()), f));
+        content.add(createRightAlignedLabel("المهنة: " + student.getProfession(), f));
         content.add(createRightAlignedLabel("الحالة: " + student.getStatus(), f));
 
         // Add Grades
         content.add(createRightAlignedLabel(" ", f));
         content.add(createRightAlignedLabel("--- بيان الدرجات ---", new Font("Tahoma", Font.BOLD, 18)));
 
-        List<Subject> subjects = SubjectService.getSubjectsBySpecialization(student.getSpecializationId());
+        List<Subject> subjects = SubjectService.getSubjectsByProfession(student.getProfession());
         Map<Integer, Integer> grades = student.getGrades();
         int totalMax = 0;
         int totalAttained = 0;
@@ -168,67 +154,16 @@ public class PdfService {
         formPanel.printAll(g2d);
         g2d.dispose();
 
-       // writeImageToPdf(image, destPath);
+        writeImageToPdf(image, destPath);
         return destPath;
     }
-public static void exportPanelToPDF(JPanel panel, String path) {
 
-    try {
-
-        int width = panel.getWidth();
-        int height = panel.getHeight();
-
-        if (width == 0 || height == 0) {
-            width = 1400;
-            height = 900;
-            panel.setSize(width, height);
-        }
-
-        panel.doLayout();
-        panel.repaint();
-
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2 = image.createGraphics();
-
-        panel.printAll(g2);
-
-        g2.dispose();
-
-        Document document = new Document(PageSize.A4.rotate());
-
-        PdfWriter.getInstance(document, new FileOutputStream(path));
-
-        document.open();
-
-      com.itextpdf.text.Image img = com.itextpdf.text.Image.getInstance(image,null);
-
-        img.scaleToFit(PageSize.A4.getHeight(), PageSize.A4.getWidth());
-
-        document.add((Element) img);
-
-        document.close();
-
-        Desktop.getDesktop().browse(new File(path).toURI());
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-
-}
     private static JLabel createRightAlignedLabel(String text, Font font) {
         JLabel l = new JLabel(text, SwingConstants.RIGHT);
         l.setFont(font);
         l.setBackground(Color.WHITE);
         l.setOpaque(true);
         return l;
-    }
-
-    private static String getSpecializationName(int specId) {
-        return SpecializationService.getAllSpecializations().stream()
-                .filter(s -> s.getId() == specId)
-                .map(com.pvtd.students.models.Specialization::getName)
-                .findFirst()
-                .orElse("غير محدد");
     }
 
     private static String getStudentPdfPath(Student student, String prefix) {
@@ -247,21 +182,21 @@ public static void exportPanelToPDF(JPanel panel, String path) {
         return dest.getAbsolutePath();
     }
 
-//    private static void writeImageToPdf(BufferedImage image, String destPath) throws Exception {
-//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//        ImageIO.write(image, "png", baos);
-//        ImageData imageData = ImageDataFactory.create(baos.toByteArray());
-//
-//        PdfWriter writer = new PdfWriter(destPath);
-//        PdfDocument pdf = new PdfDocument(writer);
-//        Document document = new Document(pdf, PageSize.A4);
-//        document.setMargins(0, 0, 0, 0);
-//
-//        Image pdfImage = new Image(imageData);
-//        pdfImage.setWidth(PageSize.A4.getWidth());
-//        pdfImage.setHeight(PageSize.A4.getHeight());
-//
-//        document.add(pdfImage);
-//        document.close();
-//    }
+    private static void writeImageToPdf(BufferedImage image, String destPath) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        ImageData imageData = ImageDataFactory.create(baos.toByteArray());
+
+        PdfWriter writer = new PdfWriter(destPath);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document document = new Document(pdf, PageSize.A4);
+        document.setMargins(0, 0, 0, 0);
+
+        Image pdfImage = new Image(imageData);
+        pdfImage.setWidth(PageSize.A4.getWidth());
+        pdfImage.setHeight(PageSize.A4.getHeight());
+
+        document.add(pdfImage);
+        document.close();
+    }
 }

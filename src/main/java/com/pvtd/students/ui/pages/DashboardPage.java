@@ -1,12 +1,13 @@
 package com.pvtd.students.ui.pages;
 
 import com.pvtd.students.ui.utils.UITheme;
-import com.pvtd.students.ui.components.CustomDonutChart;
+import com.pvtd.students.ui.components.CustomPieChart;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.models.Student;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.Map;
@@ -19,38 +20,22 @@ public class DashboardPage extends JPanel {
                 setBorder(new EmptyBorder(24, 24, 24, 24));
                 setBackground(UITheme.BG_LIGHT);
 
-                // 1. Top Section - Statistics Cards (Dynamic based on DB Statuses)
+                // 1. Top Section - Statistics Cards
                 Map<String, Integer> stats = StudentService.getDashboardStats();
-                List<String> dynamicStatuses = com.pvtd.students.services.StatusesService.getAllStatuses();
 
-                // Use FlowLayout to allow cards to sit next to each other
-                JPanel statsInnerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+                JPanel statsInnerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 18, 0));
                 statsInnerPanel.setOpaque(false);
 
-                // Add Total Card first
-                statsInnerPanel.add(createStatCard("إجمالي الطلاب", String.format("%,d", stats.get("total")),
-                                new Color(41, 128, 185)));
+                // Explicit 4 cards requested by the user
+                statsInnerPanel.add(createStatCard("إجمالي الطلاب",
+                                String.format("%,d", stats.getOrDefault("total", 0)), new Color(41, 128, 185)));
+                statsInnerPanel.add(createStatCard("ناجح", String.format("%,d", stats.getOrDefault("ناجح", 0)),
+                                new Color(0x10B981)));
+                statsInnerPanel.add(createStatCard("راسب", String.format("%,d", stats.getOrDefault("راسب", 0)),
+                                new Color(0xEF4444)));
+                statsInnerPanel.add(createStatCard("دور ثاني", String.format("%,d", stats.getOrDefault("دور ثاني", 0)),
+                                new Color(0xF97316)));
 
-                // Color palette array for dynamic cards
-                Color[] palette = {
-                                new Color(46, 204, 113), // Green
-                                new Color(231, 76, 60), // Red
-                                new Color(241, 196, 15), // Yellow
-                                new Color(155, 89, 182), // Purple
-                                new Color(52, 73, 94), // Dark Blue
-                                new Color(230, 126, 34), // Orange
-                                new Color(22, 160, 133) // Teal
-                };
-
-                int colorIdx = 0;
-                for (String status : dynamicStatuses) {
-                        int count = stats.getOrDefault(status, 0);
-                        statsInnerPanel.add(createStatCard(status, String.format("%,d", count),
-                                        palette[colorIdx % palette.length]));
-                        colorIdx++;
-                }
-
-                // Wrap in a horizontal scroll pane in case there are many statuses
                 JScrollPane statsScroll = new JScrollPane(statsInnerPanel);
                 statsScroll.setBorder(null);
                 statsScroll.setOpaque(false);
@@ -58,7 +43,7 @@ public class DashboardPage extends JPanel {
                 statsScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
                 statsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
                 statsScroll.getHorizontalScrollBar().setUnitIncrement(16);
-                statsScroll.setPreferredSize(new Dimension(0, 150));
+                statsScroll.setPreferredSize(new Dimension(0, 160));
 
                 add(statsScroll, BorderLayout.NORTH);
 
@@ -66,7 +51,7 @@ public class DashboardPage extends JPanel {
                 JPanel centerPanel = new JPanel(new GridLayout(1, 2, 24, 24));
                 centerPanel.setOpaque(false);
 
-                // A. Custom Native Donut Chart
+                // A. Pie Chart
                 JPanel chartContainer = new JPanel(new BorderLayout());
                 chartContainer.setOpaque(false);
                 chartContainer.setBorder(BorderFactory.createCompoundBorder(
@@ -75,14 +60,15 @@ public class DashboardPage extends JPanel {
                                 new EmptyBorder(25, 25, 25, 25)));
 
                 JLabel chartTitle = new JLabel("توزيع حالات الطلاب", SwingConstants.CENTER);
-                chartTitle.setFont(UITheme.FONT_CARD_TITLE);
+                chartTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+                chartTitle.setForeground(new Color(0x1e293b));
                 chartTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
                 chartContainer.add(chartTitle, BorderLayout.NORTH);
 
-                CustomDonutChart donutChart = new CustomDonutChart(stats);
-                chartContainer.add(donutChart, BorderLayout.CENTER);
+                CustomPieChart pieChart = new CustomPieChart(stats);
+                chartContainer.add(pieChart, BorderLayout.CENTER);
 
-                // B. Recent Students Table (Preview)
+                // B. Recent Students Table
                 JPanel tableContainer = new JPanel(new BorderLayout());
                 tableContainer.setOpaque(false);
                 tableContainer.setBorder(BorderFactory.createCompoundBorder(
@@ -91,11 +77,13 @@ public class DashboardPage extends JPanel {
                                 new EmptyBorder(15, 15, 15, 15)));
 
                 JLabel tableTitle = new JLabel("أحدث التعديلات", SwingConstants.RIGHT);
-                tableTitle.setFont(UITheme.FONT_CARD_TITLE);
+                tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+                tableTitle.setForeground(new Color(0x1e293b));
                 tableTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
                 tableContainer.add(tableTitle, BorderLayout.NORTH);
 
-                String[] columns = { "رقم الجلوس", "الاسم", "الحالة", "المركز" };
+                // Important data only
+                String[] columns = { "رقم الجلوس", "الاسم", "الحالة" };
                 DefaultTableModel model = new DefaultTableModel(columns, 0) {
                         @Override
                         public boolean isCellEditable(int row, int column) {
@@ -103,27 +91,78 @@ public class DashboardPage extends JPanel {
                         }
                 };
 
-                List<Student> recentStudents = StudentService.getRecentStudents(5);
+                List<Student> recentStudents = StudentService.getRecentStudents(7);
                 for (Student s : recentStudents) {
-                        com.pvtd.students.models.Specialization spec = com.pvtd.students.services.SpecializationService
-                                        .getSpecializationById(s.getSpecializationId());
                         model.addRow(new Object[] {
                                         s.getSeatNo(),
                                         s.getName(),
-                                        s.getStatus() != null ? s.getStatus() : "غير محدد",
-                                        spec != null ? spec.getName() : "-"
+                                        s.getStatus() != null ? s.getStatus() : "غير محدد"
                         });
                 }
 
-                JTable table = new JTable(model);
-                table.setRowHeight(48); // Premium SaaS Row Height
+                JTable table = new JTable(model) {
+                        @Override
+                        public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row,
+                                        int column) {
+                                Component c = super.prepareRenderer(renderer, row, column);
+                                if (!isRowSelected(row)) {
+                                        c.setBackground(Color.WHITE);
+                                }
+                                return c;
+                        }
+                };
+                table.setRowHeight(55);
                 table.setFont(UITheme.FONT_BODY);
-                table.getTableHeader().setFont(UITheme.FONT_HEADER);
+
+                // Header styling & Center Alignment for a cleaner look
+                DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer();
+                headerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+                headerRenderer.setBackground(new Color(0xf8fafc));
+                headerRenderer.setForeground(new Color(0x475569));
+                headerRenderer.setFont(UITheme.FONT_HEADER);
+                headerRenderer.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xe2e8f0)));
+
+                for (int i = 0; i < table.getColumnModel().getColumnCount(); i++) {
+                        table.getColumnModel().getColumn(i).setHeaderRenderer(headerRenderer);
+                }
+
                 table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
                 table.setShowGrid(false);
                 table.setIntercellSpacing(new Dimension(0, 0));
+
+                // Status Badge Pill for Column 2 (Status in RTL, actually right-most physically
+                // if LTR, but visually leftmost)
                 table.getColumnModel().getColumn(2)
                                 .setCellRenderer(new com.pvtd.students.ui.utils.StatusBadgeRenderer());
+
+                // Adjust alignment for main columns
+                DefaultTableCellRenderer centerRenderer = new com.pvtd.students.ui.utils.CleanCellRenderer();
+                centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+                table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer); // Seating No
+                table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer); // Name
+
+                // Highlight Rows
+                table.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                        int lastHoveredRow = -1;
+
+                        public void mouseMoved(java.awt.event.MouseEvent e) {
+                                int row = table.rowAtPoint(e.getPoint());
+                                if (row != lastHoveredRow) {
+                                        if (row > -1) {
+                                                table.setRowSelectionInterval(row, row);
+                                                table.setSelectionBackground(new Color(0xf5f7fb));
+                                                table.setSelectionForeground(UITheme.TEXT_PRIMARY);
+                                        }
+                                        lastHoveredRow = row;
+                                }
+                        }
+                });
+
+                table.addMouseListener(new java.awt.event.MouseAdapter() {
+                        public void mouseExited(java.awt.event.MouseEvent e) {
+                                table.clearSelection();
+                        }
+                });
 
                 JScrollPane scrollPane = new JScrollPane(table);
                 scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -140,13 +179,22 @@ public class DashboardPage extends JPanel {
                 bottomPanel.setOpaque(false);
                 bottomPanel.setBorder(new EmptyBorder(24, 0, 0, 0));
 
-                JButton clearLogsBtn = new JButton("تفريغ كل سجلات النظام");
+                JButton clearLogsBtn = new JButton("تفريغ السجلات");
                 clearLogsBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-                clearLogsBtn.setBackground(UITheme.DANGER);
+                clearLogsBtn.setBackground(new Color(0xEF4444));
                 clearLogsBtn.setForeground(Color.WHITE);
                 clearLogsBtn.setFocusPainted(false);
                 clearLogsBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 clearLogsBtn.setPreferredSize(new Dimension(200, 45));
+                clearLogsBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                        public void mouseEntered(java.awt.event.MouseEvent e) {
+                                clearLogsBtn.setBackground(new Color(0xDC2626));
+                        }
+
+                        public void mouseExited(java.awt.event.MouseEvent e) {
+                                clearLogsBtn.setBackground(new Color(0xEF4444));
+                        }
+                });
                 clearLogsBtn.addActionListener(e -> {
                         int confirm = JOptionPane.showConfirmDialog(this,
                                         "هل أنت متأكد من تفريغ كافة سجلات النظام؟ لا يمكن التراجع عن هذه الخطوة.",
@@ -165,50 +213,75 @@ public class DashboardPage extends JPanel {
                         }
                 });
 
-                bottomPanel.add(clearLogsBtn, BorderLayout.WEST);
+                bottomPanel.add(clearLogsBtn, BorderLayout.SOUTH);
                 add(bottomPanel, BorderLayout.SOUTH);
         }
 
         private JPanel createStatCard(String title, String value, Color accent) {
-                JPanel card = new JPanel(new BorderLayout());
-                card.setOpaque(false);
-                card.setBorder(BorderFactory.createCompoundBorder(
-                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 6, 0.08f, 20,
+                JPanel cardWrapper = new JPanel(new BorderLayout());
+                cardWrapper.setOpaque(false);
+                cardWrapper.setPreferredSize(new Dimension(230, 115));
+
+                cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 10, 0.08f, 20,
                                                 UITheme.CARD_BG),
-                                new EmptyBorder(24, 24, 24, 24)));
+                                new EmptyBorder(16, 20, 16, 20)));
 
-                JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
-                titleLabel.setFont(UITheme.FONT_CARD_TITLE);
-                titleLabel.setForeground(UITheme.TEXT_SECONDARY);
-                titleLabel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+                // To prevent vertical overlap, we use a 2-row layout
+                JPanel contentPanel = new JPanel(new GridLayout(2, 1, 0, 8));
+                contentPanel.setOpaque(false);
 
-                JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
-                valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
+                // Header: Title
+                JPanel headPanel = new JPanel(new BorderLayout());
+                headPanel.setOpaque(false);
+
+                JLabel titleLabel = new JLabel(title, SwingConstants.RIGHT);
+                titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+                titleLabel.setForeground(new Color(0x475569));
+
+                // Colored dot indicator
+                JPanel dotPanel = new JPanel() {
+                        @Override
+                        protected void paintComponent(Graphics g) {
+                                super.paintComponent(g);
+                                Graphics2D g2 = (Graphics2D) g;
+                                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                                g2.setColor(accent);
+                                g2.fillOval(4, 5, 12, 12);
+                        }
+                };
+                dotPanel.setOpaque(false);
+                dotPanel.setPreferredSize(new Dimension(20, 20));
+
+                headPanel.add(titleLabel, BorderLayout.EAST);
+                headPanel.add(dotPanel, BorderLayout.WEST);
+
+                // Value
+                JLabel valueLabel = new JLabel(value, SwingConstants.RIGHT);
+                valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
                 valueLabel.setForeground(accent);
 
-                card.add(titleLabel, BorderLayout.NORTH);
-                card.add(valueLabel, BorderLayout.CENTER);
+                contentPanel.add(headPanel);
+                contentPanel.add(valueLabel);
 
-                // Hover Lift Micro-Animation
-                card.addMouseListener(new java.awt.event.MouseAdapter() {
+                cardWrapper.add(contentPanel, BorderLayout.CENTER);
+
+                cardWrapper.addMouseListener(new java.awt.event.MouseAdapter() {
                         public void mouseEntered(java.awt.event.MouseEvent evt) {
-                                card.setBorder(BorderFactory.createCompoundBorder(
-                                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 10, 0.12f,
+                                cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 15, 0.12f,
                                                                 20, UITheme.CARD_BG),
-                                                new EmptyBorder(20, 24, 28, 24) // Shift card visually up
-                                ));
-                                card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                                                new EmptyBorder(14, 20, 18, 20)));
                         }
 
                         public void mouseExited(java.awt.event.MouseEvent evt) {
-                                card.setBorder(BorderFactory.createCompoundBorder(
-                                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 6, 0.08f,
+                                cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                                                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 10, 0.08f,
                                                                 20, UITheme.CARD_BG),
-                                                new EmptyBorder(24, 24, 24, 24) // Reset to normal
-                                ));
+                                                new EmptyBorder(16, 20, 16, 20)));
                         }
                 });
 
-                return card;
+                return cardWrapper;
         }
 }

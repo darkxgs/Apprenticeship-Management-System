@@ -60,7 +60,6 @@ public class StudentService {
                     s.setId(rs.getInt("id"));
                     s.setSeatNo(rs.getString("seat_no"));
                     s.setName(rs.getString("name"));
-                    s.setSpecializationId(rs.getInt("specialization_id"));
                     s.setStatus(rs.getString("status"));
                     students.add(s);
                 }
@@ -175,11 +174,28 @@ public class StudentService {
         return list;
     }
 
+    public static List<String> getDistinctProfessions() {
+        List<String> list = new ArrayList<>();
+        String query = "SELECT DISTINCT profession FROM students WHERE profession IS NOT NULL";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String val = rs.getString("profession");
+                if (val != null && !val.trim().isEmpty()) {
+                    list.add(val.trim());
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     // Helper to map DB ResultSet to Student
     private static Student extractStudent(ResultSet rs) throws SQLException {
         Student s = new Student();
         s.setId(rs.getInt("id"));
-        s.setSpecializationId(rs.getInt("specialization_id"));
         s.setSerial(rs.getString("serial"));
         s.setName(rs.getString("name"));
         s.setRegistrationNo(rs.getString("registration_no"));
@@ -200,8 +216,6 @@ public class StudentService {
         s.setReligion(rs.getString("religion"));
         s.setNationality(rs.getString("nationality"));
         s.setAddress(rs.getString("address"));
-        s.setSchool(rs.getString("school"));
-        s.setAcademicYear(rs.getString("academic_year"));
         s.setOtherNotes(rs.getString("other_notes"));
         s.setImagePath(rs.getString("image_path"));
         s.setCenterName(rs.getString("center_name"));
@@ -227,47 +241,43 @@ public class StudentService {
     }
 
     public static void addStudent(Student s) {
-        String query = "INSERT INTO students (specialization_id, serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, school, academic_year, other_notes, image_path, center_name, id_front_path, id_back_path, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String query = "INSERT INTO students (serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query, new String[] { "id" })) { // get generated ID
 
-            stmt.setInt(1, s.getSpecializationId());
-            stmt.setString(2, s.getSerial());
-            stmt.setString(3, s.getName());
-            stmt.setString(4, s.getRegistrationNo());
-            stmt.setString(5, s.getNationalId());
-            stmt.setString(6, s.getRegion());
-            stmt.setString(7, s.getProfession());
-            stmt.setString(8, s.getExamSystem());
-            stmt.setString(9, s.getSeatNo());
-            stmt.setString(10, s.getSecretNo());
-            stmt.setString(11, s.getProfessionalGroup());
-            stmt.setString(12, s.getCoordinationNo());
-            stmt.setString(13, s.getDobDay());
-            stmt.setString(14, s.getDobMonth());
-            stmt.setString(15, s.getDobYear());
-            stmt.setString(16, s.getGender());
-            stmt.setString(17, s.getNeighborhood());
-            stmt.setString(18, s.getGovernorate());
-            stmt.setString(19, s.getReligion());
-            stmt.setString(20, s.getNationality());
-            stmt.setString(21, s.getAddress());
-            stmt.setString(22, s.getSchool());
-            stmt.setString(23, s.getAcademicYear());
-            stmt.setString(24, s.getOtherNotes());
-            stmt.setString(25, s.getImagePath());
-            stmt.setString(26, s.getCenterName());
-            stmt.setString(27, s.getIdFrontPath());
-            stmt.setString(28, s.getIdBackPath());
+            stmt.setString(1, s.getSerial());
+            stmt.setString(2, s.getName());
+            stmt.setString(3, s.getRegistrationNo());
+            stmt.setString(4, s.getNationalId());
+            stmt.setString(5, s.getRegion());
+            stmt.setString(6, s.getProfession());
+            stmt.setString(7, s.getExamSystem());
+            stmt.setString(8, s.getSeatNo());
+            stmt.setString(9, s.getSecretNo());
+            stmt.setString(10, s.getProfessionalGroup());
+            stmt.setString(11, s.getCoordinationNo());
+            stmt.setString(12, s.getDobDay());
+            stmt.setString(13, s.getDobMonth());
+            stmt.setString(14, s.getDobYear());
+            stmt.setString(15, s.getGender());
+            stmt.setString(16, s.getNeighborhood());
+            stmt.setString(17, s.getGovernorate());
+            stmt.setString(18, s.getReligion());
+            stmt.setString(19, s.getNationality());
+            stmt.setString(20, s.getAddress());
+            stmt.setString(21, s.getOtherNotes());
+            stmt.setString(22, s.getImagePath());
+            stmt.setString(23, s.getCenterName());
+            stmt.setString(24, s.getIdFrontPath());
+            stmt.setString(25, s.getIdBackPath());
 
-            // Administrative Status Override Logic
             String tempStatus = s.getStatus();
             if (tempStatus == null || tempStatus.trim().isEmpty() || tempStatus.equals("غير محدد")
                     || tempStatus.equals("ناجح") || tempStatus.equals("راسب") || tempStatus.equals("دور ثاني")) {
-                tempStatus = calculateStatus(s.getSpecializationId(), s.getGrades());
+                tempStatus = calculateStatus(s.getProfession(), s.getGrades());
             }
-            stmt.setString(29, tempStatus);
+            stmt.setString(26, tempStatus);
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
@@ -290,46 +300,43 @@ public class StudentService {
     }
 
     public static void updateStudent(Student s) {
-        String query = "UPDATE students SET specialization_id=?, serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, school=?, academic_year=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=? WHERE id=?";
+        String query = "UPDATE students SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=? WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
-            stmt.setInt(1, s.getSpecializationId());
-            stmt.setString(2, s.getSerial());
-            stmt.setString(3, s.getName());
-            stmt.setString(4, s.getRegistrationNo());
-            stmt.setString(5, s.getNationalId());
-            stmt.setString(6, s.getRegion());
-            stmt.setString(7, s.getProfession());
-            stmt.setString(8, s.getExamSystem());
-            stmt.setString(9, s.getSeatNo());
-            stmt.setString(10, s.getSecretNo());
-            stmt.setString(11, s.getProfessionalGroup());
-            stmt.setString(12, s.getCoordinationNo());
-            stmt.setString(13, s.getDobDay());
-            stmt.setString(14, s.getDobMonth());
-            stmt.setString(15, s.getDobYear());
-            stmt.setString(16, s.getGender());
-            stmt.setString(17, s.getNeighborhood());
-            stmt.setString(18, s.getGovernorate());
-            stmt.setString(19, s.getReligion());
-            stmt.setString(20, s.getNationality());
-            stmt.setString(21, s.getAddress());
-            stmt.setString(22, s.getSchool());
-            stmt.setString(23, s.getAcademicYear());
-            stmt.setString(24, s.getOtherNotes());
-            stmt.setString(25, s.getImagePath());
-            stmt.setString(26, s.getCenterName());
-            stmt.setString(27, s.getIdFrontPath());
-            stmt.setString(28, s.getIdBackPath());
+            stmt.setString(1, s.getSerial());
+            stmt.setString(2, s.getName());
+            stmt.setString(3, s.getRegistrationNo());
+            stmt.setString(4, s.getNationalId());
+            stmt.setString(5, s.getRegion());
+            stmt.setString(6, s.getProfession());
+            stmt.setString(7, s.getExamSystem());
+            stmt.setString(8, s.getSeatNo());
+            stmt.setString(9, s.getSecretNo());
+            stmt.setString(10, s.getProfessionalGroup());
+            stmt.setString(11, s.getCoordinationNo());
+            stmt.setString(12, s.getDobDay());
+            stmt.setString(13, s.getDobMonth());
+            stmt.setString(14, s.getDobYear());
+            stmt.setString(15, s.getGender());
+            stmt.setString(16, s.getNeighborhood());
+            stmt.setString(17, s.getGovernorate());
+            stmt.setString(18, s.getReligion());
+            stmt.setString(19, s.getNationality());
+            stmt.setString(20, s.getAddress());
+            stmt.setString(21, s.getOtherNotes());
+            stmt.setString(22, s.getImagePath());
+            stmt.setString(23, s.getCenterName());
+            stmt.setString(24, s.getIdFrontPath());
+            stmt.setString(25, s.getIdBackPath());
 
             String tempStatus = s.getStatus();
             if (tempStatus == null || tempStatus.trim().isEmpty() || tempStatus.equals("غير محدد")
                     || tempStatus.equals("ناجح") || tempStatus.equals("راسب") || tempStatus.equals("دور ثاني")) {
-                tempStatus = calculateStatus(s.getSpecializationId(), s.getGrades());
+                tempStatus = calculateStatus(s.getProfession(), s.getGrades());
             }
-            stmt.setString(29, tempStatus);
-            stmt.setInt(30, s.getId());
+            stmt.setString(26, tempStatus);
+            stmt.setInt(27, s.getId());
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
@@ -399,12 +406,12 @@ public class StudentService {
         }
     }
 
-    public static String calculateStatus(int specializationId, Map<Integer, Integer> grades) {
+    public static String calculateStatus(String profession, Map<Integer, Integer> grades) {
         if (grades == null || grades.isEmpty())
             return "غير محدد";
 
-        // Fetch passing rules for the subjects of this specialization
-        List<com.pvtd.students.models.Subject> subjects = SubjectService.getSubjectsBySpecialization(specializationId);
+        // Fetch passing rules for the subjects of this profession
+        List<com.pvtd.students.models.Subject> subjects = SubjectService.getSubjectsByProfession(profession);
         if (subjects.isEmpty())
             return "غير محدد";
 

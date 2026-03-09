@@ -1,4 +1,4 @@
- package com.pvtd.students;
+package com.pvtd.students;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.pvtd.students.db.DatabaseConnection;
@@ -41,9 +41,9 @@ public class MainApp {
         System.out.println("Initializing Database Connections...");
         DatabaseConnection.initializeDatabase();
 
-        // Launch UI
+        // Launch UI via Splash Screen
         SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
-        });
+                new LoginFrame().setVisible(true);
+            });
     }
 }

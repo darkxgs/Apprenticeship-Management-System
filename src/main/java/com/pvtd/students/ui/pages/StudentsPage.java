@@ -5,7 +5,6 @@ import com.pvtd.students.services.ReportService;
 import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.ui.AppFrame;
-import com.pvtd.students.ui.pages.Report.CertificateOfSuccess1;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 
@@ -15,7 +14,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,9 +54,6 @@ public class StudentsPage extends JPanel {
             { "الديانة", 100 },
             { "الجنسية", 100 },
             { "العنوان", 200 },
-            { "المدرسة", 180 },
-            { "العام الدراسي", 130 },
-            { "التخصص", 150 },
             { "الحالة", 110 },
             { "أخرى", 140 },
     };
@@ -136,7 +131,11 @@ public class StudentsPage extends JPanel {
             govCombo.addItem(g);
         }
 
-        profCombo = makeCombo("الكل", "ميكانيكا", "كهرباء سيارات", "خراطة", "تشغيل مكني");
+        profCombo = makeCombo();
+        profCombo.addItem("الكل");
+        for (String p : StudentService.getDistinctProfessions()) {
+            profCombo.addItem(p);
+        }
         statusCombo = makeCombo(); // will add items manually
         statusCombo.addItem("الكل");
         for (String s : StatusesService.getAllStatuses()) {
@@ -165,15 +164,18 @@ public class StudentsPage extends JPanel {
             loadStudentData();
         });
 
+        // RTL layout: add in reverse visual order (right→left)
+        // Each filter group: label then combo (label appears on the right in RTL)
         filterCard.add(btnReset);
         filterCard.add(btnSearch);
-        filterCard.add(statusCombo);
         filterCard.add(labelFor("الحالة:"));
-        filterCard.add(profCombo);
+        filterCard.add(statusCombo);
         filterCard.add(labelFor("طبيعة العمل:"));
-        filterCard.add(govCombo);
+        filterCard.add(profCombo);
         filterCard.add(labelFor("محافظة:"));
+        filterCard.add(govCombo);
         filterCard.add(searchSeatField);
+        filterCard.add(labelFor("رقم الجلوس:"));
         filterCard.add(searchKeyField);
         filterCard.add(labelFor("البحث:"));
 
@@ -269,7 +271,7 @@ public class StudentsPage extends JPanel {
         });
 
         // Status column — colored badge via existing renderer
-        studentsTable.getColumnModel().getColumn(23)
+        studentsTable.getColumnModel().getColumn(20)
                 .setCellRenderer(new com.pvtd.students.ui.utils.StatusBadgeRenderer());
 
         // ── Wrap in card ──────────────────────────────────────────────────────
@@ -281,9 +283,10 @@ public class StudentsPage extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.getHorizontalScrollBar().setUnitIncrement(24);
 
-        // ── Scroll to beginning on load ──
+        // ── Scroll to right edge on load (RTL start) ──
         SwingUtilities.invokeLater(() -> {
-            scrollPane.getViewport().setViewPosition(new Point(0, 0));
+            JScrollBar hBar = scrollPane.getHorizontalScrollBar();
+            hBar.setValue(hBar.getMaximum());
         });
 
         JPanel tableCard = new JPanel(new BorderLayout());
@@ -359,38 +362,30 @@ public class StudentsPage extends JPanel {
         });
 
         btnPdf.addActionListener(e -> {
-   
-             
-     List<Student> selectedStudents = new ArrayList<>();
-
-    int[] selectedRows = studentsTable.getSelectedRows();
-
-    if (selectedRows.length == 0) {
-        JOptionPane.showMessageDialog(this, "اختار طالب واحد على الأقل");
-        return;
-    }
-
-    for (int row : selectedRows) {
-
-        String seatNo = studentsTable.getValueAt(row, 9).toString(); // عمود رقم الجلوس
-
-        Student s = new Student();
-        s.setSeatNo(seatNo);
-
-        selectedStudents.add(s);
-    }
-
-    CertificateOfSuccess1 cert = new CertificateOfSuccess1();
-
-    cert.printCertificates(selectedStudents);
-        
+            List<Student> sel = getSelectedStudents();
+            if (sel.isEmpty()) {
+                warn("يرجى تحديد طالب (أو أكثر) لإصدار الشهادة.");
+                return;
+            }
+            try {
+                int successCount = 0;
+                for (Student s : sel) {
+                    com.pvtd.students.services.PdfService.generatePassCertificate(s);
+                    successCount++;
+                }
+                JOptionPane.showMessageDialog(this, "تم إنشاء " + successCount + " شهادة بنجاح في مجلدات الطلاب!",
+                        "نجاح",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                warn("حدث خطأ أثناء إنشاء الشهادات.");
+            }
         });
 
         btnForm.addActionListener(e -> {
             List<Student> sel = getSelectedStudents();
             if (sel.isEmpty()) {
                 warn("يرجى تحديد طالب (أو أكثر) لإصدار الاستمارة.");
-                
                 return;
             }
             try {
@@ -475,9 +470,6 @@ public class StudentsPage extends JPanel {
             if ("راسب".equals(stat))
                 failed++;
 
-            com.pvtd.students.models.Specialization spec = com.pvtd.students.services.SpecializationService
-                    .getSpecializationById(s.getSpecializationId());
-
             tableModel.addRow(new Object[] {
                     false,
                     s.getSerial(),
@@ -499,9 +491,6 @@ public class StudentsPage extends JPanel {
                     s.getReligion(),
                     s.getNationality(),
                     s.getAddress(),
-                    s.getSchool(),
-                    s.getAcademicYear(),
-                    spec != null ? spec.getName() : "—",
                     stat,
                     s.getOtherNotes()
             });
@@ -561,7 +550,6 @@ public class StudentsPage extends JPanel {
         btn.putClientProperty("JButton.buttonType", "roundRect");
         if (filled)
             btn.putClientProperty("JButton.arc", 10);
-        
         return btn;
     }
 

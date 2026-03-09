@@ -1,9 +1,7 @@
 package com.pvtd.students.ui.pages;
 
 import com.pvtd.students.models.Student;
-import com.pvtd.students.models.Specialization;
 import com.pvtd.students.models.Subject;
-import com.pvtd.students.services.SpecializationService;
 import com.pvtd.students.services.SubjectService;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.services.StatusesService;
@@ -20,7 +18,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class StudentFormPage extends JPanel {
 
@@ -29,14 +26,13 @@ public class StudentFormPage extends JPanel {
     private boolean isEditMode;
 
     // Academic Main Fields
-    private JTextField nameField, seatNoField, nationalIdField, serialField, registrationNoField,
-            schoolField, academicYearField;
+    private JTextField nameField, seatNoField, nationalIdField, serialField, registrationNoField;
     private JComboBox<String> centerNameCombo;
-    private JComboBox<SpecializationItem> specCombo;
+    private JComboBox<String> professionCombo;
     private JComboBox<String> statusCombo;
 
     // Academic Secondary Fields
-    private JTextField regionField, professionField, examSystemField, secretNoField, profGroupField,
+    private JTextField regionField, examSystemField, secretNoField, profGroupField,
             coordinationNoField, otherNotesField;
 
     // Personal Info Fields
@@ -89,8 +85,8 @@ public class StudentFormPage extends JPanel {
         if (isEditMode) {
             populateFields();
         } else {
-            if (specCombo.getItemCount() > 0) {
-                renderDynamicSubjects(((SpecializationItem) specCombo.getSelectedItem()).id);
+            if (professionCombo.getItemCount() > 0) {
+                renderDynamicSubjects((String) professionCombo.getSelectedItem());
             }
         }
     }
@@ -168,22 +164,21 @@ public class StudentFormPage extends JPanel {
         }
         grid.add(centerNameCombo);
 
-        // Specialization Combo
-        grid.add(createLabel("التخصص"));
-        specCombo = new JComboBox<>();
-        specCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        for (Specialization sp : SpecializationService.getAllSpecializations()) {
-            specCombo.addItem(new SpecializationItem(sp.getId(), sp.getName()));
+        // Profession Combo
+        grid.add(createLabel("المهنة"));
+        professionCombo = new JComboBox<>();
+        professionCombo.setEditable(true);
+        professionCombo.addItem("");
+        professionCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        for (String p : StudentService.getDistinctProfessions()) {
+            professionCombo.addItem(p);
         }
-        specCombo.addActionListener(e -> {
-            SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
-            if (sel != null)
-                renderDynamicSubjects(sel.id);
+        professionCombo.addActionListener(e -> {
+            String sel = (String) professionCombo.getSelectedItem();
+            if (sel != null && !sel.trim().isEmpty())
+                renderDynamicSubjects(sel);
         });
-        grid.add(specCombo);
-
-        schoolField = addLabeledField(grid, "المدرسة");
-        academicYearField = addLabeledField(grid, "العام الدراسي");
+        grid.add(professionCombo);
 
         // Status Override Combo
         grid.add(createLabel("الحالة الإدارية (تجاوز)"));
@@ -206,7 +201,6 @@ public class StudentFormPage extends JPanel {
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         regionField = addLabeledField(grid, "المنطقة");
-        professionField = addLabeledField(grid, "المهنة");
         examSystemField = addLabeledField(grid, "نظام الامتحان");
         secretNoField = addLabeledField(grid, "الرقم السري");
         profGroupField = addLabeledField(grid, "المجموعة المهنية");
@@ -398,11 +392,11 @@ public class StudentFormPage extends JPanel {
         return tf;
     }
 
-    private void renderDynamicSubjects(int specId) {
+    private void renderDynamicSubjects(String profession) {
         gradesPanel.removeAll();
         dynamicGradeFields.clear();
 
-        currentSubjectsList = SubjectService.getSubjectsBySpecialization(specId);
+        currentSubjectsList = SubjectService.getSubjectsByProfession(profession);
         if (currentSubjectsList == null || currentSubjectsList.isEmpty()) {
             JLabel noSubjLabel = new JLabel("لا توجد مواد مسجلة لهذا التخصص.", SwingConstants.CENTER);
             noSubjLabel.setForeground(UITheme.DANGER);
@@ -510,8 +504,8 @@ public class StudentFormPage extends JPanel {
                 }
             }
 
-            SpecializationItem sel = (SpecializationItem) specCombo.getSelectedItem();
-            String overallStatus = StudentService.calculateStatus(sel.id, currentGrades);
+            String sel = (String) professionCombo.getSelectedItem();
+            String overallStatus = StudentService.calculateStatus(sel, currentGrades);
 
             // Build detailed HTML message
             String color = overallStatus.equals("ناجح") ? "green" : (overallStatus.equals("راسب") ? "red" : "orange");
@@ -555,10 +549,10 @@ public class StudentFormPage extends JPanel {
             centerNameCombo.setSelectedItem(student.getCenterName());
         }
 
-        schoolField.setText(student.getSchool());
-        academicYearField.setText(student.getAcademicYear());
         regionField.setText(student.getRegion());
-        professionField.setText(student.getProfession());
+        if (student.getProfession() != null) {
+            professionCombo.setSelectedItem(student.getProfession());
+        }
         examSystemField.setText(student.getExamSystem());
         secretNoField.setText(student.getSecretNo());
         profGroupField.setText(student.getProfessionalGroup());
@@ -580,13 +574,6 @@ public class StudentFormPage extends JPanel {
             genderCombo.setSelectedItem(student.getGender());
         if (student.getGovernorate() != null)
             govCombo.setSelectedItem(student.getGovernorate());
-
-        for (int i = 0; i < specCombo.getItemCount(); i++) {
-            if (specCombo.getItemAt(i).id == student.getSpecializationId()) {
-                specCombo.setSelectedIndex(i);
-                break;
-            }
-        }
 
         String st = student.getStatus();
         if (st == null || st.isEmpty() || st.equals("ناجح") || st.equals("راسب") || st.equals("دور ثاني")) {
@@ -689,12 +676,6 @@ public class StudentFormPage extends JPanel {
         Object selectedCenter = centerNameCombo.getSelectedItem();
         student.setCenterName(selectedCenter != null ? selectedCenter.toString() : "");
 
-        SpecializationItem selSpec = (SpecializationItem) specCombo.getSelectedItem();
-        student.setSpecializationId(selSpec != null ? selSpec.id : 0);
-
-        student.setSchool(schoolField.getText().trim());
-        student.setAcademicYear(academicYearField.getText().trim());
-
         String sStatus = (String) statusCombo.getSelectedItem();
         if ("تلقائي (حسب الدرجات)".equals(sStatus)) {
             student.setStatus(null); // Let the service auto-gen
@@ -703,7 +684,8 @@ public class StudentFormPage extends JPanel {
         }
 
         student.setRegion(regionField.getText().trim());
-        student.setProfession(professionField.getText().trim());
+        Object profObj = professionCombo.getSelectedItem();
+        student.setProfession(profObj != null ? profObj.toString().trim() : "");
         student.setExamSystem(examSystemField.getText().trim());
         student.setSecretNo(secretNoField.getText().trim());
         student.setProfessionalGroup(profGroupField.getText().trim());
@@ -749,18 +731,4 @@ public class StudentFormPage extends JPanel {
         }
     }
 
-    private static class SpecializationItem {
-        int id;
-        String name;
-
-        SpecializationItem(int id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 }
