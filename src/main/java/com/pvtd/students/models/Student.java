@@ -2,7 +2,6 @@ package com.pvtd.students.models;
 
 public class Student {
     private int id;
-    private int specializationId; // Replaced centerName
     private String serial; // مسلسل
     private String name; // الاسم
     private String registrationNo; // رقم التسجيل
@@ -26,8 +25,6 @@ public class Student {
     private String religion; // ديانة
     private String nationality; // جنسية
     private String address; // عنوان
-    private String school; // اسم المدرسة
-    private String academicYear; // العام الدراسي
     private String otherNotes; // اخري
     private String imagePath; // مسار الصورة (الصورة الشخصية pic)
 
@@ -43,15 +40,14 @@ public class Student {
     private String status; // حالة الطالب (ناجح/راسب/دور ثان/غائب...)
 
     // Constructor
-    public Student(int id, int specializationId, String serial, String name, String registrationNo, String nationalId,
+    public Student(int id, String serial, String name, String registrationNo, String nationalId,
             String region, String centerName, String profession, String examSystem,
             String seatNo, String secretNo, String professionalGroup, String coordinationNo,
             String dobDay, String dobMonth, String dobYear, String gender, String neighborhood,
-            String governorate, String religion, String nationality, String address, String school, String academicYear,
+            String governorate, String religion, String nationality, String address,
             String otherNotes, String imagePath, String idFrontPath, String idBackPath,
             java.util.Map<Integer, Integer> grades, String status) {
         this.id = id;
-        this.specializationId = specializationId;
         this.serial = serial;
         this.name = name;
         this.registrationNo = registrationNo;
@@ -73,8 +69,6 @@ public class Student {
         this.religion = religion;
         this.nationality = nationality;
         this.address = address;
-        this.school = school;
-        this.academicYear = academicYear;
         this.otherNotes = otherNotes;
         this.imagePath = imagePath;
         this.idFrontPath = idFrontPath;
@@ -139,14 +133,6 @@ public class Student {
 
     public void setRegion(String region) {
         this.region = region;
-    }
-
-    public int getSpecializationId() {
-        return specializationId;
-    }
-
-    public void setSpecializationId(int specializationId) {
-        this.specializationId = specializationId;
     }
 
     public String getProfession() {
@@ -267,22 +253,6 @@ public class Student {
 
     public void setAddress(String address) {
         this.address = address;
-    }
-
-    public String getSchool() {
-        return school;
-    }
-
-    public void setSchool(String school) {
-        this.school = school;
-    }
-
-    public String getAcademicYear() {
-        return academicYear;
-    }
-
-    public void setAcademicYear(String academicYear) {
-        this.academicYear = academicYear;
     }
 
     public String getOtherNotes() {

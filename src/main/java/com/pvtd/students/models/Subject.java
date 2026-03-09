@@ -2,15 +2,15 @@ package com.pvtd.students.models;
 
 public class Subject {
     private int id;
-    private int specializationId;
+    private String profession;
     private String name;
     private String type;
     private int passMark;
     private int maxMark;
 
-    public Subject(int id, int specializationId, String name, String type, int passMark, int maxMark) {
+    public Subject(int id, String profession, String name, String type, int passMark, int maxMark) {
         this.id = id;
-        this.specializationId = specializationId;
+        this.profession = profession;
         this.name = name;
         this.type = type;
         this.passMark = passMark;
@@ -21,8 +21,8 @@ public class Subject {
         return id;
     }
 
-    public int getSpecializationId() {
-        return specializationId;
+    public String getProfession() {
+        return profession;
     }
 
     public String getName() {

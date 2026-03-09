@@ -2,7 +2,6 @@ package com.pvtd.students.ui;
 
 import com.pvtd.students.models.User;
 import com.pvtd.students.ui.components.Sidebar;
-import com.pvtd.students.ui.components.Topbar;
 import com.pvtd.students.ui.pages.DashboardPage;
 
 import javax.swing.*;
@@ -11,7 +10,6 @@ import java.awt.*;
 public class AppFrame extends JFrame {
     private JPanel contentPanel;
     private Sidebar sidebar;
-    private Topbar topbar;
     private User loggedInUser;
 
     public AppFrame(User user) {
@@ -23,6 +21,12 @@ public class AppFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximized by default
         setLayout(new BorderLayout());
+
+        // Set window icon from logo.jpg
+        java.net.URL logoUrl = getClass().getClassLoader().getResource("logo.jpg");
+        if (logoUrl != null) {
+            setIconImage(new ImageIcon(logoUrl).getImage());
+        }
 
         // Setup Modern Architecture
         sidebar = new Sidebar(this);

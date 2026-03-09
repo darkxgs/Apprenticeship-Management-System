@@ -4,6 +4,7 @@ import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 import com.pvtd.students.ui.utils.UITheme;
+import com.pvtd.students.ui.utils.WrapLayout;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,16 +16,21 @@ public class StatusesPage extends JPanel {
     private final AppFrame frame;
     private JPanel gridPanel;
 
-    // Color palette for status cards — auto-cycles
+    // Semantic Color map - [bgColor, accentColor]
     private static final Color[][] PALETTE = {
-            { new Color(0xDBEAFE), new Color(0x1D4ED8) }, // blue
-            { new Color(0xDCFCE7), new Color(0x15803D) }, // green
+            { new Color(0xDBEAFE), new Color(0x2563EB) }, // blue
+            { new Color(0xDCFCE7), new Color(0x059669) }, // green
             { new Color(0xFEE2E2), new Color(0xDC2626) }, // red
             { new Color(0xFEF3C7), new Color(0xD97706) }, // amber
             { new Color(0xEDE9FE), new Color(0x7C3AED) }, // violet
             { new Color(0xFCE7F3), new Color(0xBE185D) }, // pink
-            { new Color(0xF0FDF4), new Color(0x166534) }, // emerald
-            { new Color(0xE0F2FE), new Color(0x0369A1) }, // sky
+            { new Color(0xF1F5F9), new Color(0x475569) }, // slate
+            { new Color(0xFFEDD5), new Color(0xEA580C) }, // orange
+    };
+
+    // Color labels that are shown in the color picker combo
+    private static final String[] COLOR_NAMES = {
+            "ازرق", "اخضر", "احمر", "ذهبي", "بنفسجي", "وردي", "رمادي", "برتقالي"
     };
 
     public StatusesPage(AppFrame frame) {
@@ -59,14 +65,14 @@ public class StatusesPage extends JPanel {
         titleBlock.add(Box.createVerticalStrut(4));
         titleBlock.add(subLbl);
 
-        JButton btnAdd = new JButton("إضافة حالة جديدة");
+        JButton btnAdd = new JButton("+ إضافة حالة جديدة");
         btnAdd.setFont(UITheme.FONT_HEADER);
         btnAdd.setBackground(UITheme.PRIMARY);
         btnAdd.setForeground(Color.WHITE);
         btnAdd.setFocusPainted(false);
         btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAdd.putClientProperty("JButton.buttonType", "roundRect");
-        btnAdd.setPreferredSize(new Dimension(170, 40));
+        btnAdd.setPreferredSize(new Dimension(190, 40));
         btnAdd.addActionListener(e -> handleAdd());
 
         header.add(titleBlock, BorderLayout.EAST);
@@ -76,12 +82,11 @@ public class StatusesPage extends JPanel {
 
     // ── Card Grid ──────────────────────────────────────────────────────────────
     private JScrollPane buildGrid() {
-        gridPanel = new JPanel();
+        // WrapLayout properly wraps cards inside JScrollPane (FlowLayout does not)
+        gridPanel = new JPanel(new WrapLayout(FlowLayout.RIGHT, 20, 20));
         gridPanel.setOpaque(false);
-        gridPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        gridPanel.setBackground(UITheme.BG_LIGHT);
         gridPanel.setBorder(new EmptyBorder(12, 24, 24, 24));
-        // 3-column grid; rows grow automatically
-        gridPanel.setLayout(new GridLayout(0, 3, 20, 20));
 
         JScrollPane scroll = new JScrollPane(gridPanel,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -94,15 +99,15 @@ public class StatusesPage extends JPanel {
 
     private void loadCards() {
         gridPanel.removeAll();
+        java.util.Map<String, Integer> counts = com.pvtd.students.services.StudentService.getDashboardStats();
+
         List<String> statuses = StatusesService.getAllStatuses();
-        int i = 0;
         for (String status : statuses) {
-            Color[] colors = PALETTE[i % PALETTE.length];
-            gridPanel.add(buildCard(status, colors[0], colors[1]));
-            i++;
+            Color[] colors = getSemanticColor(status);
+            gridPanel.add(buildCard(status, colors[0], colors[1], counts.getOrDefault(status, 0)));
         }
         if (statuses.isEmpty()) {
-            JLabel empty = new JLabel("لا توجد حالات مُضافة بعد. اضغط «إضافة» لإنشاء أول حالة.",
+            JLabel empty = new JLabel("لا توجد حالات مُضافة بعد. اضغط «+ إضافة حالة جديدة» لإنشاء أول حالة.",
                     SwingConstants.CENTER);
             empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
             empty.setForeground(UITheme.TEXT_SECONDARY);
@@ -112,91 +117,197 @@ public class StatusesPage extends JPanel {
         gridPanel.repaint();
     }
 
-    private JPanel buildCard(String statusName, Color bgColor, Color accentColor) {
-        JPanel card = new JPanel(null) { // null layout for manual placement
+    private Color[] getSemanticColor(String status) {
+        if (status.contains("ناجح"))
+            return new Color[] { new Color(0xDCFCE7), new Color(0x059669) };
+        if (status.contains("راسب"))
+            return new Color[] { new Color(0xFEE2E2), new Color(0xDC2626) };
+        if (status.contains("دور ثاني"))
+            return new Color[] { new Color(0xFFEDD5), new Color(0xEA580C) };
+        if (status.contains("مؤجل"))
+            return new Color[] { new Color(0xDBEAFE), new Color(0x2563EB) };
+        if (status.contains("معتذر"))
+            return new Color[] { new Color(0xF1F5F9), new Color(0x475569) };
+        if (status.contains("غائب"))
+            return new Color[] { new Color(0xFEF3C7), new Color(0xD97706) };
+        if (status.contains("محروم") || status.contains("مفصول"))
+            return new Color[] { new Color(0xFCE7F3), new Color(0xBE185D) };
+        int hash = Math.abs(status.hashCode()) % PALETTE.length;
+        return PALETTE[hash];
+    }
+
+    private JPanel buildCard(String statusName, Color bgColor, Color accentColor, int studentCount) {
+        JPanel cardWrapper = new JPanel(new BorderLayout());
+        cardWrapper.setOpaque(false);
+        cardWrapper.setPreferredSize(new Dimension(270, 115));
+        cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
+                new EmptyBorder(0, 0, 0, 0)));
+
+        JPanel cardInner = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Base white card
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                // Accent top bar
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                // Colored top bar
                 g2.setColor(accentColor);
-                g2.fillRoundRect(0, 0, getWidth(), 8, 18, 18);
-                g2.fillRect(0, 4, getWidth(), 4);
+                g2.fillRoundRect(0, 0, getWidth(), 10, 16, 16);
+                g2.fillRect(0, 6, getWidth(), 4);
                 g2.dispose();
             }
         };
-        card.setOpaque(false);
-        card.setPreferredSize(new Dimension(200, 130));
-        card.setBorder(new DropShadowBorder(Color.BLACK, 6, 0.07f, 18, Color.WHITE));
+        cardInner.setOpaque(false);
+        cardInner.setBorder(new EmptyBorder(18, 16, 14, 16));
 
-        // Color badge (top right pill)
-        JLabel badge = new JLabel() {
+        // Top: Status Name + Count
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
+
+        JLabel nameLbl = new JLabel(statusName, SwingConstants.RIGHT);
+        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        nameLbl.setForeground(UITheme.TEXT_PRIMARY);
+
+        // Colored dot badge
+        JPanel dotBadge = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bgColor);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.setColor(accentColor);
+                int cx = getWidth() / 2, cy = getHeight() / 2;
+                g2.fillOval(cx - 4, cy - 4, 8, 8);
+                g2.dispose();
+            }
+        };
+        dotBadge.setOpaque(false);
+        dotBadge.setPreferredSize(new Dimension(28, 22));
+
+        topRow.add(nameLbl, BorderLayout.EAST);
+        topRow.add(dotBadge, BorderLayout.WEST);
+
+        // Bottom: Count label + Buttons
+        JPanel bottomRow = new JPanel(new BorderLayout());
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JLabel countLbl = new JLabel("الطلاب: " + studentCount, SwingConstants.LEFT);
+        countLbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        countLbl.setForeground(UITheme.TEXT_SECONDARY);
+
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        btnRow.setOpaque(false);
+
+        // Edit: filled primary
+        JButton btnEdit = new JButton("تعديل");
+        btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnEdit.setForeground(Color.WHITE);
+        btnEdit.setBackground(accentColor);
+        btnEdit.setFocusPainted(false);
+        btnEdit.setPreferredSize(new Dimension(72, 28));
+        btnEdit.putClientProperty("JButton.buttonType", "roundRect");
+        btnEdit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEdit.addActionListener(e -> handleRename(statusName));
+
+        // Delete: danger outline
+        JButton btnDel = new JButton("حذف") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(UITheme.DANGER);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        badge.setOpaque(false);
-        badge.setForeground(accentColor);
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        badge.setText("  حالة  ");
-        badge.setBorder(new EmptyBorder(2, 4, 2, 4));
-        badge.setBounds(12, 16, 56, 22);
-        card.add(badge);
-
-        // Status name label
-        JLabel nameLbl = new JLabel(statusName, SwingConstants.RIGHT);
-        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        nameLbl.setForeground(UITheme.TEXT_PRIMARY);
-        nameLbl.setBounds(12, 48, 176, 28);
-        card.add(nameLbl);
-
-        // Delete button
-        JButton btnDel = new JButton("حذف");
+        btnDel.setContentAreaFilled(false);
+        btnDel.setBorderPainted(false);
         btnDel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnDel.setForeground(UITheme.DANGER);
-        btnDel.setBackground(new Color(0xFEF2F2));
         btnDel.setFocusPainted(false);
+        btnDel.setPreferredSize(new Dimension(65, 28));
         btnDel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnDel.putClientProperty("JButton.buttonType", "roundRect");
-        btnDel.setBounds(12, 90, 76, 28);
         btnDel.addActionListener(e -> handleDelete(statusName));
-        card.add(btnDel);
 
-        // Edit / Rename button
-        JButton btnEdit = new JButton("تعديل");
-        btnEdit.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnEdit.setForeground(accentColor);
-        btnEdit.setBackground(bgColor);
-        btnEdit.setFocusPainted(false);
-        btnEdit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnEdit.putClientProperty("JButton.buttonType", "roundRect");
-        btnEdit.setBounds(100, 90, 76, 28);
-        btnEdit.addActionListener(e -> handleRename(statusName));
-        card.add(btnEdit);
+        btnRow.add(btnEdit);
+        btnRow.add(btnDel);
 
-        return card;
+        bottomRow.add(countLbl, BorderLayout.EAST);
+        bottomRow.add(btnRow, BorderLayout.WEST);
+
+        cardInner.add(topRow, BorderLayout.NORTH);
+        cardInner.add(bottomRow, BorderLayout.SOUTH);
+        cardWrapper.add(cardInner, BorderLayout.CENTER);
+
+        // Hover effect
+        cardWrapper.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                        new DropShadowBorder(Color.BLACK, 12, 0.12f, 18, UITheme.BG_LIGHT),
+                        new EmptyBorder(0, 0, 0, 0)));
+                cardWrapper.revalidate();
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                cardWrapper.setBorder(BorderFactory.createCompoundBorder(
+                        new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
+                        new EmptyBorder(0, 0, 0, 0)));
+                cardWrapper.revalidate();
+            }
+        });
+
+        return cardWrapper;
     }
 
     // ── Actions ────────────────────────────────────────────────────────────────
     private void handleAdd() {
-        String name = JOptionPane.showInputDialog(this,
-                "اسم الحالة الجديدة (مثال: محوّل، غائب، قيد الفحص):",
-                "إضافة حالة جديدة", JOptionPane.PLAIN_MESSAGE);
-        if (name != null && !name.trim().isEmpty()) {
+        // Dialog with name + color picker
+        JPanel p = new JPanel(new GridLayout(2, 2, 10, 10));
+        p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JTextField nameField = new JTextField();
+        nameField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JComboBox<String> colorCombo = new JComboBox<>(COLOR_NAMES);
+        colorCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        // Render each item with its color swatch
+        colorCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int idx, boolean sel,
+                    boolean focus) {
+                super.getListCellRendererComponent(list, value, idx, sel, focus);
+                if (idx >= 0 && idx < PALETTE.length)
+                    setBackground(PALETTE[idx][0]);
+                return this;
+            }
+        });
+
+        p.add(new JLabel("اسم الحالة:", SwingConstants.RIGHT));
+        p.add(nameField);
+        p.add(new JLabel("اللون:", SwingConstants.RIGHT));
+        p.add(colorCombo);
+
+        int result = JOptionPane.showConfirmDialog(this, p, "إضافة حالة جديدة", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) {
+                warn("اسم الحالة لا يمكن أن يكون فارغاً.");
+                return;
+            }
             try {
-                StatusesService.addStatus(name.trim());
+                StatusesService.addStatus(name);
                 loadCards();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "حدث خطأ: " + ex.getMessage(),
-                        "خطأ", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "حدث خطأ: " + ex.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -210,8 +321,8 @@ public class StatusesPage extends JPanel {
                 StatusesService.deleteStatus(statusName);
                 loadCards();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "لا يمكن حذف هذه الحالة: " + ex.getMessage(),
-                        "خطأ", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "لا يمكن حذف هذه الحالة: " + ex.getMessage(), "خطأ",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -222,14 +333,17 @@ public class StatusesPage extends JPanel {
                 "تعديل الحالة", JOptionPane.PLAIN_MESSAGE, null, null, oldName);
         if (newName != null && !newName.trim().isEmpty() && !newName.trim().equals(oldName)) {
             try {
-                // Delete old + add new — simple rename workaround
                 StatusesService.deleteStatus(oldName);
                 StatusesService.addStatus(newName.trim());
                 loadCards();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التعديل: " + ex.getMessage(),
-                        "خطأ", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التعديل: " + ex.getMessage(), "خطأ",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    private void warn(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "تنبيه", JOptionPane.WARNING_MESSAGE);
     }
 }

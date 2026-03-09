@@ -1,0 +1,24 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------< com.pvtd.students:student-results-manager >--------------
+[INFO] Building student-results-manager 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ student-results-manager ---
+[INFO] Deleting C:\Users\seifd\OneDrive\Desktop\Java Project\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ student-results-manager ---
+[INFO] Copying 10 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.10.1:compile (default-compile) @ student-results-manager ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 41 source files to C:\Users\seifd\OneDrive\Desktop\Java Project\target\classes
+[INFO] /C:/Users/seifd/OneDrive/Desktop/Java Project/src/main/java/com/pvtd/students/ui/components/Topbar.java: C:\Users\seifd\OneDrive\Desktop\Java Project\src\main\java\com\pvtd\students\ui\components\Topbar.java uses or overrides a deprecated API.
+[INFO] /C:/Users/seifd/OneDrive/Desktop/Java Project/src/main/java/com/pvtd/students/ui/components/Topbar.java: Recompile with -Xlint:deprecation for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.878 s
+[INFO] Finished at: 2026-03-09T04:56:34+02:00
+[INFO] ------------------------------------------------------------------------

@@ -65,8 +65,7 @@ public class PdfService {
                         "قد أتم بنجاح متطلبات التخرج واجتاز جميع الاختبارات المقررة بحالة: " +
                         "<b style='color:green;'>ناجح</b>.<br>" +
                         "ونتمنى له دوام التوفيق والنجاح في مسيرته المهنية.</div></html>",
-                student.getName(), student.getDobYear(), student.getDobMonth(), student.getDobDay(),
-                student.getNationalId(), student.getSeatNo(), getSpecializationName(student.getSpecializationId()));
+                student.getNationalId(), student.getSeatNo(), student.getProfession());
 
         JLabel bodyLabel = new JLabel(bodyText, SwingConstants.CENTER);
         bodyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -121,14 +120,14 @@ public class PdfService {
         content.add(createRightAlignedLabel("الرقم القومي: " + student.getNationalId(), f));
         content.add(createRightAlignedLabel("رقم الجلوس: " + student.getSeatNo(), f));
         content.add(createRightAlignedLabel("مركز التدريب: " + student.getCenterName(), f));
-        content.add(createRightAlignedLabel("التخصص: " + getSpecializationName(student.getSpecializationId()), f));
+        content.add(createRightAlignedLabel("المهنة: " + student.getProfession(), f));
         content.add(createRightAlignedLabel("الحالة: " + student.getStatus(), f));
 
         // Add Grades
         content.add(createRightAlignedLabel(" ", f));
         content.add(createRightAlignedLabel("--- بيان الدرجات ---", new Font("Tahoma", Font.BOLD, 18)));
 
-        List<Subject> subjects = SubjectService.getSubjectsBySpecialization(student.getSpecializationId());
+        List<Subject> subjects = SubjectService.getSubjectsByProfession(student.getProfession());
         Map<Integer, Integer> grades = student.getGrades();
         int totalMax = 0;
         int totalAttained = 0;
@@ -165,14 +164,6 @@ public class PdfService {
         l.setBackground(Color.WHITE);
         l.setOpaque(true);
         return l;
-    }
-
-    private static String getSpecializationName(int specId) {
-        return SpecializationService.getAllSpecializations().stream()
-                .filter(s -> s.getId() == specId)
-                .map(com.pvtd.students.models.Specialization::getName)
-                .findFirst()
-                .orElse("غير محدد");
     }
 
     private static String getStudentPdfPath(Student student, String prefix) {

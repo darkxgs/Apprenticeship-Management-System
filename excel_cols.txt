@@ -1,0 +1,24 @@
+﻿idx=0 col=A :: مسلسل
+idx=1 col=B :: الاسم
+idx=2 col=C :: رقم التسجيل
+idx=3 col=D :: الرقم القومى
+idx=4 col=E :: المنطقة
+idx=5 col=F :: اسم المركز
+idx=6 col=G :: المهنة
+idx=7 col=H :: النظام
+idx=8 col=I :: رقم الجلوس
+idx=9 col=J :: الرقم السرى
+idx=10 col=K :: المجموعة المهنية
+idx=11 col=L :: رقم التنسيق
+idx=12 col=M :: يوم
+idx=13 col=N :: شهر
+idx=14 col=O :: سنة
+idx=15 col=P :: النوع
+idx=16 col=Q :: حي / قرية
+idx=17 col=R :: محافظة
+idx=18 col=S :: ديانة
+idx=19 col=T :: جنسية
+idx=20 col=U :: عنوان
+idx=21 col=V :: رقم قومي
+idx=22 col=W :: اخري
+idx=23 col=X :: pic

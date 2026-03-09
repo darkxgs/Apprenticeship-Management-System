@@ -18,6 +18,7 @@ public class ExcelService {
     public static int importStudentsFromExcel(File file, File profileFolder, File frontIdFolder, File backIdFolder,
             ProgressCallback callback) {
         int importedCount = 0;
+        int skippedCount = 0;
         int totalRows = 0;
 
         String mergeQuery = "MERGE INTO students s " +
@@ -40,8 +41,11 @@ public class ExcelService {
                 Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(mergeQuery)) {
 
+            // Auto-commit OFF so we control each row individually
+            conn.setAutoCommit(false);
+
             Sheet sheet = workbook.getSheetAt(0);
-            totalRows = sheet.getPhysicalNumberOfRows() - 1; // subtract header
+            totalRows = sheet.getLastRowNum(); // 0-indexed so last row = total data rows
             if (totalRows <= 0)
                 return 0;
 
@@ -54,33 +58,49 @@ public class ExcelService {
                     continue;
                 }
 
-                currentRowCount++;
-
-                String seatNo = getCellValue(row.getCell(4));
-                if (seatNo == null || seatNo.trim().isEmpty())
+                // Skip empty rows
+                if (isRowEmpty(row))
                     continue;
+
+                currentRowCount++;
 
                 String serial = getCellValue(row.getCell(0));
                 String name = getCellValue(row.getCell(1));
-                String nationalId = getCellValue(row.getCell(2));
-                String registrationNo = getCellValue(row.getCell(3));
-                String region = getCellValue(row.getCell(5));
+                String registrationNo = getCellValue(row.getCell(2));
+                String nationalId = getCellValue(row.getCell(3)).trim();
+                String region = getCellValue(row.getCell(4));
+                String centerName = getCellValue(row.getCell(5));
                 String profession = getCellValue(row.getCell(6));
                 String examSystem = getCellValue(row.getCell(7));
-                String secretNo = getCellValue(row.getCell(8));
-                String profGroup = getCellValue(row.getCell(9));
-                String coordNo = getCellValue(row.getCell(10));
-                String dobDay = getCellValue(row.getCell(11));
-                String dobMonth = getCellValue(row.getCell(12));
-                String dobYear = getCellValue(row.getCell(13));
-                String gender = getCellValue(row.getCell(14));
-                String neighborhood = getCellValue(row.getCell(15));
-                String governorate = getCellValue(row.getCell(16));
-                String religion = getCellValue(row.getCell(17));
-                String nationality = getCellValue(row.getCell(18));
-                String address = getCellValue(row.getCell(19));
-                String otherNotes = getCellValue(row.getCell(20));
-                String centerName = getCellValue(row.getCell(21));
+                String seatNo = getCellValue(row.getCell(8)).trim();
+                String secretNo = getCellValue(row.getCell(9));
+                String profGroup = getCellValue(row.getCell(10));
+                String coordNo = getCellValue(row.getCell(11));
+                String dobDay = getCellValue(row.getCell(12));
+                String dobMonth = getCellValue(row.getCell(13));
+                String dobYear = getCellValue(row.getCell(14));
+                String gender = getCellValue(row.getCell(15));
+                String neighborhood = getCellValue(row.getCell(16));
+                String governorate = getCellValue(row.getCell(17));
+                String religion = getCellValue(row.getCell(18));
+                String nationality = getCellValue(row.getCell(19));
+                String address = getCellValue(row.getCell(20));
+
+                // Fallback: column 21 is also named 'رقم قومي' in some sheets
+                if (nationalId.isEmpty() && !getCellValue(row.getCell(21)).trim().isEmpty()) {
+                    nationalId = getCellValue(row.getCell(21)).trim();
+                }
+                String otherNotes = getCellValue(row.getCell(22));
+
+                // If seat_no is empty, generate a placeholder to not skip the student
+                if (seatNo.isEmpty()) {
+                    // Try national ID as fallback key
+                    seatNo = "AUTO_" + nationalId;
+                    if (seatNo.equals("AUTO_")) {
+                        skippedCount++;
+                        continue; // skip completely empty rows
+                    }
+                }
 
                 String savedProfilePath = "";
                 String savedFrontIdPath = "";
@@ -99,14 +119,16 @@ public class ExcelService {
                     }
                 }
 
-                if (callback != null && (currentRowCount % 10 == 0 || currentRowCount == totalRows)) {
-                    callback.onProgress(currentRowCount, totalRows, "جاري استيراد الطالب: " + name);
+                // Progress callback every 5 rows
+                if (callback != null && (currentRowCount % 5 == 0 || currentRowCount == totalRows)) {
+                    callback.onProgress(currentRowCount, totalRows, "جاري معالجة: " + name);
                 }
 
-                // MERGE ON
+                // --- Bind Parameters ---
+                // MERGE key (1)
                 stmt.setString(1, seatNo);
 
-                // MATCHED UPDATE
+                // UPDATE SET (2-25)
                 stmt.setString(2, serial);
                 stmt.setString(3, name);
                 stmt.setString(4, registrationNo);
@@ -132,7 +154,7 @@ public class ExcelService {
                 stmt.setString(24, savedFrontIdPath);
                 stmt.setString(25, savedBackIdPath);
 
-                // NOT MATCHED INSERT
+                // INSERT VALUES (26-51)
                 stmt.setString(26, seatNo);
                 stmt.setString(27, serial);
                 stmt.setString(28, name);
@@ -159,27 +181,24 @@ public class ExcelService {
                 stmt.setString(49, savedFrontIdPath);
                 stmt.setString(50, savedBackIdPath);
 
-                stmt.addBatch();
-                importedCount++;
-
-                if (importedCount % 100 == 0) {
+                // *** PER-ROW execute + commit so one failure doesn't kill the rest ***
+                try {
+                    stmt.execute();
+                    conn.commit();
+                    importedCount++;
+                } catch (Exception rowEx) {
+                    System.err.println("Skipping row " + currentRowCount + " (" + name + "): " + rowEx.getMessage());
                     try {
-                        stmt.executeBatch();
-                        conn.commit();
-                    } catch (Exception ex) {
-                        System.err.println("Batch error, skipping block.");
+                        conn.rollback();
+                    } catch (Exception ignored) {
                     }
+                    skippedCount++;
                 }
             }
-            try {
-                stmt.executeBatch();
-                conn.commit();
-            } catch (Exception ex) {
-                System.err.println("Final batch error.");
-            }
 
+            System.out.println("Import complete: " + importedCount + " imported, " + skippedCount + " skipped.");
             LogService.logAction("SYSTEM", "EXCEL_IMPORT",
-                    "تم استيراد/تحديث " + importedCount + " سجل من الإكسل");
+                    "تم استيراد " + importedCount + " سجل، تخطي " + skippedCount + " سجل من الإكسل");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -188,57 +207,75 @@ public class ExcelService {
         return importedCount;
     }
 
+    private static boolean isRowEmpty(Row row) {
+        if (row == null)
+            return true;
+        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+            Cell cell = row.getCell(c);
+            if (cell != null && cell.getCellType() != CellType.BLANK) {
+                String val = getCellValue(cell).trim();
+                if (!val.isEmpty())
+                    return false;
+            }
+        }
+        return true;
+    }
+
     private static String findAndCopyImage(File sourceFolder, String nationalId, String targetFilename) {
         if (sourceFolder == null || !sourceFolder.exists() || !sourceFolder.isDirectory()) {
             return "";
         }
 
-        String safeId = nationalId.replaceAll("[^a-zA-Z0-9.-]", "_");
+        // Normalize: trim spaces, remove any control characters
+        String cleanId = nationalId.trim().replaceAll("\\s+", "");
+        String safeId = cleanId.replaceAll("[^a-zA-Z0-9\u0621-\u064A\u0660-\u0669.-]", "_");
 
-        // Find any file in the directory whose name (without extension) matches the
-        // National ID exactly
+        // Scan the directory for any file whose basename equals the national ID
         File[] matchingFiles = sourceFolder.listFiles((dir, name) -> {
             int dotIndex = name.lastIndexOf('.');
-            String nameWithoutExt = (dotIndex == -1) ? name : name.substring(0, dotIndex);
-            return nameWithoutExt.equals(nationalId) || nameWithoutExt.equals(safeId);
+            String baseName = (dotIndex == -1) ? name : name.substring(0, dotIndex);
+            // Compare both cleaned and safe variants
+            return baseName.equals(cleanId) || baseName.equals(safeId)
+                    || baseName.equalsIgnoreCase(cleanId) || baseName.equalsIgnoreCase(safeId);
         });
 
-        if (matchingFiles != null && matchingFiles.length > 0) {
-            File srcFile = matchingFiles[0]; // Take the first match
-            try {
-                String userHome = System.getProperty("user.home");
-                File studentFolder = new File(userHome, ".student_mgmt/students/" + safeId + "/images");
-                if (!studentFolder.exists()) {
-                    studentFolder.mkdirs();
-                }
-
-                // Keep the original extension if possible
-                String ext = ".jpg";
-                int dotIndex = srcFile.getName().lastIndexOf('.');
-                if (dotIndex > 0) {
-                    ext = srcFile.getName().substring(dotIndex);
-                }
-
-                // If targetFilename is like "profile.jpg", strip its extension and use the real
-                // one.
-                String baseTarget = targetFilename;
-                int targetDot = targetFilename.lastIndexOf('.');
-                if (targetDot > 0) {
-                    baseTarget = targetFilename.substring(0, targetDot);
-                }
-
-                File destFile = new File(studentFolder, baseTarget + ext);
-
-                if (!destFile.exists() || srcFile.length() != destFile.length()) {
-                    java.nio.file.Files.copy(srcFile.toPath(), destFile.toPath(),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                }
-                return destFile.getAbsolutePath();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (matchingFiles == null || matchingFiles.length == 0) {
+            return "";
         }
-        return "";
+
+        File srcFile = matchingFiles[0];
+        try {
+            String userHome = System.getProperty("user.home");
+            File studentFolder = new File(userHome, ".student_mgmt/students/" + safeId + "/images");
+            if (!studentFolder.exists()) {
+                studentFolder.mkdirs();
+            }
+
+            // Preserve original extension
+            String ext = ".jpg";
+            int dotIdx = srcFile.getName().lastIndexOf('.');
+            if (dotIdx > 0) {
+                ext = srcFile.getName().substring(dotIdx);
+            }
+
+            // Strip extension from targetFilename and use real ext
+            String baseTarget = targetFilename;
+            int targetDot = targetFilename.lastIndexOf('.');
+            if (targetDot > 0) {
+                baseTarget = targetFilename.substring(0, targetDot);
+            }
+
+            File destFile = new File(studentFolder, baseTarget + ext);
+
+            if (!destFile.exists() || srcFile.length() != destFile.length()) {
+                java.nio.file.Files.copy(srcFile.toPath(), destFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            return destFile.getAbsolutePath();
+        } catch (Exception e) {
+            System.err.println("Could not copy image for ID " + nationalId + ": " + e.getMessage());
+            return "";
+        }
     }
 
     private static String getCellValue(Cell cell) {
@@ -246,13 +283,20 @@ public class ExcelService {
             return "";
         switch (cell.getCellType()) {
             case STRING:
-                return cell.getStringCellValue();
+                return cell.getStringCellValue().trim();
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell))
                     return cell.getLocalDateTimeCellValue().toString();
+                // Return as long (no decimal point) for IDs/numbers
                 return String.valueOf((long) cell.getNumericCellValue());
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                try {
+                    return String.valueOf((long) cell.getNumericCellValue());
+                } catch (Exception e) {
+                    return cell.getStringCellValue().trim();
+                }
             default:
                 return "";
         }

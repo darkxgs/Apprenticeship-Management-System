@@ -1,90 +1,98 @@
 package com.pvtd.students.ui.components;
 
+import com.pvtd.students.models.User;
 import com.pvtd.students.ui.utils.UITheme;
-import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class Topbar extends JPanel {
 
-    public Topbar() {
+    public Topbar(User user) {
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, UITheme.BORDER),
-                BorderFactory.createEmptyBorder(15, 24, 15, 24)));
-        setBackground(UITheme.BG_LIGHT);
+        setBackground(Color.WHITE);
+        setPreferredSize(new Dimension(0, 70)); // Height 70px
 
-        // Right side: Active page title and Search placeholder
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
-        rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        // Gentle bottom shadow border
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)), // Tailwind slate-200
+                new EmptyBorder(0, 24, 0, 24)));
+
+        // ── Right Side: User Profile & Details ─────────────────────────────
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
         rightPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("لوحة التحكم");
-        titleLabel.setFont(UITheme.FONT_CARD_TITLE);
-        titleLabel.setForeground(UITheme.TEXT_PRIMARY);
+        String role = user != null ? user.getRole() : "Admin";
+        String displayRole = role.equals("admin") ? "مدير النظام" : "مدخل بيانات";
 
-        JTextField search = new JTextField();
-        search.setPreferredSize(new Dimension(300, 35));
-        search.setFont(UITheme.FONT_BODY);
-        search.putClientProperty("JTextField.placeholderText", "ابحث في النظام...");
-        search.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        JLabel userLabel = new JLabel("<html><div style='text-align:right'><b>"
+                + (user != null ? user.getUsername() : "المستخدم")
+                + "</b><br><span style='color:#64748b; font-size:11px'>" + displayRole + "</span></div></html>");
+        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        userLabel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        try {
-            FlatSVGIcon searchIcon = new FlatSVGIcon("icons/search.svg", 16, 16);
-            searchIcon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UITheme.TEXT_SECONDARY));
-            // In RTL, standard clients usually put leading icon on the right
-            search.putClientProperty("JTextField.trailingIcon", searchIcon);
-        } catch (Exception e) {
-        }
+        JLabel avatarLabel = new JLabel("👤", SwingConstants.CENTER);
+        avatarLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        avatarLabel.setPreferredSize(new Dimension(45, 45));
+        avatarLabel.setBackground(new Color(241, 245, 249)); // slate-100
+        avatarLabel.setOpaque(true);
+        // Soft rounded corners for avatar
+        avatarLabel.setBorder(BorderFactory.createEmptyBorder());
 
-        rightPanel.add(titleLabel);
-        rightPanel.add(search);
+        rightPanel.add(userLabel);
+        rightPanel.add(Box.createHorizontalStrut(12));
+        rightPanel.add(avatarLabel);
 
-        add(rightPanel, BorderLayout.EAST);
-
-        // Left side profiles
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        // ── Left Side: Date & Notifications ──────────────────────────────
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.X_AXIS));
         leftPanel.setOpaque(false);
 
-        JButton profileBtn = new JButton("مسؤول النظام");
-        profileBtn.setFont(UITheme.FONT_HEADER);
-        profileBtn.setForeground(UITheme.TEXT_PRIMARY);
-        profileBtn.putClientProperty("JButton.buttonType", "borderless");
-        profileBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // Formatted Date
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM  yyyy", new Locale("ar", "EG"));
+        String today = sdf.format(new Date());
 
-        try {
-            FlatSVGIcon avatarIcon = new FlatSVGIcon("icons/avatar.svg", 24, 24);
-            avatarIcon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UITheme.TEXT_PRIMARY));
-            profileBtn.setIcon(avatarIcon);
-            profileBtn.setIconTextGap(8);
-        } catch (Exception e) {
-        }
+        JLabel dateLabel = new JLabel("📅  " + today);
+        dateLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        dateLabel.setForeground(new Color(100, 116, 139)); // slate-500
 
-        JButton notifs = new JButton("");
-        notifs.putClientProperty("JButton.buttonType", "borderless");
-        notifs.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // Mock Notification Icon
+        JLabel notiLabel = new JLabel("🔔");
+        notiLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 22));
+        notiLabel.setToolTipText("لا توجد إشعارات جديدة");
 
-        try {
-            FlatSVGIcon bellIcon = new FlatSVGIcon("icons/bell.svg", 22, 22);
-            bellIcon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UITheme.TEXT_SECONDARY));
-            notifs.setIcon(bellIcon);
-        } catch (Exception e) {
-        }
+        // Small notification badge
+        JPanel notiBadge = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(239, 68, 68)); // red-500
+                g2.fillOval(0, 0, 8, 8);
+                g2.dispose();
+            }
+        };
+        notiBadge.setOpaque(false);
+        notiBadge.setPreferredSize(new Dimension(8, 8));
+        notiBadge.setMaximumSize(new Dimension(8, 8));
 
-        profileBtn.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "إعدادات حساب المدير ستتوفر قريباً", "الملف الشخصي",
-                    JOptionPane.INFORMATION_MESSAGE);
-        });
+        // Stack to overlay the red dot over the bell visually
+        JPanel notiWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        notiWrapper.setOpaque(false);
+        notiWrapper.add(notiBadge);
+        notiWrapper.add(notiLabel);
 
-        notifs.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "لا توجد إشعارات جديدة حالياً", "الإشعارات",
-                    JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        leftPanel.add(notifs);
-        leftPanel.add(profileBtn);
+        leftPanel.add(notiWrapper);
+        leftPanel.add(Box.createHorizontalStrut(24));
+        leftPanel.add(dateLabel);
 
         add(leftPanel, BorderLayout.WEST);
+        add(rightPanel, BorderLayout.EAST);
     }
 }

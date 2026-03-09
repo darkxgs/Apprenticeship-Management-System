@@ -96,20 +96,16 @@ public class DatabaseConnection {
             String createSubjectsTable = "BEGIN\n" +
                     "  EXECUTE IMMEDIATE 'CREATE TABLE subjects (" +
                     "id NUMBER PRIMARY KEY," +
-                    "specialization_id NUMBER," +
+                    "profession VARCHAR2(200)," +
                     "name VARCHAR2(200) NOT NULL," +
                     "type VARCHAR2(50) DEFAULT ''نظري''," +
                     "pass_mark NUMBER NOT NULL," +
-                    "max_mark NUMBER NOT NULL," +
-                    "CONSTRAINT fk_spec FOREIGN KEY (specialization_id) REFERENCES specializations(id) ON DELETE CASCADE)';\n"
+                    "max_mark NUMBER NOT NULL)';\n"
                     +
                     "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                     "END;";
             stmt.execute(createSubjectsTable);
             createTrigger(stmt, "subjects");
-
-            // Migration Phase 3: Add type to subjects if not exists (existing schema)
-            addColumnIfMissing(stmt, "subjects", "type", "VARCHAR2(50) DEFAULT 'نظري'");
 
             // Create Students (Phase 2 Relational - Dynamic Grades removed)
             createSequence(stmt, "students_seq");
@@ -202,9 +198,6 @@ public class DatabaseConnection {
             // table.
             // These ALTER TABLE statements are silently ignored if the column already
             // exists (ORA-01430).
-            addColumnIfMissing(stmt, "students", "specialization_id", "NUMBER");
-            addColumnIfMissing(stmt, "students", "school", "VARCHAR2(255)");
-            addColumnIfMissing(stmt, "students", "academic_year", "VARCHAR2(50)");
             addColumnIfMissing(stmt, "students", "image_path", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "other_notes", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "status", "VARCHAR2(50)");
@@ -228,7 +221,10 @@ public class DatabaseConnection {
             addColumnIfMissing(stmt, "students", "center_name", "VARCHAR2(150)");
             addColumnIfMissing(stmt, "students", "id_front_path", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "id_back_path", "VARCHAR2(255)");
-            addColumnIfMissing(stmt, "subjects", "subject_type", "VARCHAR2(50)");
+            addColumnIfMissing(stmt, "students", "profession", "VARCHAR2(100)");
+
+            // Migrate subjects table: add profession column if missing
+            addColumnIfMissing(stmt, "subjects", "profession", "VARCHAR2(200)");
 
             // Insert default admin user if the table is empty
             try {

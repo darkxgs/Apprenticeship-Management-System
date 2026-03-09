@@ -101,7 +101,7 @@ public class SpecializationsPage extends JPanel {
     }
 
     private JPanel buildCard(Specialization spec) {
-        int count = SubjectService.countSubjectsBySpecialization(spec.getId());
+        int count = SubjectService.countSubjectsByProfession(spec.getName());
         Color badgeBg = count == 0 ? new Color(0xF1F5F9) : count >= 5 ? new Color(0xDCFCE7) : new Color(0xE0F2FE);
         Color badgeFg = count == 0 ? new Color(0x94A3B8) : count >= 5 ? new Color(0x16A34A) : new Color(0x0284c7);
 

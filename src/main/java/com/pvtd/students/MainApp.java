@@ -3,6 +3,7 @@ package com.pvtd.students;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.LoginFrame;
+import com.pvtd.students.ui.SplashScreenFrame;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
@@ -41,9 +42,12 @@ public class MainApp {
         System.out.println("Initializing Database Connections...");
         DatabaseConnection.initializeDatabase();
 
-        // Launch UI
+        // Launch UI via Splash Screen
         SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
+            SplashScreenFrame splash = new SplashScreenFrame(() -> {
+                new LoginFrame().setVisible(true);
+            });
+            splash.setVisible(true);
         });
     }
 }
