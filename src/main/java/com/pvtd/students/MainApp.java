@@ -3,7 +3,6 @@ package com.pvtd.students;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.LoginFrame;
-import com.pvtd.students.ui.SplashScreenFrame;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
@@ -44,10 +43,7 @@ public class MainApp {
 
         // Launch UI via Splash Screen
         SwingUtilities.invokeLater(() -> {
-            SplashScreenFrame splash = new SplashScreenFrame(() -> {
                 new LoginFrame().setVisible(true);
             });
-            splash.setVisible(true);
-        });
     }
 }
