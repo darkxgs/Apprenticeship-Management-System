@@ -410,6 +410,22 @@ public class StudentService {
         if (grades == null || grades.isEmpty())
             return "غير محدد";
 
+        // Check for specific negative markers first (global status override)
+        // -1 = غائب
+        // -2 = محروم
+        // -3 = مفصول
+        // -4 = معتذر
+        // -5 = مؤجل
+        for (Integer mark : grades.values()) {
+            if (mark != null) {
+                if (mark == -1) return "غائب";
+                if (mark == -2) return "محروم";
+                if (mark == -3) return "مفصول";
+                if (mark == -4) return "معتذر";
+                if (mark == -5) return "مؤجل";
+            }
+        }
+
         // Fetch passing rules for the subjects of this profession
         List<com.pvtd.students.models.Subject> subjects = SubjectService.getSubjectsByProfession(profession);
         if (subjects.isEmpty())

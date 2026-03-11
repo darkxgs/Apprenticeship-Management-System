@@ -180,15 +180,7 @@ public class StudentFormPage extends JPanel {
         });
         grid.add(professionCombo);
 
-        // Status Override Combo
-        grid.add(createLabel("الحالة الإدارية (تجاوز)"));
-        statusCombo = new JComboBox<>();
-        statusCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        statusCombo.addItem("تلقائي (حسب الدرجات)");
-        for (String s : StatusesService.getAllStatuses()) {
-            statusCombo.addItem(s);
-        }
-        grid.add(statusCombo);
+        // Status Override Combo REMOVED - Status is now fully auto-calculated
 
         card.add(grid, BorderLayout.CENTER);
         return card;
@@ -362,7 +354,18 @@ public class StudentFormPage extends JPanel {
         gradesPanel.setOpaque(false);
         gradesPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-        card.add(gradesPanel, BorderLayout.CENTER);
+        // Note Label for negative statuses
+        JLabel hintLabel = new JLabel("ملاحظة هامة: أدخل إحدى القيم التالية لتعيين حالة إدارية: (-1) غائب، (-2) محروم، (-3) مفصول، (-4) معتذر، (-5) مؤجل", SwingConstants.RIGHT);
+        hintLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        hintLabel.setForeground(Color.RED);
+        hintLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        
+        JPanel container = new JPanel(new BorderLayout());
+        container.setOpaque(false);
+        container.add(hintLabel, BorderLayout.NORTH);
+        container.add(gradesPanel, BorderLayout.CENTER);
+
+        card.add(container, BorderLayout.CENTER);
 
         // Add calc preview button
         JPanel bottomAction = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -575,12 +578,7 @@ public class StudentFormPage extends JPanel {
         if (student.getGovernorate() != null)
             govCombo.setSelectedItem(student.getGovernorate());
 
-        String st = student.getStatus();
-        if (st == null || st.isEmpty() || st.equals("ناجح") || st.equals("راسب") || st.equals("دور ثاني")) {
-            statusCombo.setSelectedIndex(0);
-        } else {
-            statusCombo.setSelectedItem(st);
-        }
+        // Status combo removed
 
         currentPicPath = student.getImagePath();
         currentIdFrontPath = student.getIdFrontPath();

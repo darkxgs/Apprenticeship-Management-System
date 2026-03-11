@@ -85,11 +85,44 @@ public class ExcelService {
                 String religion = getCellValue(row.getCell(18));
                 String nationality = getCellValue(row.getCell(19));
                 String address = getCellValue(row.getCell(20));
+                // col[23] = "pic" — sequential photo reference number in some datasets
+                String picRef = getCellValue(row.getCell(23)).trim();
 
-                // Fallback: column 21 is also named 'رقم قومي' in some sheets
-                if (nationalId.isEmpty() && !getCellValue(row.getCell(21)).trim().isEmpty()) {
-                    nationalId = getCellValue(row.getCell(21)).trim();
+                // ============================================================
+                // DEBUG: Print row data to console to verify column mapping
+                // Remove or comment out after verifying data is correct
+                // ============================================================
+                if (currentRowCount <= 3) { // Print first 3 rows only
+                    System.out.println("\n=== DEBUG ROW " + currentRowCount + " ===");
+                    System.out.println("col[0]  مسلسل          : [" + serial + "]");
+                    System.out.println("col[1]  الاسم           : [" + name + "]");
+                    System.out.println("col[2]  رقم التسجيل    : [" + registrationNo + "]");
+                    System.out.println("col[3]  الرقم القومى   : [" + getCellValue(row.getCell(3)) + "]");
+                    System.out.println("col[4]  المنطقة         : [" + region + "]");
+                    System.out.println("col[5]  اسم المركز      : [" + centerName + "]");
+                    System.out.println("col[6]  المهنة           : [" + profession + "]");
+                    System.out.println("col[7]  النظام           : [" + examSystem + "]");
+                    System.out.println("col[8]  رقم الجلوس      : [" + seatNo + "]");
+                    System.out.println("col[9]  الرقم السرى     : [" + secretNo + "]");
+                    System.out.println("col[10] المجموعة المهنية: [" + profGroup + "]");
+                    System.out.println("col[11] رقم التنسيق     : [" + coordNo + "]");
+                    System.out.println("col[12] يوم              : [" + dobDay + "]");
+                    System.out.println("col[13] شهر              : [" + dobMonth + "]");
+                    System.out.println("col[14] سنة              : [" + dobYear + "]");
+                    System.out.println("col[15] النوع            : [" + gender + "]");
+                    System.out.println("col[16] حي/قرية          : [" + neighborhood + "]");
+                    System.out.println("col[17] محافظة           : [" + governorate + "]");
+                    System.out.println("col[18] ديانة            : [" + religion + "]");
+                    System.out.println("col[19] جنسية            : [" + nationality + "]");
+                    System.out.println("col[20] عنوان            : [" + address + "]");
+                    System.out.println("col[21] رقم قومي (v2)   : [" + getCellValue(row.getCell(21)) + "]");
+                    System.out.println("col[22] اخري             : [" + getCellValue(row.getCell(22)) + "]");
+                    System.out.println("col[23] pic              : [" + picRef + "]");
+                    System.out.println("=> nationalId USED       : [" + nationalId + "]");
+                    System.out.println("=========================================");
                 }
+                // ============================================================
+
                 String otherNotes = getCellValue(row.getCell(22));
 
                 // If seat_no is empty, generate a placeholder to not skip the student
@@ -109,13 +142,23 @@ public class ExcelService {
                 if (nationalId != null && !nationalId.trim().isEmpty()) {
                     String cleanId = nationalId.trim();
                     if (profileFolder != null) {
+                        // Try national ID first, then fall back to pic reference number
                         savedProfilePath = findAndCopyImage(profileFolder, cleanId, "profile.jpg");
+                        if (savedProfilePath.isEmpty() && !picRef.isEmpty()) {
+                            savedProfilePath = findAndCopyImage(profileFolder, picRef, "profile.jpg");
+                        }
                     }
                     if (frontIdFolder != null) {
                         savedFrontIdPath = findAndCopyImage(frontIdFolder, cleanId, "id_front.jpg");
+                        if (savedFrontIdPath.isEmpty() && !picRef.isEmpty()) {
+                            savedFrontIdPath = findAndCopyImage(frontIdFolder, picRef, "id_front.jpg");
+                        }
                     }
                     if (backIdFolder != null) {
                         savedBackIdPath = findAndCopyImage(backIdFolder, cleanId, "id_back.jpg");
+                        if (savedBackIdPath.isEmpty() && !picRef.isEmpty()) {
+                            savedBackIdPath = findAndCopyImage(backIdFolder, picRef, "id_back.jpg");
+                        }
                     }
                 }
 

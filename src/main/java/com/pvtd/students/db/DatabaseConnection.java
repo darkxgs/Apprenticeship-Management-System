@@ -4,21 +4,72 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseConnection {
     // Oracle 11g Configuration
     private static final String URL = "jdbc:oracle:thin:@localhost:1521:xe";
     private static final String USER = "system";
     private static final String PASSWORD = "123";
+    private static final int MAX_POOL_SIZE = 5;
 
-    public static Connection getConnection() throws SQLException {
+    // Simple connection pool
+    private static final List<Connection> pool = new ArrayList<>();
+
+    /**
+     * Get a connection from the pool (or create a new one if pool not full).
+     * Connections are reused, minimizing Oracle XE session exhaustion (ORA-12519).
+     */
+    public static synchronized Connection getConnection() throws SQLException {
         try {
             Class.forName("oracle.jdbc.OracleDriver");
         } catch (ClassNotFoundException e) {
-            System.err.println("Oracle JDBC Driver not found. Ensure ojdbc8 is in your dependencies.");
-            e.printStackTrace();
+            System.err.println("Oracle JDBC Driver not found.");
         }
+
+        // Reuse any live pooled connection
+        for (int i = 0; i < pool.size(); i++) {
+            Connection c = pool.get(i);
+            try {
+                if (c != null && !c.isClosed() && c.isValid(1)) {
+                    pool.remove(i);
+                    return c;
+                } else {
+                    pool.remove(i);
+                    i--;
+                }
+            } catch (Exception e) {
+                pool.remove(i);
+                i--;
+            }
+        }
+
+        // Create a new connection if pool is empty
         return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+
+    /**
+     * Return a connection to the pool for reuse. Call this instead of conn.close().
+     * If pool is full, the connection is closed normally.
+     */
+    public static synchronized void returnConnection(Connection conn) {
+        if (conn == null) return;
+        try {
+            if (!conn.isClosed()) {
+                if (conn.getAutoCommit() == false) {
+                    try { conn.rollback(); } catch (Exception ignored) {}
+                    conn.setAutoCommit(true);
+                }
+                if (pool.size() < MAX_POOL_SIZE) {
+                    pool.add(conn);
+                } else {
+                    conn.close();
+                }
+            }
+        } catch (Exception e) {
+            try { conn.close(); } catch (Exception ignored) {}
+        }
     }
 
     public static void initializeDatabase() {

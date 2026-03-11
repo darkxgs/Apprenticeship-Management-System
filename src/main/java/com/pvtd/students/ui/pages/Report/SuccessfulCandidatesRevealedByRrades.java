@@ -22,7 +22,6 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
-
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
@@ -35,309 +34,297 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.awt.Desktop;
 
-
 /**
  *
  * @author Seif
  */
 public class SuccessfulCandidatesRevealedByRrades extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SuccessfulCandidatesRevealedByRrades.class.getName());
 
-    
+    private static final java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger(SuccessfulCandidatesRevealedByRrades.class.getName());
+
     public SuccessfulCandidatesRevealedByRrades() {
         initComponents();
         int lastColumn = jTable1.getColumnCount() - 1;
 
-Object totalValue = jTable1.getValueAt(0, lastColumn);
+        Object totalValue = jTable1.getValueAt(0, lastColumn);
 
-String total = java.util.Objects.toString(totalValue, "");
-int total2 = Integer.parseInt(totalValue.toString());
+        String total = java.util.Objects.toString(totalValue, "");
+        int total2 = Integer.parseInt(totalValue.toString());
 
-String totalWords = numberToArabicWords(total2);
+        String totalWords = numberToArabicWords(total2);
 
-jLabelTotalWords.setText(totalWords + " درجة فقط لا غير");
+        jLabelTotalWords.setText(totalWords + " درجة فقط لا غير");
     }
 
-    public static String numberToArabicWords(int number){
+    public static String numberToArabicWords(int number) {
 
-    String[] ones = {
-        "", "واحد", "اثنان", "ثلاثة", "أربعة",
-        "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"
-    };
+        String[] ones = {
+                "", "واحد", "اثنان", "ثلاثة", "أربعة",
+                "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"
+        };
 
-    String[] tens = {
-        "", "عشرة", "عشرون", "ثلاثون",
-        "أربعون", "خمسون", "ستون",
-        "سبعون", "ثمانون", "تسعون"
-    };
+        String[] tens = {
+                "", "عشرة", "عشرون", "ثلاثون",
+                "أربعون", "خمسون", "ستون",
+                "سبعون", "ثمانون", "تسعون"
+        };
 
-    String[] hundreds = {
-        "", "مائة", "مائتان", "ثلاثمائة",
-        "أربعمائة", "خمسمائة", "ستمائة",
-        "سبعمائة", "ثمانمائة", "تسعمائة"
-    };
+        String[] hundreds = {
+                "", "مائة", "مائتان", "ثلاثمائة",
+                "أربعمائة", "خمسمائة", "ستمائة",
+                "سبعمائة", "ثمانمائة", "تسعمائة"
+        };
 
-    int h = number / 100;
-    int t = (number % 100) / 10;
-    int o = number % 10;
+        int h = number / 100;
+        int t = (number % 100) / 10;
+        int o = number % 10;
 
-    String result = "";
+        String result = "";
 
-    if(h > 0){
-        result += hundreds[h] + " ";
+        if (h > 0) {
+            result += hundreds[h] + " ";
+        }
+
+        if (t > 1) {
+            result += ones[o] + " و " + tens[t];
+        } else if (t == 1) {
+            result += "عشرة";
+        } else {
+            result += ones[o];
+        }
+
+        return result.trim();
     }
 
-    if(t > 1){
-        result += ones[o] + " و " + tens[t];
-    }
-    else if(t == 1){
-        result += "عشرة";
-    }
-    else{
-        result += ones[o];
+    public void loadStudentData(String seatNo) {
+
+        new Thread(() -> {
+
+            try {
+
+                Connection con = DatabaseConnection.getConnection();
+
+                String sql = "SELECT s.name , s.national_id , s.seat_no , s.center_name , s.region , " +
+                        "sp.name specialization , g.name group_name , s.image_path " +
+                        "FROM students s " +
+                        "LEFT JOIN specializations sp ON s.specialization_id = sp.id " +
+                        "LEFT JOIN groups g ON s.group_id = g.id " +
+                        "WHERE s.seat_no = ?";
+
+                PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, seatNo);
+
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+
+                    String name = rs.getString("name");
+                    String national = rs.getString("national_id");
+                    String seat = rs.getString("seat_no");
+                    String center = rs.getString("center_name");
+                    String region = rs.getString("region");
+                    String spec = rs.getString("specialization");
+                    String group = rs.getString("group_name");
+                    String imgPath = rs.getString("image_path");
+
+                    SwingUtilities.invokeLater(() -> {
+
+                        this.name.setText(name);
+                        jLabelSeatNo.setText(seat);
+                        jLabelNationalID.setText(national);
+                        jLabelSpecialization.setText(spec);
+                        jLabelGroup.setText(group);
+                        jLabelCenter.setText(center);
+                        jLabelRegion.setText(region);
+
+                        if (imgPath != null) {
+
+                            ImageIcon icon = new ImageIcon(imgPath);
+
+                            java.awt.Image img = icon.getImage().getScaledInstance(
+                                    jLabelPhoto.getWidth(),
+                                    jLabelPhoto.getHeight(),
+                                    java.awt.Image.SCALE_SMOOTH);
+
+                            jLabelPhoto.setIcon(new ImageIcon(img));
+                        }
+
+                    });
+
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }).start();
     }
 
-    return result.trim();
-}
-    
-    
-   public void loadStudentData(String seatNo){
-
-    new Thread(() -> {
+    public void printCertificates(List<Student> students) {
 
         try {
 
-            Connection con = DatabaseConnection.getConnection();
+            // إنشاء الفولدرات
+            File mainFolder = new File("تقارير");
+            if (!mainFolder.exists()) {
+                mainFolder.mkdir();
+            }
 
-            String sql =
-            "SELECT s.name , s.national_id , s.seat_no , s.center_name , s.region , " +
-            "sp.name specialization , g.name group_name , s.image_path " +
-            "FROM students s " +
-            "LEFT JOIN specializations sp ON s.specialization_id = sp.id " +
-            "LEFT JOIN groups g ON s.group_id = g.id " +
-            "WHERE s.seat_no = ?";
+            File certFolder = new File(mainFolder, "شهادة نجاح");
+            if (!certFolder.exists()) {
+                certFolder.mkdir();
+            }
 
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, seatNo);
+            // ملف الطباعة الجماعي
+            String allFilePath = certFolder.getAbsolutePath() + "/all_certificates.pdf";
 
-            ResultSet rs = ps.executeQuery();
+            Document allDoc = new Document(PageSize.A4);
+            PdfWriter.getInstance(allDoc, new FileOutputStream(allFilePath));
+            allDoc.open();
 
-            if(rs.next()){
+            for (Student s : students) {
 
-                String name = rs.getString("name");
-                String national = rs.getString("national_id");
-                String seat = rs.getString("seat_no");
-                String center = rs.getString("center_name");
-                String region = rs.getString("region");
-                String spec = rs.getString("specialization");
-                String group = rs.getString("group_name");
-                String imgPath = rs.getString("image_path");
+                loadStudentData(s.getSeatNo());
+
+                String nationalId = jLabelNationalID.getText();
+
+                // إنشاء صورة من الشهادة
+                BufferedImage image = new BufferedImage(
+                        jPanel1.getWidth(),
+                        jPanel1.getHeight(),
+                        BufferedImage.TYPE_INT_RGB);
+
+                Graphics2D g2 = image.createGraphics();
+                jPanel1.paint(g2);
+                g2.dispose();
+
+                Image img = Image.getInstance(image, null);
+                img.scaleToFit(PageSize.A4.getWidth() - 40, PageSize.A4.getHeight() - 40);
+                img.setAlignment(Image.ALIGN_CENTER);
+
+                // -----------------------
+                // 1️⃣ إضافة للشهادة الجماعية
+                // -----------------------
+                allDoc.add(img);
+                allDoc.newPage();
+
+                // -----------------------
+                // 2️⃣ إنشاء ملف منفصل لكل طالب
+                // -----------------------
+                String singlePath = certFolder.getAbsolutePath() + "/" + nationalId + ".pdf";
+
+                Document singleDoc = new Document(PageSize.A4);
+                PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
+                singleDoc.open();
+
+                Image img2 = Image.getInstance(image, null);
+                img2.scaleToFit(PageSize.A4.getWidth() - 40, PageSize.A4.getHeight() - 40);
+                img2.setAlignment(Image.ALIGN_CENTER);
+
+                singleDoc.add(img2);
+                singleDoc.close();
+            }
+
+            allDoc.close();
+
+            // فتح ملف الطباعة في المتصفح
+            Desktop.getDesktop().open(new File(allFilePath));
+
+            JOptionPane.showMessageDialog(this, "تم إنشاء الشهادات بنجاح");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadGradesTable(String seatNo) {
+
+        new Thread(() -> {
+
+            try {
+
+                Connection con = DatabaseConnection.getConnection();
+
+                DefaultTableModel model = new DefaultTableModel();
+
+                String sql = "SELECT sub.name , sub.max_mark , g.obtained_mark , sub.type " +
+                        "FROM students st " +
+                        "JOIN subjects sub ON sub.specialization_id = st.specialization_id " +
+                        "LEFT JOIN student_grades g ON g.subject_id = sub.id AND g.student_id = st.id " +
+                        "WHERE st.seat_no = ?";
+
+                PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, seatNo);
+
+                ResultSet rs = ps.executeQuery();
+
+                Vector<String> columns = new Vector<>();
+                Vector<Object> row = new Vector<>();
+
+                columns.add("الدرجات");
+
+                int theoryTotal = 0;
+                int practicalTotal = 0;
+                int appliedTotal = 0;
+
+                while (rs.next()) {
+
+                    String subject = rs.getString("name");
+                    int mark = rs.getInt("obtained_mark");
+                    int max = rs.getInt("max_mark");
+                    String type = rs.getString("type");
+
+                    columns.add(subject + " / " + max);
+
+                    row.add(mark);
+
+                    if ("theory".equals(type)) {
+                        theoryTotal += mark;
+                    }
+
+                    if ("practical".equals(type)) {
+                        practicalTotal += mark;
+                    }
+
+                    if ("applied".equals(type)) {
+                        appliedTotal += mark;
+                    }
+
+                }
+
+                columns.add("مجموع النظري");
+                columns.add("درجات العملي");
+                columns.add("درجات التطبيقي");
+                columns.add("مجموع العملي والتطبيقي");
+                columns.add("المجموع الكلي");
+
+                row.add(theoryTotal);
+                row.add(practicalTotal);
+                row.add(appliedTotal);
+                row.add(practicalTotal + appliedTotal);
+                row.add(theoryTotal + practicalTotal + appliedTotal);
+
+                model.setColumnIdentifiers(columns);
+                model.addRow(row);
 
                 SwingUtilities.invokeLater(() -> {
 
-                    this.name.setText(name);
-                    jLabelSeatNo.setText(seat);
-                    jLabelNationalID.setText(national);
-                    jLabelSpecialization.setText(spec);
-                    jLabelGroup.setText(group);
-                    jLabelCenter.setText(center);
-                    jLabelRegion.setText(region);
-
-                    if(imgPath != null){
-
-                        ImageIcon icon = new ImageIcon(imgPath);
-
-                        java.awt.Image img = icon.getImage().getScaledInstance(
-        jLabelPhoto.getWidth(),
-        jLabelPhoto.getHeight(),
-        java.awt.Image.SCALE_SMOOTH
-);
-
-                        jLabelPhoto.setIcon(new ImageIcon(img));
-                    }
+                    jTable1.setModel(model);
+                    jTable1.setRowHeight(35);
 
                 });
 
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }).start();
-}
-   
-   
-public void printCertificates(List<Student> students) {
-
-    try {
-
-        // إنشاء الفولدرات
-        File mainFolder = new File("تقارير");
-        if (!mainFolder.exists()) {
-            mainFolder.mkdir();
-        }
-
-        File certFolder = new File(mainFolder, "شهادة نجاح");
-        if (!certFolder.exists()) {
-            certFolder.mkdir();
-        }
-
-        // ملف الطباعة الجماعي
-        String allFilePath = certFolder.getAbsolutePath() + "/all_certificates.pdf";
-
-        Document allDoc = new Document(PageSize.A4);
-        PdfWriter.getInstance(allDoc, new FileOutputStream(allFilePath));
-        allDoc.open();
-
-        for (Student s : students) {
-
-            loadStudentData(s.getSeatNo());
-
-            String nationalId = jLabelNationalID.getText();
-
-            // إنشاء صورة من الشهادة
-            BufferedImage image = new BufferedImage(
-                    jPanel1.getWidth(),
-                    jPanel1.getHeight(),
-                    BufferedImage.TYPE_INT_RGB
-            );
-
-            Graphics2D g2 = image.createGraphics();
-            jPanel1.paint(g2);
-            g2.dispose();
-
-            Image img = Image.getInstance(image, null);
-            img.scaleToFit(PageSize.A4.getWidth() - 40, PageSize.A4.getHeight() - 40);
-            img.setAlignment(Image.ALIGN_CENTER);
-
-            // -----------------------
-            // 1️⃣ إضافة للشهادة الجماعية
-            // -----------------------
-            allDoc.add(img);
-            allDoc.newPage();
-
-            // -----------------------
-            // 2️⃣ إنشاء ملف منفصل لكل طالب
-            // -----------------------
-            String singlePath = certFolder.getAbsolutePath() + "/" + nationalId + ".pdf";
-
-            Document singleDoc = new Document(PageSize.A4);
-            PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
-            singleDoc.open();
-
-            Image img2 = Image.getInstance(image, null);
-            img2.scaleToFit(PageSize.A4.getWidth() - 40, PageSize.A4.getHeight() - 40);
-            img2.setAlignment(Image.ALIGN_CENTER);
-
-            singleDoc.add(img2);
-            singleDoc.close();
-        }
-
-        allDoc.close();
-
-        // فتح ملف الطباعة في المتصفح
-        Desktop.getDesktop().open(new File(allFilePath));
-
-        JOptionPane.showMessageDialog(this, "تم إنشاء الشهادات بنجاح");
-
-    } catch (Exception e) {
-        e.printStackTrace();
+        }).start();
     }
-}
-   
-   
-   public void loadGradesTable(String seatNo){
 
-    new Thread(() -> {
-
-        try {
-
-            Connection con = DatabaseConnection.getConnection();
-
-            DefaultTableModel model = new DefaultTableModel();
-
-            String sql =
-            "SELECT sub.name , sub.max_mark , g.obtained_mark , sub.type " +
-            "FROM students st " +
-            "JOIN subjects sub ON sub.specialization_id = st.specialization_id " +
-            "LEFT JOIN student_grades g ON g.subject_id = sub.id AND g.student_id = st.id " +
-            "WHERE st.seat_no = ?";
-
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, seatNo);
-
-            ResultSet rs = ps.executeQuery();
-
-            Vector<String> columns = new Vector<>();
-            Vector<Object> row = new Vector<>();
-
-            columns.add("الدرجات");
-
-            int theoryTotal = 0;
-            int practicalTotal = 0;
-            int appliedTotal = 0;
-
-            while(rs.next()){
-
-                String subject = rs.getString("name");
-                int mark = rs.getInt("obtained_mark");
-                int max = rs.getInt("max_mark");
-                String type = rs.getString("type");
-
-                columns.add(subject + " / " + max);
-
-                row.add(mark);
-
-                if("theory".equals(type)){
-                    theoryTotal += mark;
-                }
-
-                if("practical".equals(type)){
-                    practicalTotal += mark;
-                }
-
-                if("applied".equals(type)){
-                    appliedTotal += mark;
-                }
-
-            }
-
-            columns.add("مجموع النظري");
-            columns.add("درجات العملي");
-            columns.add("درجات التطبيقي");
-            columns.add("مجموع العملي والتطبيقي");
-            columns.add("المجموع الكلي");
-
-            row.add(theoryTotal);
-            row.add(practicalTotal);
-            row.add(appliedTotal);
-            row.add(practicalTotal + appliedTotal);
-            row.add(theoryTotal + practicalTotal + appliedTotal);
-
-            model.setColumnIdentifiers(columns);
-            model.addRow(row);
-
-            SwingUtilities.invokeLater(() -> {
-
-                jTable1.setModel(model);
-                jTable1.setRowHeight(35);
-
-            });
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }).start();
-}
-   
-   
-   
-   
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
@@ -522,16 +509,15 @@ public void printCertificates(List<Student> students) {
         jLabelRegion.setBounds(187, 446, 150, 20);
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
+                new Object[][] {
+                        { null, null, null, null },
+                        { null, null, null, null },
+                        { null, null, null, null },
+                        { null, null, null, null }
+                },
+                new String[] {
+                        "Title 1", "Title 2", "Title 3", "Title 4"
+                }));
         jScrollPane1.setViewportView(jTable1);
 
         jPanel1.add(jScrollPane1);
@@ -594,7 +580,8 @@ public void printCertificates(List<Student> students) {
 
         jLabel24.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel24.setForeground(new java.awt.Color(51, 0, 204));
-        jLabel24.setText("ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ");
+        jLabel24.setText(
+                "ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ");
         jPanel1.add(jLabel24);
         jLabel24.setBounds(20, 1030, 760, 25);
 
@@ -671,13 +658,11 @@ public void printCertificates(List<Student> students) {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 485, Short.MAX_VALUE)
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 485, Short.MAX_VALUE));
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 293, Short.MAX_VALUE)
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 293, Short.MAX_VALUE));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -687,9 +672,13 @@ public void printCertificates(List<Student> students) {
      */
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+        // <editor-fold defaultstate="collapsed" desc=" Look and feel setting code
+        // (optional) ">
+        /*
+         * If Nimbus (introduced in Java SE 6) is not available, stay with the default
+         * look and feel.
+         * For details see
+         * http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -701,7 +690,7 @@ public void printCertificates(List<Student> students) {
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
+        // </editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new SuccessfulCandidatesRevealedByRrades().setVisible(true));
