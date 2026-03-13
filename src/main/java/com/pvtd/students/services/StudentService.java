@@ -89,7 +89,7 @@ public class StudentService {
     }
 
     public static List<Student> searchStudents(String keyword, String seatNo, String governorate, String profession,
-            String status) {
+            String status, String centerName) {
         List<Student> students = new ArrayList<>();
         StringBuilder query = new StringBuilder("SELECT * FROM students WHERE 1=1 ");
         List<Object> parameters = new ArrayList<>();
@@ -117,6 +117,10 @@ public class StudentService {
             query.append("AND status = ? ");
             parameters.add(status.trim());
         }
+        if (centerName != null && !centerName.trim().isEmpty() && !centerName.equals("الكل")) {
+            query.append("AND center_name = ? ");
+            parameters.add(centerName.trim());
+        }
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query.toString())) {
@@ -139,57 +143,15 @@ public class StudentService {
     }
 
     public static List<String> getDistinctGovernorates() {
-        List<String> list = new ArrayList<>();
-        String query = "SELECT DISTINCT governorate FROM students WHERE governorate IS NOT NULL";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(query);
-                ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String val = rs.getString("governorate");
-                if (val != null && !val.trim().isEmpty()) {
-                    list.add(val.trim());
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
+        return DictionaryService.getCombinedItems(DictionaryService.CAT_REGION);
     }
 
     public static List<String> getDistinctCenters() {
-        List<String> list = new ArrayList<>();
-        String query = "SELECT DISTINCT center_name FROM students WHERE center_name IS NOT NULL";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(query);
-                ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String val = rs.getString("center_name");
-                if (val != null && !val.trim().isEmpty()) {
-                    list.add(val.trim());
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
+        return DictionaryService.getCombinedItems(DictionaryService.CAT_CENTER);
     }
 
     public static List<String> getDistinctProfessions() {
-        List<String> list = new ArrayList<>();
-        String query = "SELECT DISTINCT profession FROM students WHERE profession IS NOT NULL";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(query);
-                ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String val = rs.getString("profession");
-                if (val != null && !val.trim().isEmpty()) {
-                    list.add(val.trim());
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
+        return DictionaryService.getCombinedItems(DictionaryService.CAT_PROFESSION);
     }
 
     // Helper to map DB ResultSet to Student
@@ -240,11 +202,38 @@ public class StudentService {
         return map;
     }
 
+    public static String generateUniqueSecretNo() {
+        String secret = "";
+        java.util.Random rnd = new java.util.Random();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT 1 FROM students WHERE secret_no = ?")) {
+            boolean unique = false;
+            while (!unique) {
+                int number = 10000 + rnd.nextInt(90000); // 10000 to 99999
+                secret = String.valueOf(number);
+                stmt.setString(1, secret);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (!rs.next()) {
+                        unique = true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            secret = String.valueOf(10000 + rnd.nextInt(90000));
+        }
+        return secret;
+    }
+
     public static void addStudent(Student s) {
         String query = "INSERT INTO students (serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query, new String[] { "id" })) { // get generated ID
+
+            if (s.getSecretNo() == null || s.getSecretNo().trim().isEmpty()) {
+                s.setSecretNo(generateUniqueSecretNo());
+            }
 
             stmt.setString(1, s.getSerial());
             stmt.setString(2, s.getName());
@@ -303,6 +292,10 @@ public class StudentService {
         String query = "UPDATE students SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=? WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            if (s.getSecretNo() == null || s.getSecretNo().trim().isEmpty()) {
+                s.setSecretNo(generateUniqueSecretNo());
+            }
 
             stmt.setString(1, s.getSerial());
             stmt.setString(2, s.getName());
@@ -406,6 +399,38 @@ public class StudentService {
         }
     }
 
+    public static boolean updateStudentGrades(int studentId, Map<Integer, Integer> grades) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                saveStudentGrades(conn, studentId, grades);
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean updateStudentStatusDirectly(int studentId, String status) {
+        String sql = "UPDATE students SET status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, studentId);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static String calculateStatus(String profession, Map<Integer, Integer> grades) {
         if (grades == null || grades.isEmpty())
             return "غير محدد";
@@ -431,23 +456,39 @@ public class StudentService {
         if (subjects.isEmpty())
             return "غير محدد";
 
-        int failedSubjects = 0;
+        int failedTheoryPracticalCount = 0; // Only نظري + عملي (NOT التطبيقي)
+        boolean failedAppliedSubject = false;
 
         for (com.pvtd.students.models.Subject sub : subjects) {
             int obtained = grades.getOrDefault(sub.getId(), 0);
+
+            // التطبيقي is identified by its name containing "تطبيقي"
+            // Regular عملي (practical) subjects do NOT count as applied
+            boolean isApplied = (sub.getName() != null && sub.getName().contains("تطبيقي"));
+
             if (obtained < sub.getPassMark()) {
-                failedSubjects++;
+                if (isApplied) {
+                    failedAppliedSubject = true;
+                } else {
+                    // This is a نظري or عملي (non-applied) subject
+                    failedTheoryPracticalCount++;
+                }
             }
         }
 
-        // Logic (can be updated): Fail in 3+ subjects is a total Fail. Fail in 1-2
-        // subjects is Second Try.
-        if (failedSubjects >= 3) {
+        // Rule 1: Failed التطبيقي → راسب
+        if (failedAppliedSubject) {
             return "راسب";
-        } else if (failedSubjects > 0) {
-            return "دور ثاني";
-        } else {
-            return "ناجح";
         }
+        // Rule 2: Failed 3 or more نظري+عملي subjects → راسب
+        if (failedTheoryPracticalCount >= 3) {
+            return "راسب";
+        }
+        // Rule 3: Passed التطبيقي, failed 1 or 2 نظري+عملي → دور ثاني
+        if (failedTheoryPracticalCount > 0) {
+            return "دور ثاني";
+        }
+        // Rule 4: Passed التطبيقي AND all نظري+عملي → ناجح
+        return "ناجح";
     }
 }

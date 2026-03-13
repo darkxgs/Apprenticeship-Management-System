@@ -220,6 +220,18 @@ public class DatabaseConnection {
                 } catch (SQLException e) {}
             }
 
+            createSequence(stmt, "system_dictionaries_seq");
+            String createDictTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE system_dictionaries (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "category VARCHAR2(50) NOT NULL," +
+                    "value VARCHAR2(150) NOT NULL," +
+                    "UNIQUE(category, value))';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createDictTable);
+            createTrigger(stmt, "system_dictionaries");
+
             addColumnIfMissing(stmt, "students", "image_path", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "other_notes", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "status", "VARCHAR2(50)");

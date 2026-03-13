@@ -29,7 +29,7 @@ public class StudentsPage extends JPanel {
 
     // Filters
     private JTextField searchKeyField, searchSeatField;
-    private JComboBox<String> govCombo, profCombo, statusCombo;
+    private JComboBox<String> govCombo, profCombo, statusCombo, centerCombo;
 
     // Live Stats
     private JLabel countLabel, passedLabel, failedLabel;
@@ -138,6 +138,13 @@ public class StudentsPage extends JPanel {
         for (String p : StudentService.getDistinctProfessions()) {
             profCombo.addItem(p);
         }
+        
+        centerCombo = makeCombo();
+        centerCombo.addItem("الكل");
+        for (String c : StudentService.getDistinctCenters()) {
+            centerCombo.addItem(c);
+        }
+
         statusCombo = makeCombo(); // will add items manually
         statusCombo.addItem("الكل");
         for (String s : StatusesService.getAllStatuses()) {
@@ -163,6 +170,7 @@ public class StudentsPage extends JPanel {
             govCombo.setSelectedIndex(0);
             profCombo.setSelectedIndex(0);
             statusCombo.setSelectedIndex(0);
+            centerCombo.setSelectedIndex(0);
             loadStudentData();
         });
 
@@ -172,6 +180,8 @@ public class StudentsPage extends JPanel {
         filterCard.add(btnSearch);
         filterCard.add(labelFor("الحالة:"));
         filterCard.add(statusCombo);
+        filterCard.add(labelFor("المركز:"));
+        filterCard.add(centerCombo);
         filterCard.add(labelFor("طبيعة العمل:"));
         filterCard.add(profCombo);
         filterCard.add(labelFor("محافظة:"));
@@ -479,7 +489,8 @@ for (int row : selectedRows) {
                 searchSeatField.getText(),
                 (String) govCombo.getSelectedItem(),
                 (String) profCombo.getSelectedItem(),
-                (String) statusCombo.getSelectedItem());
+                (String) statusCombo.getSelectedItem(),
+                (String) centerCombo.getSelectedItem());
         populateTable();
     }
 

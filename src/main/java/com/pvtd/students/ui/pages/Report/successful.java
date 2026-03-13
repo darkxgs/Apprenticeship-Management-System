@@ -1,4 +1,3 @@
- 
 package com.pvtd.students.ui.pages.Report;
 
 import com.itextpdf.text.Document;
@@ -77,9 +76,7 @@ c.setForeground(Color.BLACK);
     
    public void loadStudents(String center, int count) {
 
-    try {
-
-        Connection con = DatabaseConnection.getConnection();
+    try (Connection con = DatabaseConnection.getConnection()) {
 
         String sql = """
         SELECT name, profession, registration_no, seat_no
@@ -116,11 +113,11 @@ c.setForeground(Color.BLACK);
 
         }
 
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-}
+    }
         
 public void createPDF() {
 

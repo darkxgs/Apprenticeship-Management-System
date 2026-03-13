@@ -71,7 +71,7 @@ c.setForeground(Color.BLACK);
 
     try {
 
-        Connection con = DatabaseConnection.getConnection();
+        try (Connection con = DatabaseConnection.getConnection()) {
 
         String sql = "SELECT DISTINCT center_name FROM students";
 
@@ -86,7 +86,7 @@ c.setForeground(Color.BLACK);
 
         }
 
-    } catch (Exception e) {
+    } } catch (Exception e) {
 
         e.printStackTrace();
 
@@ -104,7 +104,7 @@ public void loadStudents(String center, int count) {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
 
-        Connection con = DatabaseConnection.getConnection();
+        try (Connection con = DatabaseConnection.getConnection()) {
 
         String sql =
         "SELECT name, profession, registration_no, seat_no, status " +
@@ -135,7 +135,7 @@ public void loadStudents(String center, int count) {
 
         }
 
-    } catch (Exception e) {
+    } } catch (Exception e) {
         e.printStackTrace();
     }
 }
@@ -146,7 +146,7 @@ public void loadCount(String center) {
 
         cmdcount.removeAllItems();
 
-        Connection con = DatabaseConnection.getConnection();
+        try (Connection con = DatabaseConnection.getConnection()) {
 
         String sql = "SELECT COUNT(*) FROM students WHERE status='راسب' AND center_name=?";
 
@@ -165,7 +165,7 @@ public void loadCount(String center) {
 
         }
 
-    } catch (Exception e) {
+    } } catch (Exception e) {
         e.printStackTrace();
     }
 }

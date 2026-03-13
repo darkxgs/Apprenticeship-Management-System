@@ -1,4 +1,3 @@
-
 package com.pvtd.students.ui.pages.Report;
 
 import com.itextpdf.text.Document;
@@ -101,9 +100,7 @@ public class SuccessfulCandidatesRevealedByRrades extends javax.swing.JFrame {
 
         new Thread(() -> {
 
-            try {
-
-                Connection con = DatabaseConnection.getConnection();
+            try (Connection con = DatabaseConnection.getConnection()) {
 
                 String sql = "SELECT s.name , s.national_id , s.seat_no , s.center_name , s.region , " +
                         "sp.name specialization , g.name group_name , s.image_path " +
@@ -242,9 +239,7 @@ public class SuccessfulCandidatesRevealedByRrades extends javax.swing.JFrame {
 
         new Thread(() -> {
 
-            try {
-
-                Connection con = DatabaseConnection.getConnection();
+            try (Connection con = DatabaseConnection.getConnection()) {
 
                 DefaultTableModel model = new DefaultTableModel();
 
@@ -321,9 +316,6 @@ public class SuccessfulCandidatesRevealedByRrades extends javax.swing.JFrame {
 
         }).start();
     }
-
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated
     // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 

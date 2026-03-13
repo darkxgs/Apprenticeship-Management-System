@@ -3,6 +3,8 @@ package com.pvtd.students.ui;
 import com.pvtd.students.models.User;
 import com.pvtd.students.ui.components.Sidebar;
 import com.pvtd.students.ui.pages.DashboardPage;
+import com.pvtd.students.ui.pages.DataEntryPage;
+import com.pvtd.students.ui.pages.ReportsPage;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,7 +44,15 @@ public class AppFrame extends JFrame {
         UIManager.put("ProgressBar.arc", 10);
         UIManager.put("TextComponent.arc", 10);
 
-        showPage(new DashboardPage());
+        // Default landing page per role
+        String role = user.getRole() != null ? user.getRole() : "admin";
+        if (role.equals("data_entry")) {
+            showPage(new DataEntryPage(this));
+        } else if (role.equals("reporter")) {
+            showPage(new ReportsPage());
+        } else {
+            showPage(new DashboardPage());
+        }
     }
 
     public void showPage(JPanel page) {

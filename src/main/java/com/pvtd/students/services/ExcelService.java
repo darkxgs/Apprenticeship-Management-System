@@ -26,7 +26,7 @@ public class ExcelService {
                 "ON (s.seat_no = src.seat) " +
                 "WHEN MATCHED THEN " +
                 "  UPDATE SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, " +
-                "  exam_system=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, " +
+                "  exam_system=?, secret_no=COALESCE(s.secret_no, ?), professional_group=?, coordination_no=?, dob_day=?, dob_month=?, " +
                 "  dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, " +
                 "  other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=? " +
                 "WHEN NOT MATCHED THEN " +
@@ -73,7 +73,7 @@ public class ExcelService {
                 String profession = getCellValue(row.getCell(6));
                 String examSystem = getCellValue(row.getCell(7));
                 String seatNo = getCellValue(row.getCell(8)).trim();
-                String secretNo = getCellValue(row.getCell(9));
+                String secretNo = StudentService.generateUniqueSecretNo(); // Ignore Excel, Auto-Generate
                 String profGroup = getCellValue(row.getCell(10));
                 String coordNo = getCellValue(row.getCell(11));
                 String dobDay = getCellValue(row.getCell(12));

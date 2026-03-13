@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package com.pvtd.students.ui.pages.Report;
 
 import com.itextpdf.text.Document;
@@ -46,7 +42,8 @@ public class CertificateOfSuccess1 extends javax.swing.JFrame {
                 + "LEFT JOIN specializations sp ON s.specialization_id = sp.id "
                 + "WHERE s.seat_no = ?";
 
-        try (Connection con = DatabaseConnection.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+        try (Connection con = DatabaseConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, seatNo);
 

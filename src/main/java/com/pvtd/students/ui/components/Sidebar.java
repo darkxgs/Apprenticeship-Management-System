@@ -8,6 +8,10 @@ import com.pvtd.students.ui.pages.StatusesPage;
 import com.pvtd.students.ui.pages.ReportsPage;
 import com.pvtd.students.ui.pages.ImportPage;
 import com.pvtd.students.ui.pages.UsersPage;
+import com.pvtd.students.ui.pages.DictionarySetupPage;
+import com.pvtd.students.ui.pages.DataEntryPage;
+import com.pvtd.students.ui.pages.ArchivesPage;
+import com.pvtd.students.services.DictionaryService;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
@@ -80,18 +84,45 @@ public class Sidebar extends JPanel {
         HoverButton btnStudents = menu("الطلاب", () -> frame.showPage(new StudentsPage(frame)));
         HoverButton btnSubj = menu("المواد الدراسية", () -> frame.showPage(new SubjectsPage(frame)));
         HoverButton btnStat = menu("حالات الطلاب", () -> frame.showPage(new StatusesPage(frame)));
+        HoverButton btnProf = menu("إعدادات المهن", () -> frame.showPage(new DictionarySetupPage(frame, "المهن المتاحة", DictionaryService.CAT_PROFESSION)));
+        HoverButton btnRegion = menu("إعدادات المناطق", () -> frame.showPage(new DictionarySetupPage(frame, "المناطق السكنية", DictionaryService.CAT_REGION)));
+        HoverButton btnCenter = menu("إعدادات المراكز", () -> frame.showPage(new DictionarySetupPage(frame, "مراكز التدريب", DictionaryService.CAT_CENTER)));
+        HoverButton btnProfGroup = menu("إعدادات المجموعات المهنية", () -> frame.showPage(new DictionarySetupPage(frame, "المجموعات المهنية", DictionaryService.CAT_PROF_GROUP)));
         HoverButton btnRep = menu("التقارير", () -> frame.showPage(new ReportsPage()));
+        HoverButton btnDataEntry = menu("إدخال الدرجات السريع", () -> frame.showPage(new DataEntryPage(frame)));
 
-        navPanel.add(btnDash);
-        navPanel.add(Box.createVerticalStrut(8));
-        navPanel.add(btnStudents);
-        navPanel.add(Box.createVerticalStrut(8));
-        navPanel.add(btnSubj);
-        navPanel.add(Box.createVerticalStrut(8));
-        navPanel.add(btnStat);
-        navPanel.add(Box.createVerticalStrut(8));
-        navPanel.add(btnRep);
-        navPanel.add(Box.createVerticalStrut(8));
+        if (role.equals("data_entry")) {
+            navPanel.add(btnDataEntry);
+            navPanel.add(Box.createVerticalStrut(8));
+        } else {
+            navPanel.add(btnDash);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnStudents);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnSubj);
+            navPanel.add(Box.createVerticalStrut(8));
+        }
+        
+        if (role.equals("admin")) {
+            navPanel.add(btnStat);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnProf);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnRegion);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnCenter);
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(btnProfGroup);
+            navPanel.add(Box.createVerticalStrut(8));
+        } else if (!role.equals("data_entry")) {
+            navPanel.add(btnStat);
+            navPanel.add(Box.createVerticalStrut(8));
+        }
+        
+        if (!role.equals("data_entry")) {
+            navPanel.add(btnRep);
+            navPanel.add(Box.createVerticalStrut(8));
+        }
 
         if (role.equals("admin") || role.equals("data_entry")) {
             navPanel.add(menu("استيراد Excel", () -> frame.showPage(new ImportPage())));
@@ -99,6 +130,8 @@ public class Sidebar extends JPanel {
         }
         if (role.equals("admin")) {
             navPanel.add(menu("المستخدمين", () -> frame.showPage(new UsersPage(frame))));
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(menu("الأرشيف", () -> frame.showPage(new ArchivesPage())));
         }
 
         add(navPanel, BorderLayout.CENTER);

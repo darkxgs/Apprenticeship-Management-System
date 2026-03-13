@@ -32,8 +32,8 @@ public class StudentFormPage extends JPanel {
     private JComboBox<String> statusCombo;
 
     // Academic Secondary Fields
-    private JTextField regionField, examSystemField, secretNoField, profGroupField,
-            coordinationNoField, otherNotesField;
+    private JTextField examSystemField, secretNoField, coordinationNoField, otherNotesField;
+    private JComboBox<String> regionCombo, profGroupCombo;
 
     // Personal Info Fields
     private JComboBox<String> dayCombo, monthCombo, yearCombo, genderCombo, govCombo;
@@ -192,10 +192,29 @@ public class StudentFormPage extends JPanel {
         grid.setOpaque(false);
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        regionField = addLabeledField(grid, "المنطقة");
+        grid.add(createLabel("المنطقة"));
+        regionCombo = new JComboBox<>();
+        regionCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        regionCombo.setEditable(true);
+        regionCombo.addItem("");
+        for (String r : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION)) {
+            regionCombo.addItem(r);
+        }
+        grid.add(regionCombo);
+
         examSystemField = addLabeledField(grid, "نظام الامتحان");
         secretNoField = addLabeledField(grid, "الرقم السري");
-        profGroupField = addLabeledField(grid, "المجموعة المهنية");
+
+        grid.add(createLabel("المجموعة المهنية"));
+        profGroupCombo = new JComboBox<>();
+        profGroupCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        profGroupCombo.setEditable(true);
+        profGroupCombo.addItem("");
+        for (String pg : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROF_GROUP)) {
+            profGroupCombo.addItem(pg);
+        }
+        grid.add(profGroupCombo);
+
         coordinationNoField = addLabeledField(grid, "رقم التنسيق");
         otherNotesField = addLabeledField(grid, "ملاحظات أخرى");
 
@@ -552,13 +571,17 @@ public class StudentFormPage extends JPanel {
             centerNameCombo.setSelectedItem(student.getCenterName());
         }
 
-        regionField.setText(student.getRegion());
+        if (student.getRegion() != null) {
+            regionCombo.setSelectedItem(student.getRegion());
+        }
         if (student.getProfession() != null) {
             professionCombo.setSelectedItem(student.getProfession());
         }
         examSystemField.setText(student.getExamSystem());
         secretNoField.setText(student.getSecretNo());
-        profGroupField.setText(student.getProfessionalGroup());
+        if (student.getProfessionalGroup() != null) {
+            profGroupCombo.setSelectedItem(student.getProfessionalGroup());
+        }
         coordinationNoField.setText(student.getCoordinationNo());
         otherNotesField.setText(student.getOtherNotes());
         neighborhoodField.setText(student.getNeighborhood());
@@ -681,12 +704,14 @@ public class StudentFormPage extends JPanel {
             student.setStatus(sStatus);
         }
 
-        student.setRegion(regionField.getText().trim());
+        Object regObj = regionCombo.getSelectedItem();
+        student.setRegion(regObj != null ? regObj.toString().trim() : "");
         Object profObj = professionCombo.getSelectedItem();
         student.setProfession(profObj != null ? profObj.toString().trim() : "");
         student.setExamSystem(examSystemField.getText().trim());
         student.setSecretNo(secretNoField.getText().trim());
-        student.setProfessionalGroup(profGroupField.getText().trim());
+        Object pgObj = profGroupCombo.getSelectedItem();
+        student.setProfessionalGroup(pgObj != null ? pgObj.toString().trim() : "");
         student.setCoordinationNo(coordinationNoField.getText().trim());
         student.setOtherNotes(otherNotesField.getText().trim());
 
