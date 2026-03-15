@@ -697,8 +697,8 @@ public class StudentFormPage extends JPanel {
         Object selectedCenter = centerNameCombo.getSelectedItem();
         student.setCenterName(selectedCenter != null ? selectedCenter.toString() : "");
 
-        String sStatus = (String) statusCombo.getSelectedItem();
-        if ("تلقائي (حسب الدرجات)".equals(sStatus)) {
+        String sStatus = (statusCombo != null) ? (String) statusCombo.getSelectedItem() : null;
+        if (sStatus == null || "تلقائي (حسب الدرجات)".equals(sStatus)) {
             student.setStatus(null); // Let the service auto-gen
         } else {
             student.setStatus(sStatus);

@@ -9,10 +9,8 @@ import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
@@ -28,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.SwingUtilities;
 
 public class DataEntryPage extends JPanel {
 
@@ -50,6 +49,7 @@ public class DataEntryPage extends JPanel {
     private JTextArea failedSubjectsArea;
     private JLabel statusLabel;
     private JTextField ratingField;
+    private JTextField pracPlusApplField;
 
     // Data lists for navigation
     private List<Student> centerStudents = new ArrayList<>();
@@ -154,7 +154,7 @@ public class DataEntryPage extends JPanel {
         centerWrapper.add(buildTotalsPanel());   // Middle
         centerWrapper.add(buildStatusPanel());   // Left
 
-        // Label for Student Name below top panel
+        // Student name label (hidden - not shown in this view)
         studentNameLabel = new JLabel(" ", SwingConstants.RIGHT);
         studentNameLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         studentNameLabel.setForeground(UITheme.PRIMARY);
@@ -162,8 +162,8 @@ public class DataEntryPage extends JPanel {
         JPanel contentPanel = new JPanel(new BorderLayout(0, 15));
         contentPanel.setOpaque(false);
         contentPanel.add(topPanel, BorderLayout.NORTH);
-        contentPanel.add(studentNameLabel, BorderLayout.CENTER);
-        contentPanel.add(centerWrapper, BorderLayout.SOUTH);
+        // studentNameLabel intentionally NOT added — name is not shown in data entry
+        contentPanel.add(centerWrapper, BorderLayout.CENTER);
 
         card.add(contentPanel, BorderLayout.NORTH);
         return card;
@@ -198,12 +198,13 @@ public class DataEntryPage extends JPanel {
         appliedTotalField = createReadOnlyCalcField();
         grandTotalField = createReadOnlyCalcField();
         ratingField = createReadOnlyCalcField();
+        pracPlusApplField = createReadOnlyCalcField();
 
         int row = 0;
-        addLabeledCalcField(panel, gbc, row++, "مجموع النظري", theoryTotalField, new Color(132, 204, 22)); // Lime green
-        addLabeledCalcField(panel, gbc, row++, "درجات العملي", practicalTotalField, new Color(132, 204, 22));
-        addLabeledCalcField(panel, gbc, row++, "درجات التطبيقي", appliedTotalField, new Color(132, 204, 22));
-        addLabeledCalcField(panel, gbc, row++, "مجموع عملي وتطبيقي", new JTextField(), new Color(132, 204, 22)); // visual only if needed
+        addLabeledCalcField(panel, gbc, row++, "مجموع النظري",        theoryTotalField,    new Color(132, 204, 22));
+        addLabeledCalcField(panel, gbc, row++, "درجات العملي",        practicalTotalField, new Color(132, 204, 22));
+        addLabeledCalcField(panel, gbc, row++, "درجات التطبيقي",      appliedTotalField,   new Color(132, 204, 22));
+        addLabeledCalcField(panel, gbc, row++, "مجموع عملي + تطبيقي", pracPlusApplField,   new Color(163, 230, 53));
 
         gbc.gridy = row++;
         gbc.gridx = 0;
@@ -425,73 +426,157 @@ public class DataEntryPage extends JPanel {
         if (currentStudent == null || currentStudent.getProfession() == null) return;
 
         currentSubjects = SubjectService.getSubjectsByProfession(currentStudent.getProfession());
-        
+
+        // Group by type
+        List<Subject> theorySubjects   = new ArrayList<>();
+        List<Subject> practicalSubjects = new ArrayList<>();
+        List<Subject> appliedSubjects   = new ArrayList<>();
+
         for (Subject sub : currentSubjects) {
-            JPanel row = new JPanel(new BorderLayout(5, 0));
-            row.setOpaque(false);
-            row.setBorder(new EmptyBorder(2, 0, 2, 0));
+            String type = sub.getType() != null ? sub.getType() : "نظري";
+            if (type.equals("تطبيقي")) {
+                appliedSubjects.add(sub);
+            } else if (type.equals("عملي")) {
+                practicalSubjects.add(sub);
+            } else {
+                theorySubjects.add(sub);
+            }
+        }
 
-            JLabel lbl = new JLabel(sub.getName(), SwingConstants.CENTER);
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lbl.setOpaque(true);
-            lbl.setBackground(new Color(132, 204, 22)); // matching MS Access green body
-            lbl.setForeground(Color.BLACK);
-            lbl.setBorder(new LineBorder(Color.BLACK, 1));
-            lbl.setPreferredSize(new Dimension(150, 36));
+        // --- Render نظري section ---
+        if (!theorySubjects.isEmpty()) {
+            subjectsContainer.add(buildSectionHeader("نظري", new Color(0x1D4ED8)));
+            for (Subject sub : theorySubjects) {
+                subjectsContainer.add(buildSubjectRow(sub, new Color(132, 204, 22)));
+            }
+        }
 
-            JTextField gradeInput = new JTextField();
-            gradeInput.setFont(new Font("Segoe UI", Font.BOLD, 18));
-            gradeInput.setHorizontalAlignment(JTextField.CENTER);
-            gradeInput.setPreferredSize(new Dimension(60, 36));
-            gradeInput.setBorder(new LineBorder(Color.BLACK, 2));
+        // --- Render عملي section ---
+        if (!practicalSubjects.isEmpty()) {
+            subjectsContainer.add(buildSectionHeader("عملي", new Color(0x7C3AED)));
+            for (Subject sub : practicalSubjects) {
+                subjectsContainer.add(buildSubjectRow(sub, new Color(167, 139, 250)));
+            }
+        }
 
-            // Setup numeric filter & listener
-            setupGradeInput(gradeInput);
-
-            gradeFieldsMap.put(sub.getId(), gradeInput);
-            
-            row.add(lbl, BorderLayout.CENTER);
-            row.add(gradeInput, BorderLayout.EAST);
-            
-            subjectsContainer.add(row);
+        // --- Render تطبيقي section ---
+        if (!appliedSubjects.isEmpty()) {
+            subjectsContainer.add(buildSectionHeader("تطبيقي", new Color(0xEA580C)));
+            for (Subject sub : appliedSubjects) {
+                subjectsContainer.add(buildSubjectRow(sub, new Color(253, 186, 116)));
+            }
         }
 
         subjectsContainer.revalidate();
         subjectsContainer.repaint();
     }
 
-    private void setupGradeInput(JTextField tf) {
-        // Only allow numbers or negative dashes
+    /** Builds a colored section header label */
+    private JLabel buildSectionHeader(String title, Color bgColor) {
+        JLabel header = new JLabel("— " + title + " —", SwingConstants.CENTER);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setOpaque(true);
+        header.setBackground(bgColor);
+        header.setForeground(Color.WHITE);
+        header.setBorder(new EmptyBorder(4, 8, 4, 8));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return header;
+    }
+
+    /** Builds a single subject row with label + grade input */
+    private JPanel buildSubjectRow(Subject sub, Color labelBg) {
+        JPanel row = new JPanel(new BorderLayout(5, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(2, 0, 2, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Subject name + max mark hint
+        JLabel lbl = new JLabel(sub.getName() + " /" + sub.getMaxMark(), SwingConstants.CENTER);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lbl.setOpaque(true);
+        lbl.setBackground(labelBg);
+        lbl.setForeground(Color.BLACK);
+        lbl.setBorder(new LineBorder(Color.BLACK, 1));
+        lbl.setPreferredSize(new Dimension(150, 36));
+        lbl.setToolTipText("درجة النجاح: " + sub.getPassMark() + " | الدرجة العظمى: " + sub.getMaxMark());
+
+        JTextField gradeInput = new JTextField();
+        gradeInput.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        gradeInput.setHorizontalAlignment(JTextField.CENTER);
+        gradeInput.setPreferredSize(new Dimension(60, 36));
+        gradeInput.setBorder(new LineBorder(Color.BLACK, 2));
+
+        setupGradeInput(gradeInput, sub.getMaxMark());
+        gradeFieldsMap.put(sub.getId(), gradeInput);
+
+        row.add(lbl, BorderLayout.CENTER);
+        row.add(gradeInput, BorderLayout.EAST);
+        return row;
+    }
+
+    private void setupGradeInput(JTextField tf, int maxMark) {
+        final LineBorder normalBorder = new LineBorder(Color.BLACK, 2);
+        final LineBorder errorBorder  = new LineBorder(new Color(0xDC2626), 3);
+
+        // Only allow numbers
         ((AbstractDocument) tf.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
             public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-                if (text.matches("[0-9\\-]*")) {
+                if (text.matches("[0-9]*")) {
                     super.replace(fb, offset, length, text, attrs);
                 }
             }
         });
 
         tf.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { triggerCalc(); }
-            public void removeUpdate(DocumentEvent e) { triggerCalc(); }
+            public void insertUpdate(DocumentEvent e)  { triggerCalc(); }
+            public void removeUpdate(DocumentEvent e)  { triggerCalc(); }
             public void changedUpdate(DocumentEvent e) { triggerCalc(); }
             private void triggerCalc() {
                 isDirty = true;
                 recalculate();
+                // Validate max mark
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        String txt = tf.getText().trim();
+                        if (!txt.isEmpty()) {
+                            int val = Integer.parseInt(txt);
+                            if (val > maxMark) {
+                                tf.setBorder(errorBorder);
+                                tf.setBackground(new Color(0xFEF2F2));
+                                tf.setToolTipText("⚠️ الدرجة تتجاوز الحد الأقصى (" + maxMark + ")");
+                                return;
+                            }
+                        }
+                        tf.setBorder(normalBorder);
+                        tf.setBackground(Color.WHITE);
+                        tf.setToolTipText(null);
+                    } catch (NumberFormatException ignored) {}
+                });
             }
         });
-        
-        // Enter = Save & Next
+
+        // Enter = Save & go directly to next student (bypass checkDirty)
         tf.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    saveCurrentGrades();
-                    navigate(1);
+                    // Block navigation if any field exceeds max mark
+                    boolean hasError = gradeFieldsMap.values().stream()
+                        .anyMatch(f -> f.getBackground().equals(new Color(0xFEF2F2)));
+                    if (hasError) {
+                        JOptionPane.showMessageDialog(DataEntryPage.this,
+                            "توجد درجة تتجاوز الحد الأقصى. يرجى التصحيح أولا\u064b.",
+                            "خطأ في الدرجات", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    DataEntryPage.this.saveAndGoNext();
                 }
             }
         });
-        
+
         // Select all text when focused for fast replacing
         tf.addFocusListener(new FocusAdapter() {
             @Override public void focusGained(FocusEvent e) { tf.selectAll(); }
@@ -538,6 +623,7 @@ public class DataEntryPage extends JPanel {
         theoryTotalField.setText(String.valueOf(thTotal));
         practicalTotalField.setText(String.valueOf(prTotal));
         appliedTotalField.setText(String.valueOf(apTotal));
+        pracPlusApplField.setText(String.valueOf(prTotal + apTotal));
         grandTotalField.setText(String.valueOf(grandTotal));
         
         ratingField.setText(GradeCalculationService.calculateRating(grandTotal, maxTotal));
@@ -580,6 +666,21 @@ public class DataEntryPage extends JPanel {
             t.start();
         } else {
             JOptionPane.showMessageDialog(this, "حدث خطأ أثناء حفظ الدرجات.", "خطأ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Saves current grades then navigates to next student directly,
+     * bypassing checkDirty to avoid false-positive dialogs after saving.
+     */
+    private void saveAndGoNext() {
+        saveCurrentGrades();
+        // Navigate directly without checkDirty – we just saved
+        if (centerStudents.isEmpty()) return;
+        int nextIdx = currentIndex + 1;
+        if (nextIdx < centerStudents.size()) {
+            isDirty = false; // clear before navigateTo triggers recalculate
+            navigateTo(nextIdx);
         }
     }
 

@@ -117,7 +117,7 @@ public class SubjectsPage extends JPanel {
         JTextField nameF = new JTextField();
         nameF.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        JComboBox<String> typeCombo = new JComboBox<>(new String[] { "نظري", "عملي" });
+        JComboBox<String> typeCombo = new JComboBox<>(new String[] { "نظري", "عملي", "تطبيقي" });
         typeCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         JTextField maxF = new JTextField("100");
@@ -183,9 +183,14 @@ public class SubjectsPage extends JPanel {
 
     private JPanel buildSubjectCard(Subject subject) {
         String typeStr = subject.getType() != null ? subject.getType() : "نظري";
-        boolean isPractical = typeStr.contains("عمل");
-        Color typeColor = isPractical ? new Color(0x7C3AED) : new Color(0x1D4ED8);
-        Color typeBg = isPractical ? new Color(0xEDE9FE) : new Color(0xDBEAFE);
+        boolean isPractical = typeStr.equals("عملي");
+        boolean isApplied   = typeStr.equals("تطبيقي");
+        Color typeColor = isApplied ? new Color(0xEA580C)
+                        : isPractical ? new Color(0x7C3AED)
+                        : new Color(0x1D4ED8);
+        Color typeBg    = isApplied ? new Color(0xFEF3C7)
+                        : isPractical ? new Color(0xEDE9FE)
+                        : new Color(0xDBEAFE);
 
         JPanel card = new JPanel(new BorderLayout(0, 10)) {
             @Override
@@ -205,7 +210,7 @@ public class SubjectsPage extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(260, 185));
+        card.setPreferredSize(new Dimension(220, 140));
         card.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 4, 0.06f, 14, UITheme.BG_LIGHT),
                 new EmptyBorder(18, 18, 14, 18)));

@@ -16,11 +16,9 @@ public class GradeCalculationService {
     public static int calculateTheoryTotal(List<Subject> subjects, Map<Integer, Integer> grades) {
         int total = 0;
         for (Subject sub : subjects) {
-            String name = sub.getName() != null ? sub.getName() : "";
-            String type = sub.getType() != null ? sub.getType() : "";
-            
-            // Exclude Applied and Practical
-            if (!name.contains("تطبيقي") && !type.equals("عملي") && !name.contains("عملي") && !name.contains("دين") && !name.contains("عربي")) {
+            String type = sub.getType() != null ? sub.getType().trim() : "نظري";
+            // Theory = everything that is NOT عملي and NOT تطبيقي
+            if (!type.equals("عملي") && !type.equals("تطبيقي")) {
                 int grade = grades.getOrDefault(sub.getId(), 0);
                 if (grade > 0) total += grade;
             }
@@ -34,10 +32,9 @@ public class GradeCalculationService {
     public static int calculatePracticalTotal(List<Subject> subjects, Map<Integer, Integer> grades) {
         int total = 0;
         for (Subject sub : subjects) {
-            String name = sub.getName() != null ? sub.getName() : "";
-            String type = sub.getType() != null ? sub.getType() : "";
-            
-            if (!name.contains("تطبيقي") && (type.equals("عملي") || name.contains("عملي"))) {
+            String type = sub.getType() != null ? sub.getType().trim() : "";
+            // Practical = type is exactly عملي
+            if (type.equals("عملي")) {
                 int grade = grades.getOrDefault(sub.getId(), 0);
                 if (grade > 0) total += grade;
             }
@@ -51,8 +48,9 @@ public class GradeCalculationService {
     public static int calculateAppliedTotal(List<Subject> subjects, Map<Integer, Integer> grades) {
         int total = 0;
         for (Subject sub : subjects) {
-            String name = sub.getName() != null ? sub.getName() : "";
-            if (name.contains("تطبيقي")) {
+            String type = sub.getType() != null ? sub.getType().trim() : "";
+            // Applied = type is exactly تطبيقي
+            if (type.equals("تطبيقي")) {
                 int grade = grades.getOrDefault(sub.getId(), 0);
                 if (grade > 0) total += grade;
             }
