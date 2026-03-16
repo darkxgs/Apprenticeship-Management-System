@@ -92,11 +92,15 @@ public class SubjectsPage extends JPanel {
         add(headerPanel, BorderLayout.NORTH);
 
         // ─── Card Grid ────────────────────────────────────────────────────────
-        gridPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 16, 16));
+        gridPanel = new JPanel(new GridLayout(0, 4, 20, 20));
         gridPanel.setOpaque(false);
-        gridPanel.setBorder(new EmptyBorder(4, 0, 4, 0));
+        gridPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JScrollPane scroll = new JScrollPane(gridPanel);
+        JPanel gridWrapper = new JPanel(new BorderLayout());
+        gridWrapper.setOpaque(false);
+        gridWrapper.add(gridPanel, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(gridWrapper);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UITheme.BG_LIGHT);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -112,7 +116,7 @@ public class SubjectsPage extends JPanel {
             return;
         }
 
-        JPanel p = new JPanel(new GridLayout(4, 2, 10, 10));
+        JPanel p = new JPanel(new GridLayout(5, 2, 10, 10));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         JTextField nameF = new JTextField();
         nameF.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
@@ -122,6 +126,7 @@ public class SubjectsPage extends JPanel {
 
         JTextField maxF = new JTextField("100");
         JTextField passF = new JTextField("50");
+        JTextField orderF = new JTextField("1"); // Display Order Default
 
         p.add(new JLabel("اسم المادة:", SwingConstants.RIGHT));
         p.add(nameF);
@@ -131,6 +136,8 @@ public class SubjectsPage extends JPanel {
         p.add(maxF);
         p.add(new JLabel("درجة النجاح:", SwingConstants.RIGHT));
         p.add(passF);
+        p.add(new JLabel("ترتيب العرض (1, 2, 3..):", SwingConstants.RIGHT));
+        p.add(orderF);
 
         if (JOptionPane.showConfirmDialog(this, p, "إضافة مادة جديدة",
                 JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
@@ -139,6 +146,11 @@ public class SubjectsPage extends JPanel {
                 String type = (String) typeCombo.getSelectedItem();
                 int mx = Integer.parseInt(maxF.getText().trim());
                 int ps = Integer.parseInt(passF.getText().trim());
+                int displayOrder = 1;
+                try {
+                    displayOrder = Integer.parseInt(orderF.getText().trim());
+                } catch (NumberFormatException ignored) {}
+
                 if (name.isEmpty()) {
                     warn("اسم المادة لا يمكن أن يكون فارغاً.");
                     return;
@@ -147,7 +159,7 @@ public class SubjectsPage extends JPanel {
                     warn("درجة النجاح لا يمكن أن تتجاوز الدرجة العظمى.");
                     return;
                 }
-                SubjectService.addSubject(sel, name, type, ps, mx);
+                SubjectService.addSubject(sel, name, type, ps, mx, displayOrder);
                 loadSubjects();
             } catch (NumberFormatException ex) {
                 warn("يرجى إدخال أرقام صحيحة للدرجات.");
@@ -210,10 +222,10 @@ public class SubjectsPage extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(220, 140));
+        // Removed fixed preferredSize here so the card's height is determined by its layout naturally.
         card.setBorder(BorderFactory.createCompoundBorder(
-                new DropShadowBorder(Color.BLACK, 4, 0.06f, 14, UITheme.BG_LIGHT),
-                new EmptyBorder(18, 18, 14, 18)));
+                new DropShadowBorder(Color.BLACK, 5, 0.05f, 15, UITheme.BG_LIGHT),
+                new EmptyBorder(16, 16, 14, 16)));
 
         // ── Type badge ────────────────────────────────────────────────────────
         JLabel typeBadge = new JLabel("  " + typeStr + "  ", SwingConstants.CENTER) {
@@ -238,11 +250,10 @@ public class SubjectsPage extends JPanel {
         card.add(topRow, BorderLayout.NORTH);
 
         // ── Subject Name ──────────────────────────────────────────────────────
-        JLabel nameLabel = new JLabel(
-                "<html><div style='text-align:right;'>" + subject.getName() + "</div></html>",
-                SwingConstants.RIGHT);
-        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel nameLabel = new JLabel(subject.getName(), SwingConstants.CENTER);
+        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Bigger font
         nameLabel.setForeground(UITheme.TEXT_PRIMARY);
+        nameLabel.setBorder(new EmptyBorder(6, 4, 6, 4));
         card.add(nameLabel, BorderLayout.CENTER);
 
         // ── Marks Row ─────────────────────────────────────────────────────────

@@ -71,6 +71,15 @@ public class DataEntryPage extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(Color.WHITE);
         header.add(title, BorderLayout.EAST);
+
+        // Legend strip for special codes
+        JLabel legend = new JLabel(
+            "غائب = -1  │  محروم = -2  │  مفصول = -3  │  معتذر = -4  │  مؤجل = -5",
+            SwingConstants.CENTER);
+        legend.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        legend.setForeground(new Color(0xFDE68A));   // warm yellow
+        legend.setBorder(new EmptyBorder(0, 0, 4, 0));
+        header.add(legend, BorderLayout.SOUTH);
         add(header, BorderLayout.NORTH);
 
         // Main Layout wrapper
@@ -184,6 +193,7 @@ public class DataEntryPage extends JPanel {
     }
 
     private JPanel subjectsContainer;
+    private List<JTextField> orderedGradeFields = new ArrayList<>();
 
     private JPanel buildTotalsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -422,6 +432,7 @@ public class DataEntryPage extends JPanel {
     private void renderSubjectsForProfession() {
         subjectsContainer.removeAll();
         gradeFieldsMap.clear();
+        orderedGradeFields.clear();
 
         if (currentStudent == null || currentStudent.getProfession() == null) return;
 
@@ -510,6 +521,7 @@ public class DataEntryPage extends JPanel {
 
         setupGradeInput(gradeInput, sub.getMaxMark());
         gradeFieldsMap.put(sub.getId(), gradeInput);
+        orderedGradeFields.add(gradeInput);
 
         row.add(lbl, BorderLayout.CENTER);
         row.add(gradeInput, BorderLayout.EAST);
@@ -520,11 +532,15 @@ public class DataEntryPage extends JPanel {
         final LineBorder normalBorder = new LineBorder(Color.BLACK, 2);
         final LineBorder errorBorder  = new LineBorder(new Color(0xDC2626), 3);
 
-        // Only allow numbers
+        // Allow positive numbers AND a leading minus (for special codes: -1 غائب, -2 محروم, ...)
         ((AbstractDocument) tf.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
             public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-                if (text.matches("[0-9]*")) {
+                // Build what the resulting string would look like
+                String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String result  = current.substring(0, offset) + text + current.substring(offset + length);
+                // Accept if it matches an optional leading minus followed by digits
+                if (result.matches("-?[0-9]*")) {
                     super.replace(fb, offset, length, text, attrs);
                 }
             }
@@ -541,8 +557,9 @@ public class DataEntryPage extends JPanel {
                 SwingUtilities.invokeLater(() -> {
                     try {
                         String txt = tf.getText().trim();
-                        if (!txt.isEmpty()) {
+                        if (!txt.isEmpty() && !txt.equals("-")) {
                             int val = Integer.parseInt(txt);
+                            // Negative values are special codes — skip max-mark check
                             if (val > maxMark) {
                                 tf.setBorder(errorBorder);
                                 tf.setBackground(new Color(0xFEF2F2));
@@ -558,21 +575,28 @@ public class DataEntryPage extends JPanel {
             }
         });
 
-        // Enter = Save & go directly to next student (bypass checkDirty)
+        // Enter = Move to next field, or Save & go to next student if it's the last field
         tf.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    // Block navigation if any field exceeds max mark
-                    boolean hasError = gradeFieldsMap.values().stream()
-                        .anyMatch(f -> f.getBackground().equals(new Color(0xFEF2F2)));
-                    if (hasError) {
-                        JOptionPane.showMessageDialog(DataEntryPage.this,
-                            "توجد درجة تتجاوز الحد الأقصى. يرجى التصحيح أولا\u064b.",
-                            "خطأ في الدرجات", JOptionPane.WARNING_MESSAGE);
-                        return;
+                    // Find current field index
+                    int idx = orderedGradeFields.indexOf(tf);
+                    if (idx != -1 && idx < orderedGradeFields.size() - 1) {
+                        // Move focus to next field
+                        orderedGradeFields.get(idx + 1).requestFocusInWindow();
+                    } else {
+                        // Last field: Block navigation if any field exceeds max mark
+                        boolean hasError = gradeFieldsMap.values().stream()
+                            .anyMatch(f -> f.getBackground().equals(new Color(0xFEF2F2)));
+                        if (hasError) {
+                            JOptionPane.showMessageDialog(DataEntryPage.this,
+                                "توجد درجة تتجاوز الحد الأقصى. يرجى التصحيح أولا\u064b.",
+                                "خطأ في الدرجات", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+                        DataEntryPage.this.saveAndGoNext();
                     }
-                    DataEntryPage.this.saveAndGoNext();
                 }
             }
         });

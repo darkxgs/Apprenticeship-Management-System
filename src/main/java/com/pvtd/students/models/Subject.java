@@ -7,14 +7,16 @@ public class Subject {
     private String type;
     private int passMark;
     private int maxMark;
+    private int displayOrder;
 
-    public Subject(int id, String profession, String name, String type, int passMark, int maxMark) {
+    public Subject(int id, String profession, String name, String type, int passMark, int maxMark, int displayOrder) {
         this.id = id;
         this.profession = profession;
         this.name = name;
         this.type = type;
         this.passMark = passMark;
         this.maxMark = maxMark;
+        this.displayOrder = displayOrder;
     }
 
     public int getId() {
@@ -39,5 +41,9 @@ public class Subject {
 
     public String getType() {
         return type;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
     }
 }

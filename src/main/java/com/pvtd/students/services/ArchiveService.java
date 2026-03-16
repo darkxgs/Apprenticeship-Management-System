@@ -14,35 +14,49 @@ public class ArchiveService {
 
     // ─── Ensure tables exist ───────────────────────────────────────────────────
     public static void ensureTables() {
-        try (Connection con = DatabaseConnection.getConnection()) {
+        try (Connection con = DatabaseConnection.getConnection();
+             Statement stmt = con.createStatement()) {
+
             // Create sequence for archive_groups
             String seqGroups =
                 "BEGIN EXECUTE IMMEDIATE 'CREATE SEQUENCE archive_groups_seq START WITH 1 INCREMENT BY 1';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
-            con.createStatement().execute(seqGroups);
+            stmt.execute(seqGroups);
 
             // Table: archive_groups
             String createGroups =
                 "BEGIN EXECUTE IMMEDIATE '" +
                 "CREATE TABLE archive_groups (" +
-                "id NUMBER DEFAULT archive_groups_seq.NEXTVAL PRIMARY KEY, " +
+                "id NUMBER PRIMARY KEY, " +
                 "name VARCHAR2(200) NOT NULL, " +
                 "description VARCHAR2(500), " +
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
-            con.createStatement().execute(createGroups);
+            stmt.execute(createGroups);
+
+            // Trigger for archive_groups
+            String trgGroups =
+                "CREATE OR REPLACE TRIGGER archive_groups_trg\n" +
+                "BEFORE INSERT ON archive_groups\n" +
+                "FOR EACH ROW\n" +
+                "BEGIN\n" +
+                "  IF :new.id IS NULL THEN\n" +
+                "    SELECT archive_groups_seq.NEXTVAL INTO :new.id FROM dual;\n" +
+                "  END IF;\n" +
+                "END;";
+            try { stmt.execute(trgGroups); } catch(SQLException ignore) {}
 
             // Create sequence for archived_students
             String seqStudents =
                 "BEGIN EXECUTE IMMEDIATE 'CREATE SEQUENCE archived_students_seq START WITH 1 INCREMENT BY 1';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
-            con.createStatement().execute(seqStudents);
+            stmt.execute(seqStudents);
 
             // Table: archived_students
             String createArchived =
                 "BEGIN EXECUTE IMMEDIATE '" +
                 "CREATE TABLE archived_students (" +
-                "id NUMBER DEFAULT archived_students_seq.NEXTVAL PRIMARY KEY, " +
+                "id NUMBER PRIMARY KEY, " +
                 "archive_group_id NUMBER NOT NULL, " +
                 "original_student_id NUMBER, " +
                 "student_name VARCHAR2(300), " +
@@ -54,7 +68,20 @@ public class ArchiveService {
                 "archive_note VARCHAR2(500), " +
                 "archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
-            con.createStatement().execute(createArchived);
+            stmt.execute(createArchived);
+
+            // Trigger for archived_students
+            String trgArchived =
+                "CREATE OR REPLACE TRIGGER archived_students_trg\n" +
+                "BEFORE INSERT ON archived_students\n" +
+                "FOR EACH ROW\n" +
+                "BEGIN\n" +
+                "  IF :new.id IS NULL THEN\n" +
+                "    SELECT archived_students_seq.NEXTVAL INTO :new.id FROM dual;\n" +
+                "  END IF;\n" +
+                "END;";
+            try { stmt.execute(trgArchived); } catch(SQLException ignore) {}
+
         } catch (Exception e) {
             System.err.println("[ArchiveService] Failed to ensure tables: " + e.getMessage());
         }

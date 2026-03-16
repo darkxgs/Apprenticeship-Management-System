@@ -135,11 +135,19 @@ public class DatabaseConnection {
                     "name VARCHAR2(200) NOT NULL," +
                     "type VARCHAR2(50) DEFAULT ''نظري''," +
                     "pass_mark NUMBER NOT NULL," +
-                    "max_mark NUMBER NOT NULL)';\n" +
+                    "max_mark NUMBER NOT NULL," +
+                    "display_order NUMBER DEFAULT 0)';\n" +
                     "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                     "END;";
             stmt.execute(createSubjectsTable);
             createTrigger(stmt, "subjects");
+            
+            // Safe alter for existing databases
+            try {
+                stmt.execute("ALTER TABLE subjects ADD (display_order NUMBER DEFAULT 0)");
+            } catch (SQLException ignore) {
+                // Ignore ORA-01430 (column already exists)
+            }
 
             createSequence(stmt, "students_seq");
             String createStudentsTable = "BEGIN\n" +

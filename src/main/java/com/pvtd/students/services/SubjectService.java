@@ -27,7 +27,8 @@ public class SubjectService {
 
     public static List<Subject> getSubjectsByProfession(String profession) {
         List<Subject> list = new ArrayList<>();
-        String sql = "SELECT * FROM subjects WHERE profession = ? ORDER BY id ASC";
+        // Now ordering by display_order first, then id fallback
+        String sql = "SELECT * FROM subjects WHERE profession = ? ORDER BY display_order ASC, id ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -42,7 +43,8 @@ public class SubjectService {
                         rs.getString("name"),
                         rs.getString("type"),
                         rs.getInt("pass_mark"),
-                        rs.getInt("max_mark")));
+                        rs.getInt("max_mark"),
+                        rs.getInt("display_order")));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -85,8 +87,8 @@ public class SubjectService {
         return 1; // Fallback
     }
 
-    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark) {
-        String sql = "INSERT INTO subjects (profession, name, type, pass_mark, max_mark, specialization_id) VALUES (?, ?, ?, ?, ?, ?)";
+    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark, int displayOrder) {
+        String sql = "INSERT INTO subjects (profession, name, type, pass_mark, max_mark, specialization_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection()) {
 
             // Resolve specialization ID first (Foreign Key constraint requires this)
@@ -99,6 +101,7 @@ public class SubjectService {
                 ps.setInt(4, passMark);
                 ps.setInt(5, maxMark);
                 ps.setInt(6, specId);
+                ps.setInt(7, displayOrder);
                 return ps.executeUpdate() > 0;
             }
 
