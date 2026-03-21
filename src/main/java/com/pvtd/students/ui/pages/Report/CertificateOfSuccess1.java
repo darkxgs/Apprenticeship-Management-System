@@ -26,9 +26,7 @@ public class CertificateOfSuccess1 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CertificateOfSuccess1.class.getName());
 
-    /**
-     * Creates new form CertificateOfSuccess1
-     */
+    
     public CertificateOfSuccess1() {
         initComponents();
     }
@@ -57,7 +55,7 @@ public class CertificateOfSuccess1 extends javax.swing.JFrame {
                 lblProfession.setText(rs.getString("specialization"));
                 lblGroup.setText(rs.getString("professional_group"));
                 lblRegion.setText(rs.getString("region"));
-
+                qRCodeComponent1.setStudentData(rs.getString("name"), rs.getString("national_id"), rs.getString("center_name"), rs.getString("professional_group"));
             }
 
         } catch (Exception e) {
@@ -148,7 +146,6 @@ public void printCertificates(List<Student> students) {
 
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
-        qRCodeComponent1 = new com.pvtd.students.ui.components.QRCodeComponent();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
@@ -175,13 +172,13 @@ public void printCertificates(List<Student> students) {
         jLabel25 = new javax.swing.JLabel();
         jLabel26 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
+        qRCodeComponent1 = new com.pvtd.students.ui.components.QRCodeComponent();
+        jLabel4 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setLayout(null);
-        jPanel2.add(qRCodeComponent1);
-        qRCodeComponent1.setBounds(6, 6, 160, 150);
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 30)); // NOI18N
         jLabel1.setText("شهادة");
@@ -305,6 +302,12 @@ public void printCertificates(List<Student> students) {
         jLabel7.setText("الرقم القومى :");
         jPanel2.add(jLabel7);
         jLabel7.setBounds(818, 224, 110, 25);
+        jPanel2.add(qRCodeComponent1);
+        qRCodeComponent1.setBounds(0, 0, 160, 170);
+
+        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N
+        jPanel2.add(jLabel4);
+        jLabel4.setBounds(880, 0, 60, 70);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -378,6 +381,7 @@ public void printCertificates(List<Student> students) {
     private javax.swing.JLabel jLabel25;
     private javax.swing.JLabel jLabel26;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;

@@ -101,7 +101,7 @@ public void loadCenters() {
     
     
      //-------------------------------------------------------
-public void loadStudents(String center, int count) {
+public void loadStudents(String center) {
 
     try {
 
@@ -114,13 +114,12 @@ public void loadStudents(String center, int count) {
         "SELECT name, profession, registration_no, seat_no, status " +
         "FROM students " +
         "WHERE center_name = ? " +
-        "AND status = 'معتذرs' " +
-        "AND ROWNUM <= ?";
+        "AND status = 'معتذرs' " 
+        ;
 
         PreparedStatement ps = con.prepareStatement(sql);
 
         ps.setString(1, center);
-        ps.setInt(2, count);
 
         ResultSet rs = ps.executeQuery();
 
@@ -144,35 +143,7 @@ public void loadStudents(String center, int count) {
     }
 }
  //---------------------------------------------------------------
-public void loadCount(String center) {
 
-    try {
-
-        cmdcount.removeAllItems();
-
-        try (Connection con = DatabaseConnection.getConnection()) {
-
-        String sql = "SELECT COUNT(*) FROM students WHERE status='راسب' AND center_name=?";
-
-        PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1, center);
-
-        ResultSet rs = ps.executeQuery();
-
-        if (rs.next()) {
-
-            int total = rs.getInt(1);
-
-            for (int i = 1; i <= total; i++) {
-                cmdcount.addItem(String.valueOf(i));
-            }
-
-        }
-
-    } } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -180,7 +151,6 @@ public void loadCount(String center) {
 
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
-        cmdcount = new com.pvtd.students.ui.components.Combobox();
         cmdcenter = new com.pvtd.students.ui.components.Combobox();
         jPanel3 = new javax.swing.JPanel();
         buttonGradient3 = new com.pvtd.students.ui.components.ButtonGradient();
@@ -195,16 +165,6 @@ public void loadCount(String center) {
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setLayout(new java.awt.GridBagLayout());
-
-        cmdcount.setLabeText("عدد الطلاب");
-        cmdcount.addActionListener(this::cmdcountActionPerformed);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipadx = 139;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(29, 191, 29, 0);
-        jPanel2.add(cmdcount, gridBagConstraints);
 
         cmdcenter.setLabeText("المركز");
         cmdcenter.addActionListener(this::cmdcenterActionPerformed);
@@ -278,25 +238,13 @@ public void loadCount(String center) {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void cmdcountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcountActionPerformed
-
-        if (cmdcenter.getSelectedItem() != null && cmdcount.getSelectedItem() != null) {
-
-            String center = cmdcenter.getSelectedItem().toString();
-            int count = Integer.parseInt(cmdcount.getSelectedItem().toString());
-
-            loadStudents(center, count);
-
-        }
-    }//GEN-LAST:event_cmdcountActionPerformed
-
     private void cmdcenterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcenterActionPerformed
 
         if (cmdcenter.getSelectedItem() != null) {
 
             String center = cmdcenter.getSelectedItem().toString();
 
-            loadCount(center);
+            loadStudents(center);
 
         }
     }//GEN-LAST:event_cmdcenterActionPerformed
@@ -363,7 +311,6 @@ public void loadCount(String center) {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.pvtd.students.ui.components.ButtonGradient buttonGradient3;
     private com.pvtd.students.ui.components.Combobox cmdcenter;
-    private com.pvtd.students.ui.components.Combobox cmdcount;
     private javax.swing.JButton jButton1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;

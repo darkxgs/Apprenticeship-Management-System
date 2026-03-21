@@ -15,6 +15,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -65,10 +66,56 @@ c.setForeground(Color.BLACK);
         return c;
     }
 });
-        
+         String month = chooseMonth();
+
+if(month == null){
+    return;
+}
+
+int year = java.time.Year.now().getValue();
+
+String arabicYear = toArabicNumbers(String.valueOf(year));
+
+jLabel10.setText("دفعه قبول : "+month+" "+"لسنه "+arabicYear+",وماقبلها");
+
+jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
+       
         
     }
+ private String toArabicNumbers(String number) {
 
+    return number
+            .replace("0", "٠")
+            .replace("1", "١")
+            .replace("2", "٢")
+            .replace("3", "٣")
+            .replace("4", "٤")
+            .replace("5", "٥")
+            .replace("6", "٦")
+            .replace("7", "٧")
+            .replace("8", "٨")
+            .replace("9", "٩");
+}
+   
+   
+   private String chooseMonth() {
+
+    String[] months = {
+        "يناير","فبراير","مارس","أبريل",
+        "مايو","يونيو","يوليو","أغسطس",
+        "سبتمبر","أكتوبر","نوفمبر","ديسمبر"
+    };
+
+    return (String) JOptionPane.showInputDialog(
+            this,
+            "اختر شهر الشهادة",
+            "تاريخ الشهادة",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            months,
+            months[7]
+    );
+}
    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
