@@ -101,7 +101,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
     try {
 
-        String folderPath = "C:\\Users\\Seif\\OneDrive\\Desktop\\";
+        String folderPath = System.getProperty("user.home") + "\\Desktop\\";
 
         File imgFile = new File(folderPath + nationalId + ".jpg");
 

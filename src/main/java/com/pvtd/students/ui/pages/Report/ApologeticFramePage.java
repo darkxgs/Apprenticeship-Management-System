@@ -5,6 +5,7 @@
 package com.pvtd.students.ui.pages.Report;
 
 import com.pvtd.students.db.DatabaseConnection;
+import com.pvtd.students.ui.utils.UITheme;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
@@ -31,44 +32,66 @@ public class ApologeticFramePage extends javax.swing.JFrame {
      */
     public ApologeticFramePage() {
         initComponents();
-        this.setSize(1200, 800);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setTitle("تقرير المعتذرين");
+        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
+        this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
+
         jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-         jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-         
-         jTable1.setShowGrid(true);
-jTable1.setGridColor(Color.GRAY);
+        jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        jTable1.setShowGrid(true);
+        jTable1.setGridColor(new Color(220, 220, 220));
+        jTable1.setRowHeight(32);
+        jTable1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        jTable1.setFillsViewportHeight(true);
+        jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                if (!sel) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 240, 255));
+                c.setFont(new Font("Tahoma", Font.PLAIN, 14));
+                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                return c;
+            }
+        });
+        jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                c.setBackground(new Color(90, 30, 140)); c.setForeground(Color.WHITE);
+                c.setFont(new Font("Tahoma", Font.BOLD, 15));
+                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                return c;
+            }
+        });
+        jTable1.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 38));
 
-jTable1.setRowHeight(30); // ارتفاع الصف
+        jPanel2.setBackground(new Color(90, 30, 140));
+        javax.swing.JLabel titleLbl = new javax.swing.JLabel("  تقرير المعتذرين", javax.swing.SwingConstants.RIGHT);
+        titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20)); titleLbl.setForeground(Color.WHITE);
+        java.awt.GridBagConstraints gbcT = new java.awt.GridBagConstraints();
+        gbcT.gridx = 2; gbcT.gridy = 0; gbcT.weightx = 1.0;
+        gbcT.anchor = java.awt.GridBagConstraints.EAST;
+        gbcT.insets = new java.awt.Insets(10, 30, 10, 20);
+        jPanel2.add(titleLbl, gbcT);
 
-jTable1.setShowHorizontalLines(true);
-jTable1.setShowVerticalLines(true);
-         
-         
-         
-                 JTableHeader header = jTable1.getTableHeader();
+        javax.swing.JButton btnClose = new javax.swing.JButton("✖  إغلاق");
+        btnClose.setForeground(Color.WHITE);
+        btnClose.setFont(new Font("Tahoma", Font.BOLD, 14));
+        btnClose.setFocusPainted(false);
+        btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnClose.addActionListener(e -> this.dispose());
+        UITheme.styleButton(btnClose, new Color(220,38,38), new Color(180,20,20), new Color(140,10,10));
+        java.awt.GridBagConstraints gbcC = new java.awt.GridBagConstraints();
+        gbcC.gridx = 0; gbcC.gridy = 0; gbcC.anchor = java.awt.GridBagConstraints.WEST;
+        gbcC.insets = new java.awt.Insets(8, 12, 8, 12);
+        jPanel2.add(btnClose, gbcC);
 
-header.setDefaultRenderer(new DefaultTableCellRenderer() {
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus,
-                                                   int row, int column) {
+        jPanel3.setBackground(new Color(245, 247, 250));
+        buttonGradient3.setText("📄  إنشاء تقرير PDF للمعتذرين");
+        jButton1.setText("✔  تحديد الكل"); jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
+        UITheme.styleButton(jButton1, new Color(37,99,235), new Color(29,78,216), new Color(23,64,180));
+        jButton1.setForeground(Color.WHITE);
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,210,230), 1));
 
-        Component c = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
-
-        c.setBackground(Color.decode("#CCFFFF")); // لون الخلفية
-        c.setForeground(Color.BLACK);            // لون النص
-        c.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        c.setFont(new Font("Tahoma", Font.BOLD, 14));
-c.setBackground(new Color(200, 230, 220));
-c.setForeground(Color.BLACK);
-        return c;
-    }
-});
         loadCenters();
-        
-        
     }
 
 public void loadCenters() {
@@ -114,7 +137,7 @@ public void loadStudents(String center) {
         "SELECT name, profession, registration_no, seat_no, status " +
         "FROM students " +
         "WHERE center_name = ? " +
-        "AND status = 'معتذرs' " 
+        "AND status LIKE '%معتذر%' " 
         ;
 
         PreparedStatement ps = con.prepareStatement(sql);

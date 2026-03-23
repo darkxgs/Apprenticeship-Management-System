@@ -28,6 +28,14 @@ public class QRCodeComponent extends JLabel{
         generate();
     }
 
+    public void setStudentData(String name, String nationalId, String center, String group) {
+        String dataStr = "الاسم: " + name + "\n" +
+                         "الرقم القومي: " + nationalId + "\n" +
+                         "المركز: " + center + "\n" +
+                         "المجموعة: " + group;
+        setData(dataStr);
+    }
+
    private void generate() {
 
     if (data == null || data.isEmpty()) {

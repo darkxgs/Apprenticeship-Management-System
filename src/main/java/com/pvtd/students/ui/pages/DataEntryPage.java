@@ -677,13 +677,14 @@ public class DataEntryPage extends JPanel {
         boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), grades);
         
         if (ok) {
-            String status = statusLabel.getText();
+            // Use the clean calculated status — NOT the label text (which may have toast suffix)
+            String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
             StudentService.updateStudentStatusDirectly(currentStudent.getId(), status);
             currentStudent.setGrades(grades);
             currentStudent.setStatus(status);
             isDirty = false;
             
-            // Toast flash effect
+            // Toast flash effect on label only — does NOT affect the saved status
             statusLabel.setText(status + " (تم الحفظ ✓)");
             Timer t = new Timer(1500, e -> statusLabel.setText(status));
             t.setRepeats(false);

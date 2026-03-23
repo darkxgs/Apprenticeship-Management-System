@@ -2,6 +2,11 @@ package com.pvtd.students.ui.utils;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.plaf.basic.BasicButtonUI;
 
 /**
  * Modern Enterprise SaaS Design System (FlatLaf Integrated)
@@ -39,4 +44,25 @@ public class UITheme {
 
     // Radii
     public static final int ARC_MODERN = 16;
+
+    /**
+     * Applies a modern hover effect to any JButton, bypassing L&F rollover artifacts.
+     * @param btn        The button to style
+     * @param normal     Normal background color
+     * @param hover      Hover background color
+     * @param pressed    Pressed background color
+     */
+    public static void styleButton(JButton btn, Color normal, Color hover, Color pressed) {
+        btn.setUI(new BasicButtonUI());
+        btn.setOpaque(true);
+        btn.setBackground(normal);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+        btn.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(hover); }
+            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(normal); }
+            @Override public void mousePressed(MouseEvent e) { btn.setBackground(pressed); }
+            @Override public void mouseReleased(MouseEvent e){ btn.setBackground(hover); }
+        });
+    }
 }

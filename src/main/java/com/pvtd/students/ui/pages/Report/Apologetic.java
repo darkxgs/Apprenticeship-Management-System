@@ -75,7 +75,7 @@ c.setForeground(Color.BLACK);
 
     try {
 
-        String path = "C:\\Users\\Seif\\OneDrive\\Desktop\\report.pdf";
+        String path = System.getProperty("user.home") + "\\Desktop\\report.pdf";
 
         this.validate();
         this.repaint();

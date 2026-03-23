@@ -1,5 +1,6 @@
 package com.pvtd.students.ui.pages.Report;
 import com.pvtd.students.db.DatabaseConnection;
+import com.pvtd.students.ui.utils.UITheme;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -23,44 +24,67 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
     
     public SucssfullPageEdit() {
         initComponents();
-        this.setSize(1200, 800);
-        jPanel1.setPreferredSize(new Dimension(1123, 794));
-         jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-         jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-         jTable1.setShowGrid(true);
-jTable1.setGridColor(Color.GRAY);
+        setTitle("تقرير الناجحين");
+        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
+        this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
 
-jTable1.setRowHeight(30); // ارتفاع الصف
+        jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        jTable1.setShowGrid(true);
+        jTable1.setGridColor(new Color(220, 220, 220));
+        jTable1.setRowHeight(32);
+        jTable1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        jTable1.setFillsViewportHeight(true);
+        jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                if (!sel) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 255, 245));
+                c.setFont(new Font("Tahoma", Font.PLAIN, 14));
+                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                return c;
+            }
+        });
+        jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                c.setBackground(new Color(22, 100, 52)); c.setForeground(Color.WHITE);
+                c.setFont(new Font("Tahoma", Font.BOLD, 15));
+                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                return c;
+            }
+        });
+        jTable1.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 38));
 
-jTable1.setShowHorizontalLines(true);
-jTable1.setShowVerticalLines(true);
-         
-         
-         
-                 JTableHeader header = jTable1.getTableHeader();
+        jPanel2.setBackground(new Color(22, 100, 52));
+        javax.swing.JLabel titleLbl = new javax.swing.JLabel("  تقرير الناجحين", javax.swing.SwingConstants.RIGHT);
+        titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20)); titleLbl.setForeground(Color.WHITE);
+        java.awt.GridBagConstraints gbcT = new java.awt.GridBagConstraints();
+        gbcT.gridx = 2; gbcT.gridy = 0; gbcT.weightx = 1.0;
+        gbcT.anchor = java.awt.GridBagConstraints.EAST;
+        gbcT.insets = new java.awt.Insets(10, 30, 10, 20);
+        jPanel2.add(titleLbl, gbcT);
 
-header.setDefaultRenderer(new DefaultTableCellRenderer() {
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus,
-                                                   int row, int column) {
+        javax.swing.JButton btnClose = new javax.swing.JButton("✖  إغلاق");
+        btnClose.setForeground(Color.WHITE);
+        btnClose.setFont(new Font("Tahoma", Font.BOLD, 14));
+        btnClose.setFocusPainted(false);
+        btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnClose.addActionListener(e -> this.dispose());
+        UITheme.styleButton(btnClose, new Color(220,38,38), new Color(180,20,20), new Color(140,10,10));
+        java.awt.GridBagConstraints gbcC = new java.awt.GridBagConstraints();
+        gbcC.gridx = 0; gbcC.gridy = 0; gbcC.anchor = java.awt.GridBagConstraints.WEST;
+        gbcC.insets = new java.awt.Insets(8, 12, 8, 12);
+        jPanel2.add(btnClose, gbcC);
 
-        Component c = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
+        jPanel3.setBackground(new Color(245, 247, 250));
+        buttonGradient2.setText("📊  تقرير PDF بالدرجات");
+        buttonGradient3.setText("📄  تقرير PDF بدون الدرجات");
+        jButton1.setText("✔  تحديد الكل"); jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
+        UITheme.styleButton(jButton1, new Color(37,99,235), new Color(29,78,216), new Color(23,64,180));
+        jButton1.setForeground(Color.WHITE);
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,210,230), 1));
 
-        c.setBackground(Color.decode("#CCFFFF")); // لون الخلفية
-        c.setForeground(Color.BLACK);            // لون النص
-        c.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        c.setFont(new Font("Tahoma", Font.BOLD, 14));
-c.setBackground(new Color(200, 230, 220));
-c.setForeground(Color.BLACK);
-        return c;
-    }
-});
-//-------------------------------------------table header
-loadCenters();
-
+        loadCenters();
     }
 
 public void loadCenters() {
@@ -103,13 +127,11 @@ public void loadStudents(String center) {
         "SELECT name, profession, registration_no, seat_no, status " +
         "FROM students " +
         "WHERE center_name = ? " +
-        "AND status = 'ناجح' " +
-        "AND ROWNUM <= ?";
+        "AND status = 'ناجح'";
 
         PreparedStatement ps = con.prepareStatement(sql);
 
         ps.setString(1, center);
-
         ResultSet rs = ps.executeQuery();
 
         int i = 1;
@@ -258,7 +280,97 @@ public void loadStudents(String center) {
     }//GEN-LAST:event_cmdcenterActionPerformed
 
     private void buttonGradient2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient2ActionPerformed
-       
+        int[] selectedRows = jTable1.getSelectedRows();
+        if (selectedRows.length == 0) {
+            javax.swing.JOptionPane.showMessageDialog(this, "برجاء اختيار الطلاب أولاً", "تحذير", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
+        
+        String profession = (String) model1.getValueAt(selectedRows[0], 2);
+        for (int i = 1; i < selectedRows.length; i++) {
+            String p = (String) model1.getValueAt(selectedRows[i], 2);
+            if (!profession.equals(p)) {
+                javax.swing.JOptionPane.showMessageDialog(this, "لا يمكن طباعة كشف بالدرجات لمهن مختلفة في نفس الوقت. برجاء اختيار طلاب من مهنة واحدة فقط.", "تحذير", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        java.util.List<String[]> subjects = new java.util.ArrayList<>();
+        try (Connection con = DatabaseConnection.getConnection()) {
+            String sql = "SELECT id, name, max_mark, pass_mark FROM subjects WHERE profession = ? ORDER BY display_order ASC, id ASC";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, profession);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()) {
+                subjects.add(new String[]{
+                    rs.getString("id"),
+                    rs.getString("name"),
+                    rs.getString("max_mark"),
+                    rs.getString("pass_mark")
+                });
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        successful report = new successful();
+        DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
+        
+        model2.setColumnCount(0);
+        model2.addColumn("م");
+        model2.addColumn("الاسم");
+        model2.addColumn("المهنة");
+        model2.addColumn("رقم التسجيل");
+        model2.addColumn("رقم الجلوس");
+        model2.addColumn("حالة التلميذ");
+        
+        for (String[] sub : subjects) {
+            String htmlHeader = "<html><center>" + sub[1] + "<br>عظمى: " + sub[2] + " | صغرى: " + sub[3] + "</center></html>";
+            model2.addColumn(htmlHeader);
+        }
+        model2.setRowCount(0);
+
+        try (Connection con = DatabaseConnection.getConnection()) {
+            String getStudentIdSql = "SELECT id FROM students WHERE seat_no = ?";
+            PreparedStatement getStudentIdPs = con.prepareStatement(getStudentIdSql);
+            
+            String getGradeSql = "SELECT obtained_mark FROM student_grades WHERE student_id = ? AND subject_id = ?";
+            PreparedStatement getGradePs = con.prepareStatement(getGradeSql);
+
+            for (int i = 0; i < selectedRows.length; i++) {
+                java.util.List<Object> rowData = new java.util.ArrayList<>();
+                for (int col = 0; col < 6; col++) {
+                    rowData.add(model1.getValueAt(selectedRows[i], col));
+                }
+                
+                String seatNo = (String) model1.getValueAt(selectedRows[i], 4);
+                int studentId = -1;
+                getStudentIdPs.setString(1, seatNo);
+                ResultSet rsStudent = getStudentIdPs.executeQuery();
+                if (rsStudent.next()) {
+                    studentId = rsStudent.getInt("id");
+                }
+                
+                for (String[] sub : subjects) {
+                    String mark = "-"; 
+                    if (studentId != -1) {
+                        getGradePs.setInt(1, studentId);
+                        getGradePs.setInt(2, Integer.parseInt(sub[0]));
+                        ResultSet rsGrade = getGradePs.executeQuery();
+                        if (rsGrade.next()) {
+                            mark = rsGrade.getString("obtained_mark");
+                        }
+                    }
+                    rowData.add(mark);
+                }
+                model2.addRow(rowData.toArray());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        report.createPDF();
     }//GEN-LAST:event_buttonGradient2ActionPerformed
 
     private void buttonGradient3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient3ActionPerformed

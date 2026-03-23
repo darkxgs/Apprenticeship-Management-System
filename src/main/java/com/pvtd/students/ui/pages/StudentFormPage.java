@@ -637,12 +637,11 @@ public class StudentFormPage extends JPanel {
             return null;
 
         // Skip copying if it's already exactly the target file we want
-        String userHome = System.getProperty("user.home");
         String safeId = (nationalId != null && !nationalId.trim().isEmpty()) ? nationalId.trim() : "unknown_id";
         // To remove invalid filename chars safely
         safeId = safeId.replaceAll("[^a-zA-Z0-9.-]", "_");
 
-        File studentFolder = new File(userHome, ".student_mgmt/students/" + safeId);
+        File studentFolder = new File("students_images", safeId);
         if (!studentFolder.exists()) {
             studentFolder.mkdirs();
         }
