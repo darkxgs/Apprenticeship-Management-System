@@ -51,7 +51,7 @@ public class AppFrame extends JFrame {
         } else if (role.equals("reporter")) {
             showPage(new ReportsPage());
         } else {
-            showPage(new DashboardPage());
+            showPage(new DashboardPage(this));
         }
     }
 

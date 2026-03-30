@@ -151,12 +151,12 @@ public void loadStudents(String center) {
         while (rs.next()) {
 
             model.addRow(new Object[]{
-                i++,
-                rs.getString("name"),
-                rs.getString("profession"),
-                rs.getString("registration_no"),
-                rs.getString("seat_no"),
-                rs.getString("status")
+                rs.getString("status"),
+rs.getString("seat_no"),
+rs.getString("registration_no"),
+rs.getString("profession"),
+ rs.getString("name"),
+i++
             });
 
         }
@@ -166,6 +166,11 @@ public void loadStudents(String center) {
     }
 }
  //---------------------------------------------------------------
+
+
+
+
+
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -205,7 +210,7 @@ public void loadStudents(String center) {
         jPanel3.setLayout(new java.awt.GridBagLayout());
 
         buttonGradient3.setForeground(new java.awt.Color(0, 0, 0));
-        buttonGradient3.setText("رفع تقرير بي الطلاب الناجحين بدون الدرجات");
+        buttonGradient3.setText("رفع تقرير بي الطلاب المحرومبن بدون الدرجات");
         buttonGradient3.setColor1(new java.awt.Color(224, 234, 252));
         buttonGradient3.setColor2(new java.awt.Color(207, 222, 243));
         buttonGradient3.setRadius(40);
@@ -240,7 +245,7 @@ public void loadStudents(String center) {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "م", "الاسم", "المهنه", "رقم التسجيل", "رقم الجلوس ", "حالة الطالب"
+                "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
@@ -296,7 +301,10 @@ public void loadStudents(String center) {
 
             model2.addRow(row);
         }
-
+        
+        String center = cmdcenter.getSelectedItem().toString();
+        report.loadCenterData(center);
+        report.ce.setText(center);
         report.createPDF();
         }
         {

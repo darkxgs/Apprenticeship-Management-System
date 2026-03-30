@@ -37,17 +37,17 @@ public class StatusesService {
         return statuses;
     }
 
-    public static void addStatus(String statusName) throws SQLException {
+    public static void addStatus(String statusName, String username) throws SQLException {
         String query = "INSERT INTO student_statuses (status_name) VALUES (?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, statusName.trim());
             stmt.executeUpdate();
-            LogService.logAction("SYSTEM", "ADD_STATUS", "تمت إضافة حالة جديدة: " + statusName);
+            LogService.logAction(username, "ADD_STATUS", "تمت إضافة حالة جديدة: " + statusName);
         }
     }
 
-    public static void deleteStatus(String statusName) throws SQLException {
+    public static void deleteStatus(String statusName, String username) throws SQLException {
         if (statusName.equals("ناجح") || statusName.equals("راسب") || statusName.equals("دور ثاني")) {
             throw new SQLException("لا يمكن حذف الحالات الأساسية للنظام");
         }
@@ -56,7 +56,7 @@ public class StatusesService {
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, statusName);
             stmt.executeUpdate();
-            LogService.logAction("SYSTEM", "DELETE_STATUS", "تم حذف الحالة: " + statusName);
+            LogService.logAction(username, "DELETE_STATUS", "تم حذف الحالة: " + statusName);
         }
     }
 }

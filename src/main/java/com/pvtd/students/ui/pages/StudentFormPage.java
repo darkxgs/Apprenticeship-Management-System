@@ -737,12 +737,13 @@ public class StudentFormPage extends JPanel {
         student.setGrades(collectGrades());
 
         try {
+            String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
             if (isEditMode) {
-                StudentService.updateStudent(student);
+                StudentService.updateStudent(student, user);
                 JOptionPane.showMessageDialog(this, "تم تحديث بيانات الطالب بنجاح!", "نجاح",
                         JOptionPane.INFORMATION_MESSAGE);
             } else {
-                StudentService.addStudent(student);
+                StudentService.addStudent(student, user);
                 JOptionPane.showMessageDialog(this, "تم إضافة الطالب بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
             }
             parentFrame.showPage(new StudentsPage(parentFrame));

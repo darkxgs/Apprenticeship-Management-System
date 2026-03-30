@@ -173,13 +173,13 @@ public class SplashScreenFrame extends JFrame {
                     masterAlpha = 1f;
                     logoScale = 1f;
                     textAlpha = Math.min(1f, textAlpha + 0.03f);
-                } else if (ticks >= 100 && ticks < 160) {
-                    // Hold and show full progress
+                } else if (ticks >= 100 && ticks < 280) {
+                    // Hold and show full progress (~2.9s)
                     textAlpha = 1f;
-                } else if (ticks >= 160 && ticks < 190) {
+                } else if (ticks >= 280 && ticks < 320) {
                     // Fade out
-                    masterAlpha = Math.max(0f, masterAlpha - 0.04f);
-                } else if (ticks >= 190) {
+                    masterAlpha = Math.max(0f, masterAlpha - 0.025f);
+                } else if (ticks >= 320) {
                     // Done
                     animator.stop();
                     dispose();

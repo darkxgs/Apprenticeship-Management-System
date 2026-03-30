@@ -6,7 +6,7 @@ import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.pages.Report.CertificateOfSuccess1;
-import com.pvtd.students.ui.pages.Report.SuccessfulCandidatesRevealedByRrades;
+import com.pvtd.students.ui.pages.Report.sucsseccFromPage;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 
@@ -367,8 +367,9 @@ public class StudentsPage extends JPanel {
             if (JOptionPane.showConfirmDialog(this,
                     "حذف " + sel.size() + " طلاب؟", "تأكيد الحذف",
                     JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
                 for (Student s : sel)
-                    StudentService.deleteStudent(s.getId());
+                    StudentService.deleteStudent(s.getId(), user);
                 executeSearch();
             }
         });
@@ -404,38 +405,43 @@ public class StudentsPage extends JPanel {
         });
 
         btnForm.addActionListener(e -> {
-         String seatNo = null;
 int[] selectedRows = studentsTable.getSelectedRows();
 
 if (selectedRows.length == 0) {
     JOptionPane.showMessageDialog(this, "اختر الطلاب أولاً");
     return;
 }
+sucsseccFromPage form = new sucsseccFromPage();
 
-List<Student> students = new ArrayList<>();
+List<String> seatNumbers = new ArrayList<>();
+List<String> nationalIds = new ArrayList<>();
 
 for (int row : selectedRows) {
 
-    Object value = studentsTable.getValueAt(row, 9);
+     String status = studentsTable.getValueAt(row, 20).toString(); // عمود الحالة
 
-    if (value != null) {
-        seatNo = value.toString();
-    } else {
-        seatNo = ""; // يخليها فاضية بدل ما يعمل Exception
+    if (!"ناجح".equals(status)) {
+        continue; // سيب الطالب لو مش ناجح
     }
+    
+    // رقم الجلوس (column 9)
+    Object seatValue = studentsTable.getValueAt(row, 9);
+    String seatNo = (seatValue != null) ? seatValue.toString() : "";
 
-    Student s = new Student();
-    s.setSeatNo(seatNo);
+    // الرقم القومي (غير رقم العمود حسب جدولك)
+    Object natValue = studentsTable.getValueAt(row, 2); // ← عدل الرقم ده لو مختلف
+    String nationalId = (natValue != null) ? natValue.toString() : "";
+    
+    
+    form.loadStudentImage(nationalId);
+    seatNumbers.add(seatNo);
+    nationalIds.add(nationalId);
+}
 
-    students.add(s);
-    }
+// إنشاء الفورم
 
-    // إنشاء نسخة من كلاس الاستمارة
-    SuccessfulCandidatesRevealedByRrades form =
-            new SuccessfulCandidatesRevealedByRrades();
-    form.loadStudentData(seatNo);
-    // استدعاء الميثود
-    form.printCertificates(students);   
+// استدعاء الطباعة
+form.printSuccessForms(seatNumbers, nationalIds);
             
         });
 

@@ -90,7 +90,7 @@
                 <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="0" green="0" red="0" type="rgb"/>
                 </Property>
-                <Property name="text" type="java.lang.String" value="&#x631;&#x641;&#x639; &#x62a;&#x642;&#x631;&#x64a;&#x631; &#x628;&#x64a; &#x627;&#x644;&#x637;&#x644;&#x627;&#x628; &#x627;&#x644;&#x646;&#x627;&#x62c;&#x62d;&#x64a;&#x646; &#x628;&#x62f;&#x648;&#x646; &#x627;&#x644;&#x62f;&#x631;&#x62c;&#x627;&#x62a;"/>
+                <Property name="text" type="java.lang.String" value="&#x631;&#x641;&#x639; &#x62a;&#x642;&#x631;&#x64a;&#x631; &#x628;&#x64a; &#x627;&#x644;&#x637;&#x644;&#x627;&#x628; &#x627;&#x644;&#x645;&#x639;&#x62a;&#x630;&#x631;&#x64a;&#x646; &#x628;&#x62f;&#x648;&#x646; &#x627;&#x644;&#x62f;&#x631;&#x62c;&#x627;&#x62a;"/>
                 <Property name="color1" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="fc" green="ea" red="e0" type="rgb"/>
                 </Property>
@@ -145,12 +145,12 @@
               <Properties>
                 <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.editors2.TableModelEditor">
                   <Table columnCount="6" rowCount="4">
-                    <Column editable="true" title="&#x645;" type="java.lang.Object"/>
-                    <Column editable="true" title="&#x627;&#x644;&#x627;&#x633;&#x645;" type="java.lang.Object"/>
-                    <Column editable="true" title="&#x627;&#x644;&#x645;&#x647;&#x646;&#x647;" type="java.lang.Object"/>
-                    <Column editable="true" title="&#x631;&#x642;&#x645; &#x627;&#x644;&#x62a;&#x633;&#x62c;&#x64a;&#x644;" type="java.lang.Object"/>
-                    <Column editable="true" title="&#x631;&#x642;&#x645; &#x627;&#x644;&#x62c;&#x644;&#x648;&#x633; " type="java.lang.Object"/>
                     <Column editable="true" title="&#x62d;&#x627;&#x644;&#x629; &#x627;&#x644;&#x637;&#x627;&#x644;&#x628;" type="java.lang.Object"/>
+                    <Column editable="true" title="&#x631;&#x642;&#x645; &#x627;&#x644;&#x62c;&#x644;&#x648;&#x633; " type="java.lang.Object"/>
+                    <Column editable="true" title="&#x631;&#x642;&#x645; &#x627;&#x644;&#x62a;&#x633;&#x62c;&#x64a;&#x644;" type="java.lang.Object"/>
+                    <Column editable="true" title="&#x627;&#x644;&#x645;&#x647;&#x646;&#x647;" type="java.lang.Object"/>
+                    <Column editable="true" title="&#x627;&#x644;&#x627;&#x633;&#x645;" type="java.lang.Object"/>
+                    <Column editable="true" title="&#x645;" type="java.lang.Object"/>
                   </Table>
                 </Property>
               </Properties>

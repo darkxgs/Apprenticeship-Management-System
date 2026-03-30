@@ -3,9 +3,11 @@
 package com.pvtd.students.ui.pages.Report;
 
 import com.itextpdf.text.Document;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.pvtd.students.db.DatabaseConnection;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
@@ -15,10 +17,15 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Vector;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 
@@ -142,10 +149,14 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
         jLabel17 = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
         jLabel18 = new javax.swing.JLabel();
+        regoin = new javax.swing.JLabel();
+        cent = new javax.swing.JLabel();
+        system = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jTable2.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -155,185 +166,100 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "م", "الاسم", "المهنة", "رقم التسجيل", "رقم الجلوس", "حاله التلميذ"
+                "حاله التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
             }
         ));
         jScrollPane2.setViewportView(jTable2);
 
+        jPanel1.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 202, 1080, 296));
+
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(42, 82, 152));
         jLabel6.setText("تلاميذ مفصولون");
+        jPanel1.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 102, 170, 60));
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(30, 60, 114));
         jLabel1.setText("وزارة التجارة والصناعة");
+        jPanel1.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(811, 6, 140, -1));
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel2.setForeground(new java.awt.Color(30, 60, 114));
         jLabel2.setText("مصلحة الكفاية االنتاجية والتدريب المهنى");
+        jPanel1.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(751, 26, 250, -1));
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
         jLabel3.setText("الرئاسة العامة المتحانات دبلوم التلمذة الصناعية");
+        jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(731, 46, 290, -1));
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(30, 60, 114));
         jLabel4.setText("لجنة النظام والمراقبة");
+        jPanel1.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(801, 66, 140, -1));
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel5.setForeground(new java.awt.Color(30, 60, 114));
         jLabel5.setText("نتائج أمتحان دبلوم التلمذة الصناعية");
+        jPanel1.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(460, 60, 220, -1));
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(30, 60, 114));
         jLabel10.setText("دفعة قبول : أكتوبر لسنة 2019 وما قبلها");
+        jPanel1.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 102, 250, -1));
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(30, 60, 114));
         jLabel11.setText("المنعقد فى : أغسطس لسنة 2022");
+        jPanel1.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 122, 210, -1));
 
         jLabel8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N
+        jPanel1.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(21, 18, -1, 58));
 
         jLabel7.setText("المنطقة /");
+        jPanel1.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(950, 90, 70, 20));
 
         jLabel9.setText("مــــركز/");
+        jPanel1.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(960, 120, 60, 20));
 
         jLabel12.setText("النظام /");
+        jPanel1.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(960, 150, 70, 30));
 
         jLabel13.setForeground(new java.awt.Color(30, 60, 114));
         jLabel13.setText("صفحة 1 من 1 ");
+        jPanel1.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(6, 180, 90, -1));
 
         jSeparator1.setForeground(new java.awt.Color(255, 102, 0));
+        jPanel1.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 498, 1086, 10));
 
         jLabel16.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel16.setForeground(new java.awt.Color(42, 82, 152));
         jLabel16.setText("رئيس لجنة النظام والمراقبة");
+        jPanel1.add(jLabel16, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 514, -1, -1));
 
         jLabel17.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel17.setForeground(new java.awt.Color(42, 82, 152));
         jLabel17.setText("راجعه                ");
+        jPanel1.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(285, 514, 160, -1));
 
         jLabel14.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel14.setForeground(new java.awt.Color(42, 82, 152));
         jLabel14.setText("كتبه                 ");
+        jPanel1.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(683, 514, 170, -1));
 
         jLabel18.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel18.setForeground(new java.awt.Color(42, 82, 152));
         jLabel18.setText("املاه                ");
+        jPanel1.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(463, 514, 170, -1));
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(21, 21, 21)
-                        .addComponent(jLabel8)
-                        .addGap(379, 379, 379)
-                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 220, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(51, 51, 51)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(80, 80, 80)
-                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(20, 20, 20)
-                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 290, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(70, 70, 70)
-                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(10, 10, 10)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addGroup(jPanel1Layout.createSequentialGroup()
-                                        .addGap(20, 20, 20)
-                                        .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 210, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                .addGap(250, 250, 250)
-                                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 170, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(320, 320, 320)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(10, 10, 10)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(30, 30, 30)
-                        .addComponent(jLabel16)
-                        .addGap(92, 92, 92)
-                        .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, 170, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(50, 50, 50)
-                        .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 170, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.TRAILING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jScrollPane2)
-                .addContainerGap())
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(60, 60, 60)
-                        .addComponent(jLabel5))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jLabel1)
-                        .addGap(0, 0, 0)
-                        .addComponent(jLabel2)
-                        .addGap(0, 0, 0)
-                        .addComponent(jLabel3)
-                        .addGap(0, 0, 0)
-                        .addComponent(jLabel4)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(10, 10, 10)
-                        .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(10, 10, 10)
-                        .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(20, 20, 20))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabel10)
-                                .addGap(0, 0, 0)
-                                .addComponent(jLabel11))
-                            .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jLabel13)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 296, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, 0)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel16)
-                            .addComponent(jLabel17)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jLabel18)
-                        .addComponent(jLabel14)))
-                .addContainerGap(43, Short.MAX_VALUE))
-        );
+        regoin.setText("jLabel15");
+        jPanel1.add(regoin, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 90, 210, 30));
+
+        cent.setText("jLabel19");
+        jPanel1.add(cent, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 120, 220, 30));
+
+        system.setText("jLabel20");
+        jPanel1.add(system, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 160, 220, -1));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -351,52 +277,105 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    public void createPDF() {
+private void resizeTable() {
 
+    int rowsPerPage = 35;
+    int rowHeight = jTable2.getRowHeight();
+
+    int panelWidth = 1130;
+
+    int headerHeight = 200;
+    int footerHeight = 250; // 👈 زودنا عشان الفوتر
+
+    int tableHeight = rowsPerPage * rowHeight;
+
+    // 👇 الجدول
+    jScrollPane2.setBounds(0, headerHeight, panelWidth, tableHeight);
+
+    // 👇 مهم جدًا: نحط الفوتر تحت الجدول مباشرة
+    int footerY = headerHeight + tableHeight;
+
+    jSeparator1.setBounds(0, footerY, 1100, 10);
+    jLabel14.setBounds(780, footerY + 20, 170, 20);
+    jLabel16.setBounds(0, footerY + 20, 200, 20);
+    jLabel17.setBounds(250, footerY + 20, 160, 20);
+    jLabel18.setBounds(510, footerY + 20, 170, 20);
+
+    // 👇 ارتفاع البانل النهائي
+    int totalHeight = footerY + footerHeight;
+
+    jPanel1.setPreferredSize(new Dimension(panelWidth, totalHeight));
+    jPanel1.setSize(panelWidth, totalHeight);
+
+    jPanel1.revalidate();
+    jPanel1.repaint();
+}
+
+public void createPDF() {
     try {
 
-        String path = System.getProperty("user.home") + "\\Desktop\\report.pdf";
+        int rowsPerPage = 35;
 
-        this.validate();
-        this.repaint();
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        Vector<Vector> originalData = new Vector<>(model.getDataVector());
 
-        int width = jPanel1.getWidth();
-        int height = jPanel1.getHeight();
+        int totalRows = originalData.size();
+        int pageCount = (int) Math.ceil((double) totalRows / rowsPerPage);
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2 = image.createGraphics();
-
-        g2.setColor(Color.WHITE);
-        g2.fillRect(0, 0, width, height);
-
-        jPanel1.printAll(g2);
-
-        g2.dispose();
-
-        Document document = new Document(PageSize.A4.rotate(), 0, 0, 0, 0);
-
-        PdfWriter.getInstance(document, new FileOutputStream(path));
-
+        Document document = new Document(PageSize.A4);
+        PdfWriter.getInstance(document, new FileOutputStream("report.pdf"));
         document.open();
 
-        com.itextpdf.text.Image img = com.itextpdf.text.Image.getInstance(image, null);
+        int globalIndex = 1;
 
-        float pageWidth = PageSize.A4.rotate().getWidth();
-        float pageHeight = PageSize.A4.rotate().getHeight();
+        for (int page = 0; page < pageCount; page++) {
 
-        float scaleX = pageWidth / width;
-        float scaleY = pageHeight / height;
+            model.setRowCount(0);
 
-        float scale = Math.max(scaleX, scaleY);
+            int start = page * rowsPerPage;
+            int end = Math.min(start + rowsPerPage, totalRows);
 
-        img.scaleAbsolute(width * scale, height * scale);
-        img.setAbsolutePosition(0, 0);
+            for (int i = start; i < end; i++) {
 
-        document.add(img);
+                Vector row = new Vector(originalData.get(i));
+
+                row.set(5, globalIndex++); // 👈 رقم الطالب (آخر عمود عندك)
+
+                model.addRow(row);
+            }
+
+            resizeTable();
+
+            jPanel1.doLayout();
+            jPanel1.validate();
+
+            int width = jPanel1.getWidth();
+            int height = jPanel1.getHeight();
+
+            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = img.createGraphics();
+            jPanel1.printAll(g2d);
+            g2d.dispose();
+
+            Image pdfImg = Image.getInstance(img, null);
+            pdfImg.scaleToFit(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+
+            document.add(pdfImg);
+
+            if (page < pageCount - 1) {
+                document.newPage();
+            }
+        }
+
+        // رجّع البيانات
+        model.setRowCount(0);
+        for (Vector row : originalData) {
+            model.addRow(row);
+        }
 
         document.close();
 
-        Desktop.getDesktop().open(new File(path));
+        Desktop.getDesktop().open(new File("report.pdf"));
 
     } catch (Exception e) {
         e.printStackTrace();
@@ -404,7 +383,40 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
 }
    
        
-       
+        public void loadCenterData(String centerName) {
+
+    try {
+
+        String sql = """
+        SELECT DISTINCT region, exam_system
+        FROM students
+        WHERE center_name = ?
+        """;
+
+        Connection con = DatabaseConnection.getConnection();
+        PreparedStatement ps = con.prepareStatement(sql);
+
+        ps.setString(1, centerName);
+
+        ResultSet rs = ps.executeQuery();
+
+        if (rs.next()) {
+
+            String regio = rs.getString("region");
+            String syste = rs.getString("exam_system");
+
+            regoin.setText(regio);   // المنطقة
+            system.setText(syste);   // النظام
+        } else {
+            regoin.setText("—");
+            system.setText("—");
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+    
        
        
     public static void main(String args[]) {
@@ -430,6 +442,7 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    public javax.swing.JLabel cent;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -451,5 +464,7 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     public javax.swing.JTable jTable2;
+    private javax.swing.JLabel regoin;
+    private javax.swing.JLabel system;
     // End of variables declaration//GEN-END:variables
 }

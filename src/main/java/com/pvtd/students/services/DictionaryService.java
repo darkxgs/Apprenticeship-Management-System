@@ -50,7 +50,7 @@ public class DictionaryService {
         return items;
     }
 
-    public static void addItem(String category, String value) throws SQLException {
+    public static void addItem(String category, String value, String username) throws SQLException {
         if (value == null || value.trim().isEmpty()) return;
         String query = "INSERT INTO system_dictionaries (category, value) VALUES (?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -58,7 +58,7 @@ public class DictionaryService {
             stmt.setString(1, category);
             stmt.setString(2, value.trim());
             stmt.executeUpdate();
-            LogService.logAction("SYSTEM", "ADD_DICT_ITEM", "تم إضافة " + value + " لقائمة " + category);
+            LogService.logAction(username, "ADD_DICT_ITEM", "تم إضافة " + value + " لقائمة " + category);
         } catch (SQLException e) {
             if (e.getErrorCode() != 1) { // Ignore Unique Constraint error (ORA-00001)
                 throw e;
@@ -66,18 +66,18 @@ public class DictionaryService {
         }
     }
 
-    public static void deleteItem(String category, String value) throws SQLException {
+    public static void deleteItem(String category, String value, String username) throws SQLException {
         String query = "DELETE FROM system_dictionaries WHERE category = ? AND value = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, category);
             stmt.setString(2, value);
             stmt.executeUpdate();
-            LogService.logAction("SYSTEM", "DEL_DICT_ITEM", "تم حذف " + value + " من قائمة " + category);
+            LogService.logAction(username, "DEL_DICT_ITEM", "تم حذف " + value + " من قائمة " + category);
         }
     }
 
-    public static void renameItem(String category, String oldVal, String newVal) throws SQLException {
+    public static void renameItem(String category, String oldVal, String newVal, String username) throws SQLException {
         if (newVal == null || newVal.trim().isEmpty()) return;
         
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -112,7 +112,7 @@ public class DictionaryService {
                 }
 
                 conn.commit();
-                LogService.logAction("SYSTEM", "RENAME_DICT_ITEM", "تم تعديل " + oldVal + " إلى " + newVal + " في قائمة " + category);
+                LogService.logAction(username, "RENAME_DICT_ITEM", "تم تعديل " + oldVal + " إلى " + newVal + " في قائمة " + category);
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;

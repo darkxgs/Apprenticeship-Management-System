@@ -1,5 +1,6 @@
 package com.pvtd.students.ui.pages;
 
+import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.components.CustomPieChart;
 import com.pvtd.students.services.StudentService;
@@ -15,7 +16,10 @@ import java.util.List;
 
 public class DashboardPage extends JPanel {
 
-        public DashboardPage() {
+        private AppFrame parentFrame;
+
+        public DashboardPage(AppFrame frame) {
+                this.parentFrame = frame;
                 setLayout(new BorderLayout(24, 24));
                 setBorder(new EmptyBorder(24, 24, 24, 24));
                 setBackground(UITheme.BG_LIGHT);
@@ -202,7 +206,8 @@ public class DashboardPage extends JPanel {
                                         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
                         if (confirm == JOptionPane.YES_OPTION) {
                                 try {
-                                        com.pvtd.students.services.LogService.clearAllLogs();
+                                        String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
+                                        com.pvtd.students.services.LogService.clearAllLogs(user);
                                         JOptionPane.showMessageDialog(this, "تم تفريغ السجلات بنجاح.", "نجاح",
                                                         JOptionPane.INFORMATION_MESSAGE);
                                 } catch (Exception ex) {

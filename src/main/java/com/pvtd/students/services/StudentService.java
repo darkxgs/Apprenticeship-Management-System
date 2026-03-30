@@ -225,7 +225,7 @@ public class StudentService {
         return secret;
     }
 
-    public static void addStudent(Student s) {
+    public static void addStudent(Student s, String username) {
         String query = "INSERT INTO students (serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -281,14 +281,14 @@ public class StudentService {
                 if (newStudentId > 0 && s.getGrades() != null) {
                     saveStudentGrades(conn, newStudentId, s.getGrades());
                 }
-                LogService.logAction("SYSTEM", "ADD_STUDENT", "تم إضافة الطالب بنجاح: " + s.getName());
+                LogService.logAction(username, "ADD_STUDENT", "تم إضافة الطالب بنجاح: " + s.getName());
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void updateStudent(Student s) {
+    public static void updateStudent(Student s, String username) {
         String query = "UPDATE students SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=? WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -338,21 +338,21 @@ public class StudentService {
                 if (s.getGrades() != null) {
                     saveStudentGrades(conn, s.getId(), s.getGrades());
                 }
-                LogService.logAction("SYSTEM", "UPDATE_STUDENT", "تم تعديل بيانات الطالب: " + s.getName());
+                LogService.logAction(username, "UPDATE_STUDENT", "تم تعديل بيانات الطالب: " + s.getName());
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void deleteStudent(int id) {
+    public static void deleteStudent(int id, String username) {
         String query = "DELETE FROM students WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, id);
             int rows = stmt.executeUpdate();
             if (rows > 0) {
-                LogService.logAction("SYSTEM", "DELETE_STUDENT", "تم حذف الطالب ذو المعرف: " + id);
+                LogService.logAction(username, "DELETE_STUDENT", "تم حذف الطالب ذو المعرف: " + id);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -399,12 +399,13 @@ public class StudentService {
         }
     }
 
-    public static boolean updateStudentGrades(int studentId, Map<Integer, Integer> grades) {
+    public static boolean updateStudentGrades(int studentId, Map<Integer, Integer> grades, String username) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 saveStudentGrades(conn, studentId, grades);
                 conn.commit();
+                LogService.logAction(username, "UPDATE_GRADES", "تم تحديث درجات الطالب ذو المعرف: " + studentId);
                 return true;
             } catch (SQLException e) {
                 conn.rollback();

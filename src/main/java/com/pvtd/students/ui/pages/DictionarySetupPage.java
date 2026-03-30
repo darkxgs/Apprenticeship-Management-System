@@ -13,11 +13,13 @@ import java.util.List;
 
 public class DictionarySetupPage extends JPanel {
 
+    private final AppFrame frame;
     private final String pageTitle;
     private final String category;
     private JPanel gridPanel;
 
     public DictionarySetupPage(AppFrame frame, String pageTitle, String category) {
+        this.frame = frame;
         this.pageTitle = pageTitle;
         this.category = category;
 
@@ -190,7 +192,8 @@ public class DictionarySetupPage extends JPanel {
                 return;
             }
             try {
-                DictionaryService.addItem(category, input);
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                DictionaryService.addItem(category, input, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ أثناء الحفظ.", "خطأ", JOptionPane.ERROR_MESSAGE);
@@ -208,7 +211,8 @@ public class DictionarySetupPage extends JPanel {
                 return;
             }
             try {
-                DictionaryService.renameItem(category, oldVal, newVal);
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                DictionaryService.renameItem(category, oldVal, newVal, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التعديل.", "خطأ", JOptionPane.ERROR_MESSAGE);
@@ -222,7 +226,8 @@ public class DictionarySetupPage extends JPanel {
                 "تأكيد الحذف", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                DictionaryService.deleteItem(category, val);
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                DictionaryService.deleteItem(category, val, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ أثناء الحذف.", "خطأ", JOptionPane.ERROR_MESSAGE);

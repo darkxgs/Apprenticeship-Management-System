@@ -304,7 +304,8 @@ public class StatusesPage extends JPanel {
                 return;
             }
             try {
-                StatusesService.addStatus(name);
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                StatusesService.addStatus(name, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ: " + ex.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
@@ -318,7 +319,8 @@ public class StatusesPage extends JPanel {
                 "تأكيد الحذف", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                StatusesService.deleteStatus(statusName);
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                StatusesService.deleteStatus(statusName, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "لا يمكن حذف هذه الحالة: " + ex.getMessage(), "خطأ",
@@ -333,8 +335,9 @@ public class StatusesPage extends JPanel {
                 "تعديل الحالة", JOptionPane.PLAIN_MESSAGE, null, null, oldName);
         if (newName != null && !newName.trim().isEmpty() && !newName.trim().equals(oldName)) {
             try {
-                StatusesService.deleteStatus(oldName);
-                StatusesService.addStatus(newName.trim());
+                String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
+                StatusesService.deleteStatus(oldName, user);
+                StatusesService.addStatus(newName.trim(), user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التعديل: " + ex.getMessage(), "خطأ",

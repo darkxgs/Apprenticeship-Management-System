@@ -1,4 +1,5 @@
 package com.pvtd.students.ui.pages.Report;
+
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.utils.UITheme;
 import java.awt.Color;
@@ -18,10 +19,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 public class SucssfullPageEdit extends javax.swing.JFrame {
-    
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SucssfullPageEdit.class.getName());
 
-    
     public SucssfullPageEdit() {
         initComponents();
         setTitle("تقرير الناجحين");
@@ -36,20 +36,25 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         jTable1.setFont(new Font("Tahoma", Font.PLAIN, 14));
         jTable1.setFillsViewportHeight(true);
         jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                if (!sel) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 255, 245));
+                if (!sel) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 255, 245));
+                }
                 c.setFont(new Font("Tahoma", Font.PLAIN, 14));
-                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
                 return c;
             }
         });
         jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                c.setBackground(new Color(22, 100, 52)); c.setForeground(Color.WHITE);
+                c.setBackground(new Color(22, 100, 52));
+                c.setForeground(Color.WHITE);
                 c.setFont(new Font("Tahoma", Font.BOLD, 15));
-                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
                 return c;
             }
         });
@@ -57,9 +62,12 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
 
         jPanel2.setBackground(new Color(22, 100, 52));
         javax.swing.JLabel titleLbl = new javax.swing.JLabel("  تقرير الناجحين", javax.swing.SwingConstants.RIGHT);
-        titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20)); titleLbl.setForeground(Color.WHITE);
+        titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20));
+        titleLbl.setForeground(Color.WHITE);
         java.awt.GridBagConstraints gbcT = new java.awt.GridBagConstraints();
-        gbcT.gridx = 2; gbcT.gridy = 0; gbcT.weightx = 1.0;
+        gbcT.gridx = 2;
+        gbcT.gridy = 0;
+        gbcT.weightx = 1.0;
         gbcT.anchor = java.awt.GridBagConstraints.EAST;
         gbcT.insets = new java.awt.Insets(10, 30, 10, 20);
         jPanel2.add(titleLbl, gbcT);
@@ -70,90 +78,97 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         btnClose.setFocusPainted(false);
         btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> this.dispose());
-        UITheme.styleButton(btnClose, new Color(220,38,38), new Color(180,20,20), new Color(140,10,10));
+        UITheme.styleButton(btnClose, new Color(220, 38, 38), new Color(180, 20, 20), new Color(140, 10, 10));
         java.awt.GridBagConstraints gbcC = new java.awt.GridBagConstraints();
-        gbcC.gridx = 0; gbcC.gridy = 0; gbcC.anchor = java.awt.GridBagConstraints.WEST;
+        gbcC.gridx = 0;
+        gbcC.gridy = 0;
+        gbcC.anchor = java.awt.GridBagConstraints.WEST;
         gbcC.insets = new java.awt.Insets(8, 12, 8, 12);
         jPanel2.add(btnClose, gbcC);
 
         jPanel3.setBackground(new Color(245, 247, 250));
         buttonGradient2.setText("📊  تقرير PDF بالدرجات");
         buttonGradient3.setText("📄  تقرير PDF بدون الدرجات");
-        jButton1.setText("✔  تحديد الكل"); jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
-        UITheme.styleButton(jButton1, new Color(37,99,235), new Color(29,78,216), new Color(23,64,180));
+        jButton1.setText("✔  تحديد الكل");
+        jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
+        UITheme.styleButton(jButton1, new Color(37, 99, 235), new Color(29, 78, 216), new Color(23, 64, 180));
         jButton1.setForeground(Color.WHITE);
-        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,210,230), 1));
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200, 210, 230), 1));
 
         loadCenters();
     }
 
-public void loadCenters() {
+    public void loadCenters() {
 
-    try {
+        try {
 
-        try (Connection con = DatabaseConnection.getConnection()) {
+            try (Connection con = DatabaseConnection.getConnection()) {
 
-        String sql = "SELECT DISTINCT center_name FROM students";
+                String sql = "SELECT DISTINCT center_name FROM students";
 
-        PreparedStatement pst = con.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
+                PreparedStatement pst = con.prepareStatement(sql);
+                ResultSet rs = pst.executeQuery();
 
-        cmdcenter.removeAllItems();
+                cmdcenter.removeAllItems();
 
-        while (rs.next()) {
+                while (rs.next()) {
 
-            cmdcenter.addItem(rs.getString("center_name"));
+                    cmdcenter.addItem(rs.getString("center_name"));
 
-        }
+                }
 
-    } } catch (Exception e) {
+            }
+        } catch (Exception e) {
 
-        e.printStackTrace();
-
-    }
-
-}
- //-------------------------------------------------------
-public void loadStudents(String center) {
-
-    try {
-
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-
-        try (Connection con = DatabaseConnection.getConnection()) {
-
-        String sql =
-        "SELECT name, profession, registration_no, seat_no, status " +
-        "FROM students " +
-        "WHERE center_name = ? " +
-        "AND status = 'ناجح'";
-
-        PreparedStatement ps = con.prepareStatement(sql);
-
-        ps.setString(1, center);
-        ResultSet rs = ps.executeQuery();
-
-        int i = 1;
-
-        while (rs.next()) {
-
-            model.addRow(new Object[]{
-                i++,
-                rs.getString("name"),
-                rs.getString("profession"),
-                rs.getString("registration_no"),
-                rs.getString("seat_no"),
-                rs.getString("status")
-            });
+            e.printStackTrace();
 
         }
 
-    } } catch (Exception e) {
-        e.printStackTrace();
     }
-}
- //---------------------------------------------------------------
+    //-------------------------------------------------------
+
+    public void loadStudents(String center) {
+
+        try {
+
+            DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+            model.setRowCount(0);
+
+            try (Connection con = DatabaseConnection.getConnection()) {
+
+                String sql
+                        = "SELECT name, profession, registration_no, seat_no, status "
+                        + "FROM students "
+                        + "WHERE center_name = ? "
+                        + "AND status = 'ناجح'";
+
+                PreparedStatement ps = con.prepareStatement(sql);
+
+                ps.setString(1, center);
+                ResultSet rs = ps.executeQuery();
+
+                int i = 1;
+
+                while (rs.next()) {
+
+                    model.addRow(new Object[]{
+                        rs.getString("status"),
+                        rs.getString("seat_no"),
+                        rs.getString("registration_no"),
+                        rs.getString("profession"),
+                        rs.getString("name"),
+                        i++
+                    });
+
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    //---------------------------------------------------------------
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -242,7 +257,7 @@ public void loadStudents(String center) {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "م", "الاسم", "المهنة", "رقم التسجيل", "رقم الجلوس ", "حالة التلميذ"
+                "حالة التلميذ", "رقم الجلوس ", "رقم التسجيل", "المهنة", "الاسم", "م"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
@@ -265,18 +280,14 @@ public void loadStudents(String center) {
 
     private void cmdcenterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdcenterActionPerformed
 
-        
+        if (cmdcenter.getSelectedItem() != null) {
 
-    if (cmdcenter.getSelectedItem() != null) {
+            String center = cmdcenter.getSelectedItem().toString();
 
-        String center = cmdcenter.getSelectedItem().toString();
-
-        loadStudents(center);
-    }
+            loadStudents(center);
+        }
 
 
-    
-        
     }//GEN-LAST:event_cmdcenterActionPerformed
 
     private void buttonGradient2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient2ActionPerformed
@@ -286,7 +297,7 @@ public void loadStudents(String center) {
             return;
         }
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
-        
+
         String profession = (String) model1.getValueAt(selectedRows[0], 2);
         for (int i = 1; i < selectedRows.length; i++) {
             String p = (String) model1.getValueAt(selectedRows[i], 2);
@@ -302,7 +313,7 @@ public void loadStudents(String center) {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, profession);
             ResultSet rs = ps.executeQuery();
-            while(rs.next()) {
+            while (rs.next()) {
                 subjects.add(new String[]{
                     rs.getString("id"),
                     rs.getString("name"),
@@ -310,13 +321,13 @@ public void loadStudents(String center) {
                     rs.getString("pass_mark")
                 });
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         successful report = new successful();
         DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
-        
+
         model2.setColumnCount(0);
         model2.addColumn("م");
         model2.addColumn("الاسم");
@@ -324,7 +335,7 @@ public void loadStudents(String center) {
         model2.addColumn("رقم التسجيل");
         model2.addColumn("رقم الجلوس");
         model2.addColumn("حالة التلميذ");
-        
+
         for (String[] sub : subjects) {
             String htmlHeader = "<html><center>" + sub[1] + "<br>عظمى: " + sub[2] + " | صغرى: " + sub[3] + "</center></html>";
             model2.addColumn(htmlHeader);
@@ -334,7 +345,7 @@ public void loadStudents(String center) {
         try (Connection con = DatabaseConnection.getConnection()) {
             String getStudentIdSql = "SELECT id FROM students WHERE seat_no = ?";
             PreparedStatement getStudentIdPs = con.prepareStatement(getStudentIdSql);
-            
+
             String getGradeSql = "SELECT obtained_mark FROM student_grades WHERE student_id = ? AND subject_id = ?";
             PreparedStatement getGradePs = con.prepareStatement(getGradeSql);
 
@@ -343,7 +354,7 @@ public void loadStudents(String center) {
                 for (int col = 0; col < 6; col++) {
                     rowData.add(model1.getValueAt(selectedRows[i], col));
                 }
-                
+
                 String seatNo = (String) model1.getValueAt(selectedRows[i], 4);
                 int studentId = -1;
                 getStudentIdPs.setString(1, seatNo);
@@ -351,9 +362,9 @@ public void loadStudents(String center) {
                 if (rsStudent.next()) {
                     studentId = rsStudent.getInt("id");
                 }
-                
+
                 for (String[] sub : subjects) {
-                    String mark = "-"; 
+                    String mark = "-";
                     if (studentId != -1) {
                         getGradePs.setInt(1, studentId);
                         getGradePs.setInt(2, Integer.parseInt(sub[0]));
@@ -383,26 +394,38 @@ public void loadStudents(String center) {
 
     int[] selectedRows = jTable1.getSelectedRows();
 
+    // 👇 لو مفيش اختيار → خد كل الجدول
+    if (selectedRows.length == 0) {
+        selectedRows = new int[model1.getRowCount()];
+        for (int i = 0; i < model1.getRowCount(); i++) {
+            selectedRows[i] = i;
+        }
+    }
+
+    // 👇 كده دايماً هيجيب كل اللي انت عايزه
     for (int i = 0; i < selectedRows.length; i++) {
 
         Object[] row = new Object[model1.getColumnCount()];
 
         for (int j = 0; j < model1.getColumnCount(); j++) {
-
             row[j] = model1.getValueAt(selectedRows[i], j);
-
         }
 
         model2.addRow(row);
     }
 
+    String centerName = cmdcenter.getSelectedItem().toString();
+    report.loadStudents(centerName);
+    report.loadCenterData(centerName);
+    report.cent.setText(centerName);
+
     report.createPDF();
     }//GEN-LAST:event_buttonGradient3ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        
+
         jTable1.selectAll();
-        
+
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**

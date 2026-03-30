@@ -15,10 +15,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
-
 
 public class sucsseccFromPage extends javax.swing.JFrame {
     
@@ -27,7 +27,8 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     
     public sucsseccFromPage() {
         initComponents();
-     
+        int year = LocalDate.now().getYear();
+        DateL.setText(String.valueOf(year));
     }
 
     private String toArabicNumbers(String number) {
@@ -464,6 +465,7 @@ BufferedImage image = new BufferedImage(
         jLabel41 = new javax.swing.JLabel();
         gradeLbl = new javax.swing.JLabel();
         percentLbl = new javax.swing.JLabel();
+        DateL = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -472,105 +474,194 @@ BufferedImage image = new BufferedImage(
         jPanel1.setLayout(null);
         jPanel1.add(studentImageLbl);
         studentImageLbl.setBounds(20, 0, 220, 270);
+
+        seatNoLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(seatNoLbl);
-        seatNoLbl.setBounds(467, 290, 200, 20);
+        seatNoLbl.setBounds(477, 290, 190, 20);
+
+        coordinationLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(coordinationLbl);
-        coordinationLbl.setBounds(467, 320, 200, 20);
+        coordinationLbl.setBounds(477, 320, 190, 20);
+
+        nationalIdLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(nationalIdLbl);
-        nationalIdLbl.setBounds(467, 350, 200, 20);
+        nationalIdLbl.setBounds(477, 350, 190, 20);
+
+        groupLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        groupLbl.setForeground(new java.awt.Color(61, 59, 110));
         jPanel1.add(groupLbl);
-        groupLbl.setBounds(127, 310, 130, 20);
+        groupLbl.setBounds(27, 300, 230, 30);
+
+        roundLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        roundLbl.setForeground(new java.awt.Color(61, 59, 110));
         jPanel1.add(roundLbl);
-        roundLbl.setBounds(280, 340, 30, 20);
+        roundLbl.setBounds(270, 330, 40, 30);
+
+        centerLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(centerLbl);
         centerLbl.setBounds(537, 440, 140, 20);
+
+        govLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(govLbl);
         govLbl.setBounds(217, 440, 130, 20);
+
+        sub1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(sub1Lbl);
         sub1Lbl.setBounds(530, 530, 50, 50);
+
+        sub2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(sub2Lbl);
         sub2Lbl.setBounds(480, 530, 50, 50);
+
+        sub3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(sub3Lbl);
         sub3Lbl.setBounds(430, 530, 50, 50);
+
+        sub4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(sub4Lbl);
         sub4Lbl.setBounds(370, 530, 60, 50);
+
+        max1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(max1Lbl);
         max1Lbl.setBounds(530, 580, 50, 40);
+
+        max2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(max2Lbl);
         max2Lbl.setBounds(480, 580, 50, 40);
+
+        max3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(max3Lbl);
         max3Lbl.setBounds(430, 580, 50, 40);
-        jPanel1.add(max4Lbl);
-        max4Lbl.setBounds(370, 580, 60, 40);
 
+        max4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jPanel1.add(max4Lbl);
+        max4Lbl.setBounds(380, 580, 50, 40);
+
+        jLabel18.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel18.setText("300");
         jPanel1.add(jLabel18);
         jLabel18.setBounds(323, 580, 50, 40);
+
+        amalymax.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(amalymax);
         amalymax.setBounds(270, 580, 50, 40);
+
+        tatbecMax.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(tatbecMax);
         tatbecMax.setBounds(220, 580, 50, 40);
 
+        jLabel21.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel21.setText("300");
         jPanel1.add(jLabel21);
         jLabel21.setBounds(160, 580, 50, 40);
 
+        jLabel22.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel22.setText("600");
         jPanel1.add(jLabel22);
         jLabel22.setBounds(100, 580, 60, 40);
+
+        pass1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(pass1Lbl);
         pass1Lbl.setBounds(530, 620, 50, 40);
+
+        pass2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(pass2Lbl);
         pass2Lbl.setBounds(480, 620, 50, 40);
+
+        pass3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(pass3Lbl);
         pass3Lbl.setBounds(430, 620, 50, 40);
-        jPanel1.add(pass4Lbl);
-        pass4Lbl.setBounds(373, 620, 50, 40);
 
+        pass4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jPanel1.add(pass4Lbl);
+        pass4Lbl.setBounds(383, 620, 40, 40);
+
+        jLabel27.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel27.setText("150");
         jPanel1.add(jLabel27);
         jLabel27.setBounds(320, 620, 50, 40);
+
+        amalyPass.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(amalyPass);
         amalyPass.setBounds(270, 620, 50, 40);
+
+        tatbecPass.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(tatbecPass);
         tatbecPass.setBounds(220, 620, 50, 40);
 
+        jLabel30.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel30.setText("170");
         jPanel1.add(jLabel30);
         jLabel30.setBounds(160, 620, 50, 40);
 
+        jLabel31.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel31.setText("320");
         jPanel1.add(jLabel31);
         jLabel31.setBounds(100, 620, 60, 40);
+
+        mark1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(mark1Lbl);
         mark1Lbl.setBounds(530, 660, 60, 80);
+
+        mark2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(mark2Lbl);
         mark2Lbl.setBounds(480, 660, 50, 80);
+
+        mark3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(mark3Lbl);
         mark3Lbl.setBounds(430, 660, 50, 80);
+
+        mark4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(mark4Lbl);
         mark4Lbl.setBounds(380, 660, 50, 80);
+
+        ee.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(ee);
         ee.setBounds(325, 660, 50, 80);
+
+        studgra.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(studgra);
         studgra.setBounds(270, 660, 50, 80);
+
+        studeTa.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(studeTa);
         studeTa.setBounds(220, 660, 50, 80);
+
+        practicalTotalLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(practicalTotalLbl);
         practicalTotalLbl.setBounds(160, 660, 50, 80);
+
+        eed.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(eed);
         eed.setBounds(100, 666, 60, 70);
+
+        nameLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(nameLbl);
         nameLbl.setBounds(473, 380, 150, 20);
+
+        specLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(specLbl);
         specLbl.setBounds(533, 410, 140, 20);
+
+        jLabel41.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(jLabel41);
         jLabel41.setBounds(243, 770, 270, 20);
+
+        gradeLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(gradeLbl);
         gradeLbl.setBounds(533, 810, 110, 20);
+
+        percentLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(percentLbl);
         percentLbl.setBounds(223, 810, 160, 20);
 
+        DateL.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        DateL.setForeground(new java.awt.Color(61, 59, 110));
+        DateL.setText("jLabel1");
+        jPanel1.add(DateL);
+        DateL.setBounds(137, 330, 70, 20);
+
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/certificate_1.jpg"))); // NOI18N
         jPanel1.add(jLabel2);
         jLabel2.setBounds(6, 6, 790, 1200);
@@ -613,6 +704,7 @@ BufferedImage image = new BufferedImage(
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel DateL;
     private javax.swing.JLabel amalyPass;
     private javax.swing.JLabel amalymax;
     private javax.swing.JLabel centerLbl;

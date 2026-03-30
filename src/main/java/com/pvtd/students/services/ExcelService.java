@@ -16,7 +16,7 @@ public class ExcelService {
     }
 
     public static int importStudentsFromExcel(File file, File profileFolder, File frontIdFolder, File backIdFolder,
-            ProgressCallback callback) {
+            String username, ProgressCallback callback) {
         int importedCount = 0;
         int skippedCount = 0;
         int totalRows = 0;
@@ -240,7 +240,7 @@ public class ExcelService {
             }
 
             System.out.println("Import complete: " + importedCount + " imported, " + skippedCount + " skipped.");
-            LogService.logAction("SYSTEM", "EXCEL_IMPORT",
+            LogService.logAction(username, "EXCEL_IMPORT",
                     "تم استيراد " + importedCount + " سجل، تخطي " + skippedCount + " سجل من الإكسل");
 
         } catch (Exception e) {
@@ -277,7 +277,6 @@ public class ExcelService {
         File[] matchingFiles = sourceFolder.listFiles((dir, name) -> {
             int dotIndex = name.lastIndexOf('.');
             String baseName = (dotIndex == -1) ? name : name.substring(0, dotIndex);
-            // Compare both cleaned and safe variants
             return baseName.equals(cleanId) || baseName.equals(safeId)
                     || baseName.equalsIgnoreCase(cleanId) || baseName.equalsIgnoreCase(safeId);
         });
@@ -310,15 +309,105 @@ public class ExcelService {
 
             File destFile = new File(studentFolder, baseTarget + ext);
 
-            if (!destFile.exists() || srcFile.length() != destFile.length()) {
-                java.nio.file.Files.copy(srcFile.toPath(), destFile.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            // For JPEG: read EXIF orientation and rotate to correct upright before saving
+            String extLower = ext.toLowerCase();
+            if (extLower.equals(".jpg") || extLower.equals(".jpeg")) {
+                correctJpegOrientation(srcFile, destFile);
+            } else {
+                if (!destFile.exists() || srcFile.length() != destFile.length()) {
+                    java.nio.file.Files.copy(srcFile.toPath(), destFile.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
             }
             return destFile.getAbsolutePath();
         } catch (Exception e) {
             System.err.println("Could not copy image for ID " + nationalId + ": " + e.getMessage());
             return "";
         }
+    }
+
+    /** Reads EXIF orientation, rotates pixels to upright, writes to dest. Falls back to raw copy. */
+    private static void correctJpegOrientation(File src, File dest) throws Exception {
+        int orientation = readJpegExifOrientation(src);
+        java.awt.image.BufferedImage original = javax.imageio.ImageIO.read(src);
+        if (original == null) {
+            java.nio.file.Files.copy(src.toPath(), dest.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return;
+        }
+        java.awt.image.BufferedImage corrected = applyExifRotation(original, orientation);
+        javax.imageio.ImageIO.write(corrected, "jpg", dest);
+    }
+
+    /** Parses raw JPEG bytes to find EXIF IFD0 Orientation (tag 0x0112). Returns 1 if not found. */
+    private static int readJpegExifOrientation(File file) {
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(file, "r")) {
+            if (raf.readShort() != (short) 0xFFD8) return 1;
+            while (raf.getFilePointer() < raf.length() - 2) {
+                byte m1 = raf.readByte(), m2 = raf.readByte();
+                if (m1 != (byte) 0xFF) return 1;
+                int segLen = raf.readUnsignedShort();
+                if (m2 == (byte) 0xE1 && segLen > 6) {
+                    byte[] hdr = new byte[6]; raf.readFully(hdr);
+                    if (hdr[0]=='E' && hdr[1]=='x' && hdr[2]=='i' && hdr[3]=='f') {
+                        byte[] ord = new byte[2]; raf.readFully(ord);
+                        boolean le = (ord[0] == 'I');
+                        exifShort(raf, le);
+                        long ifd0 = exifInt(raf, le) & 0xFFFFFFFFL;
+                        long base = raf.getFilePointer() - 8;
+                        raf.seek(base + ifd0);
+                        int n = exifShort(raf, le) & 0xFFFF;
+                        for (int i = 0; i < n; i++) {
+                            int tag = exifShort(raf, le) & 0xFFFF;
+                            exifShort(raf, le); exifInt(raf, le);
+                            int val = exifShort(raf, le) & 0xFFFF;
+                            exifShort(raf, le);
+                            if (tag == 0x0112) return val;
+                        }
+                    } else { raf.seek(raf.getFilePointer() + (segLen - 8)); }
+                } else { raf.seek(raf.getFilePointer() + (segLen - 2)); }
+                if (m2 == (byte) 0xDA) break;
+            }
+        } catch (Exception ignored) {}
+        return 1;
+    }
+
+    private static int exifShort(java.io.RandomAccessFile r, boolean le) throws Exception {
+        byte[] b = new byte[2]; r.readFully(b);
+        return le ? ((b[1]&0xFF)<<8)|(b[0]&0xFF) : ((b[0]&0xFF)<<8)|(b[1]&0xFF);
+    }
+
+    private static int exifInt(java.io.RandomAccessFile r, boolean le) throws Exception {
+        byte[] b = new byte[4]; r.readFully(b);
+        return le ? ((b[3]&0xFF)<<24)|((b[2]&0xFF)<<16)|((b[1]&0xFF)<<8)|(b[0]&0xFF)
+                  : ((b[0]&0xFF)<<24)|((b[1]&0xFF)<<16)|((b[2]&0xFF)<<8)|(b[3]&0xFF);
+    }
+
+    /** Applies AffineTransform for EXIF orientations 1-8. Orientation 1 = no-op. */
+    private static java.awt.image.BufferedImage applyExifRotation(java.awt.image.BufferedImage img, int o) {
+        int w = img.getWidth(), h = img.getHeight();
+        java.awt.image.BufferedImage out;
+        java.awt.geom.AffineTransform t = new java.awt.geom.AffineTransform();
+        switch (o) {
+            case 2: t.scale(-1,1); t.translate(-w,0);                      out=buf(w,h); break;
+            case 3: t.translate(w,h); t.rotate(Math.PI);                   out=buf(w,h); break;
+            case 4: t.scale(1,-1); t.translate(0,-h);                      out=buf(w,h); break;
+            case 5: t.rotate(-Math.PI/2); t.scale(-1,1);                   out=buf(h,w); break;
+            case 6: t.translate(h,0); t.rotate(Math.PI/2);                 out=buf(h,w); break;
+            case 7: t.scale(-1,1); t.translate(-h,0);
+                    t.translate(0,w); t.rotate(-Math.PI/2);                out=buf(h,w); break;
+            case 8: t.translate(0,w); t.rotate(-Math.PI/2);                out=buf(h,w); break;
+            default: return img;
+        }
+        java.awt.Graphics2D g = out.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.transform(t); g.drawImage(img,0,0,null); g.dispose();
+        return out;
+    }
+
+    private static java.awt.image.BufferedImage buf(int w, int h) {
+        return new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
     }
 
     private static String getCellValue(Cell cell) {

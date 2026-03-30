@@ -1,4 +1,3 @@
-
 package com.pvtd.students.ui.pages.Report;
 
 import com.pvtd.students.db.DatabaseConnection;
@@ -16,13 +15,10 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
-
 public class DetailersFRamepage extends javax.swing.JFrame {
-    
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(DetailersFRamepage.class.getName());
 
-  
-    
     public DetailersFRamepage() {
         initComponents();
         setTitle("تقرير المفصولين");
@@ -38,11 +34,14 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         jTable1.setFont(new Font("Tahoma", Font.PLAIN, 14));
         jTable1.setFillsViewportHeight(true);
         jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                if (!sel) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 248, 255));
+                if (!sel) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 248, 255));
+                }
                 c.setFont(new Font("Tahoma", Font.PLAIN, 14));
-                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
                 return c;
             }
         });
@@ -53,11 +52,13 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         jTable1.getTableHeader().setForeground(Color.WHITE);
         jTable1.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 38));
         jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                c.setBackground(new Color(30, 60, 114)); c.setForeground(Color.WHITE);
+                c.setBackground(new Color(30, 60, 114));
+                c.setForeground(Color.WHITE);
                 c.setFont(new Font("Tahoma", Font.BOLD, 15));
-                ((DefaultTableCellRenderer)c).setHorizontalAlignment(CENTER);
+                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
                 return c;
             }
         });
@@ -68,7 +69,9 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20));
         titleLbl.setForeground(Color.WHITE);
         java.awt.GridBagConstraints gbcT = new java.awt.GridBagConstraints();
-        gbcT.gridx = 2; gbcT.gridy = 0; gbcT.weightx = 1.0;
+        gbcT.gridx = 2;
+        gbcT.gridy = 0;
+        gbcT.weightx = 1.0;
         gbcT.anchor = java.awt.GridBagConstraints.EAST;
         gbcT.insets = new java.awt.Insets(10, 30, 10, 20);
         jPanel2.add(titleLbl, gbcT);
@@ -79,9 +82,10 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         btnClose.setFocusPainted(false);
         btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> this.dispose());
-        UITheme.styleButton(btnClose, new Color(220,38,38), new Color(180,20,20), new Color(140,10,10));
+        UITheme.styleButton(btnClose, new Color(220, 38, 38), new Color(180, 20, 20), new Color(140, 10, 10));
         java.awt.GridBagConstraints gbcC = new java.awt.GridBagConstraints();
-        gbcC.gridx = 0; gbcC.gridy = 0;
+        gbcC.gridx = 0;
+        gbcC.gridy = 0;
         gbcC.anchor = java.awt.GridBagConstraints.WEST;
         gbcC.insets = new java.awt.Insets(8, 12, 8, 12);
         jPanel2.add(btnClose, gbcC);
@@ -91,87 +95,85 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         buttonGradient3.setText("📄  إنشاء تقرير PDF للمفصولين");
         jButton1.setText("✔  تحديد الكل");
         jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
-        UITheme.styleButton(jButton1, new Color(37,99,235), new Color(29,78,216), new Color(23,64,180));
+        UITheme.styleButton(jButton1, new Color(37, 99, 235), new Color(29, 78, 216), new Color(23, 64, 180));
         jButton1.setForeground(Color.WHITE);
         // Modern scroll pane border
-        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,210,230), 1));
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200, 210, 230), 1));
 
         loadCenters();
     }
+
     public void loadCenters() {
 
-    try {
+        try {
 
-        try (Connection con = DatabaseConnection.getConnection()) {
+            try (Connection con = DatabaseConnection.getConnection()) {
 
-        String sql = "SELECT DISTINCT center_name FROM students";
+                String sql = "SELECT DISTINCT center_name FROM students";
 
-        PreparedStatement pst = con.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
+                PreparedStatement pst = con.prepareStatement(sql);
+                ResultSet rs = pst.executeQuery();
 
-        cmdcenter.removeAllItems();
+                cmdcenter.removeAllItems();
 
-        while (rs.next()) {
+                while (rs.next()) {
 
-            cmdcenter.addItem(rs.getString("center_name"));
+                    cmdcenter.addItem(rs.getString("center_name"));
 
-        }
+                }
 
-    } } catch (Exception e) {
+            }
+        } catch (Exception e) {
 
-        e.printStackTrace();
-
-    }
-
-}
-    
-    
-    
-     //-------------------------------------------------------
-public void loadStudents(String center) {
-
-    try {
-
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-
-        try (Connection con = DatabaseConnection.getConnection()) {
-
-        String sql =
-        "SELECT name, profession, registration_no, seat_no, status " +
-        "FROM students " +
-        "WHERE center_name = ? " +
-        "AND status LIKE '%مفصول%' " ;
-        PreparedStatement ps = con.prepareStatement(sql);
-
-        ps.setString(1, center);
-
-        ResultSet rs = ps.executeQuery();
-
-        int i = 1;
-
-        while (rs.next()) {
-
-            model.addRow(new Object[]{
-                i++,
-                rs.getString("name"),
-                rs.getString("profession"),
-                rs.getString("registration_no"),
-                rs.getString("seat_no"),
-                rs.getString("status")
-            });
+            e.printStackTrace();
 
         }
 
-    } } catch (Exception e) {
-        e.printStackTrace();
     }
-}
- //---------------------------------------------------------------
 
-    
-    
-   
+    //-------------------------------------------------------
+    public void loadStudents(String center) {
+
+        try {
+
+            DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+            model.setRowCount(0);
+
+            try (Connection con = DatabaseConnection.getConnection()) {
+
+                String sql
+                        = "SELECT name, profession, registration_no, seat_no, status "
+                        + "FROM students "
+                        + "WHERE center_name = ? "
+                        + "AND status LIKE '%مفصول%' ";
+                PreparedStatement ps = con.prepareStatement(sql);
+
+                ps.setString(1, center);
+
+                ResultSet rs = ps.executeQuery();
+
+                int i = 1;
+
+                while (rs.next()) {
+
+                    model.addRow(new Object[]{
+                        rs.getString("status"),
+                        rs.getString("seat_no"),
+                        rs.getString("registration_no"),
+                        rs.getString("profession"),
+                        rs.getString("name"),
+                        i++
+                    });
+
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    //---------------------------------------------------------------
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -210,7 +212,7 @@ public void loadStudents(String center) {
         jPanel3.setLayout(new java.awt.GridBagLayout());
 
         buttonGradient3.setForeground(new java.awt.Color(0, 0, 0));
-        buttonGradient3.setText("رفع تقرير بي الطلاب الناجحين بدون الدرجات");
+        buttonGradient3.setText("رفع تقرير بي الطلاب المفصولين بدون الدرجات");
         buttonGradient3.setColor1(new java.awt.Color(224, 234, 252));
         buttonGradient3.setColor2(new java.awt.Color(207, 222, 243));
         buttonGradient3.setRadius(40);
@@ -245,7 +247,7 @@ public void loadStudents(String center) {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "م", "الاسم", "المهنه", "رقم التسجيل", "رقم الجلوس ", "حالة الطالب"
+                "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
@@ -268,33 +270,37 @@ public void loadStudents(String center) {
 
     private void buttonGradient3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonGradient3ActionPerformed
 
-               Detailers report = new Detailers();
+        Detailers report = new Detailers();
 
-    DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
-    DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
+        DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
+        DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
 
-    model2.setRowCount(0);
+        model2.setRowCount(0);
 
-    int[] selectedRows = jTable1.getSelectedRows();
+        int[] selectedRows = jTable1.getSelectedRows();
 
-    for (int i = 0; i < selectedRows.length; i++) {
+        for (int i = 0; i < selectedRows.length; i++) {
 
-        Object[] row = new Object[model1.getColumnCount()];
+            Object[] row = new Object[model1.getColumnCount()];
 
-        for (int j = 0; j < model1.getColumnCount(); j++) {
+            for (int j = 0; j < model1.getColumnCount(); j++) {
 
-            row[j] = model1.getValueAt(selectedRows[i], j);
+                row[j] = model1.getValueAt(selectedRows[i], j);
 
+            }
+
+            model2.addRow(row);
         }
+        String centerName = cmdcenter.getSelectedItem().toString();
+        report.loadCenterData(centerName);
+        report.cent.setText(centerName);
 
-        model2.addRow(row);
+        report.createPDF();
     }
 
-    report.createPDF();
-    }                                               
     {
-        
-        
+
+
     }//GEN-LAST:event_buttonGradient3ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -307,12 +313,12 @@ public void loadStudents(String center) {
 
         if (cmdcenter.getSelectedItem() != null) {
 
-        String center = cmdcenter.getSelectedItem().toString();
+            String center = cmdcenter.getSelectedItem().toString();
 
             loadStudents(center);
 
-    }
-        
+        }
+
     }//GEN-LAST:event_cmdcenterActionPerformed
 
     /**

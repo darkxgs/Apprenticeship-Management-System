@@ -3,6 +3,7 @@ package com.pvtd.students;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.LoginFrame;
+import com.pvtd.students.ui.SplashScreenFrame;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
@@ -11,10 +12,8 @@ public class MainApp {
     public static void main(String[] args) {
         System.out.println("Starting Industrial Apprenticeship Diploma System...");
 
-        // Setup Modern UI
         try {
             UIManager.setLookAndFeel(new FlatLightLaf());
-            // Global Web-Like UI overrides
             UIManager.put("Component.accentColor", UITheme.PRIMARY);
             UIManager.put("Component.focusColor", UITheme.HOVER_PRIMARY);
             UIManager.put("Button.arc", UITheme.ARC_MODERN);
@@ -22,7 +21,6 @@ public class MainApp {
             UIManager.put("ProgressBar.arc", UITheme.ARC_MODERN);
             UIManager.put("TextComponent.arc", UITheme.ARC_MODERN);
 
-            // Clean typography and layout spacing
             UIManager.put("defaultFont", UITheme.FONT_BODY);
             UIManager.put("Table.rowHeight", 40);
             UIManager.put("TableHeader.height", 45);
@@ -37,13 +35,13 @@ public class MainApp {
             System.err.println("Failed to initialize FlatLaf");
         }
 
-        // Initialize DB
         System.out.println("Initializing Database Connections...");
         DatabaseConnection.initializeDatabase();
 
-        // Launch UI via Splash Screen
         SwingUtilities.invokeLater(() -> {
-                new LoginFrame().setVisible(true);
-            });
+            new SplashScreenFrame(() -> {
+                SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
+            }).setVisible(true);
+        });
     }
 }

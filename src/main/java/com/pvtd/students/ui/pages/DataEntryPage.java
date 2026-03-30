@@ -72,14 +72,6 @@ public class DataEntryPage extends JPanel {
         title.setForeground(Color.WHITE);
         header.add(title, BorderLayout.EAST);
 
-        // Legend strip for special codes
-        JLabel legend = new JLabel(
-            "غائب = -1  │  محروم = -2  │  مفصول = -3  │  معتذر = -4  │  مؤجل = -5",
-            SwingConstants.CENTER);
-        legend.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        legend.setForeground(new Color(0xFDE68A));   // warm yellow
-        legend.setBorder(new EmptyBorder(0, 0, 4, 0));
-        header.add(legend, BorderLayout.SOUTH);
         add(header, BorderLayout.NORTH);
 
         // Main Layout wrapper
@@ -260,7 +252,8 @@ public class DataEntryPage extends JPanel {
     }
 
     private JPanel buildStatusPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 20));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
 
         // Failed Subjects Area
@@ -298,10 +291,45 @@ public class DataEntryPage extends JPanel {
         statusBox.add(statusTitle, BorderLayout.NORTH);
         statusBox.add(statusLabel, BorderLayout.CENTER);
 
-        panel.add(failedPanel, BorderLayout.NORTH);
-        panel.add(statusBox, BorderLayout.SOUTH);
+        panel.add(failedPanel);
+        panel.add(Box.createVerticalStrut(20));
+        panel.add(buildLegendPanel());
+        panel.add(Box.createVerticalGlue());
+        panel.add(statusBox);
 
         return panel;
+    }
+
+    private JPanel buildLegendPanel() {
+        JPanel legend = new JPanel(new GridLayout(0, 1, 5, 5));
+        legend.setOpaque(true);
+        legend.setBackground(new Color(0xF8FAFC));
+        legend.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(new Color(0xE2E8F0), 1, true),
+            new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        JLabel title = new JLabel("أكواد الحالات الخاصة", SwingConstants.CENTER);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(UITheme.PRIMARY);
+        title.setBorder(new EmptyBorder(0, 0, 8, 0));
+
+        legend.add(title);
+        legend.add(createLegendItem("-1 : غائب", new Color(0x64748B)));
+        legend.add(createLegendItem("-2 : محروم", new Color(0xDC2626)));
+        legend.add(createLegendItem("-3 : مفصول", new Color(0x991B1B)));
+        legend.add(createLegendItem("-4 : معتذر", new Color(0x0891B2)));
+        legend.add(createLegendItem("-5 : مؤجل", new Color(0x4F46E5)));
+
+        return legend;
+    }
+
+    private JLabel createLegendItem(String text, Color color) {
+        JLabel lbl = new JLabel(text, SwingConstants.RIGHT);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setForeground(color);
+        lbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        return lbl;
     }
 
     private JPanel buildFooterActions() {
@@ -673,8 +701,9 @@ public class DataEntryPage extends JPanel {
     private void saveCurrentGrades() {
         if (currentStudent == null) return;
         
+        String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
         Map<Integer, Integer> grades = extractGradesFromUI();
-        boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), grades);
+        boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), grades, user);
         
         if (ok) {
             // Use the clean calculated status — NOT the label text (which may have toast suffix)

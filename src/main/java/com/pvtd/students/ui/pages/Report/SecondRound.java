@@ -5,8 +5,11 @@
 package com.pvtd.students.ui.pages.Report;
 
 import com.itextpdf.text.Document;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.pvtd.students.db.DatabaseConnection;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
@@ -16,9 +19,14 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Vector;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 /**
@@ -110,55 +118,141 @@ jLabel11.setText("المنعقد فى :"+ month + " "+"لسنه"+arabicYear);
 }
     
     
-    
-    
-    
-public void createPDF() {
+            public void loadCenterData(String centerName) {
 
     try {
 
-        String path = System.getProperty("user.home") + "\\Desktop\\report.pdf";
+        String sql = """
+        SELECT DISTINCT region, exam_system
+        FROM students
+        WHERE center_name = ?
+        """;
 
-        this.validate();
-        this.repaint();
+        Connection con = DatabaseConnection.getConnection();
+        PreparedStatement ps = con.prepareStatement(sql);
 
-        int width = jPanel1.getWidth();
-        int height = jPanel1.getHeight();
+        ps.setString(1, centerName);
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2 = image.createGraphics();
+        ResultSet rs = ps.executeQuery();
 
-        g2.setColor(Color.WHITE);
-        g2.fillRect(0, 0, width, height);
+        if (rs.next()) {
 
-        jPanel1.printAll(g2);
+            String regio = rs.getString("region");
+            String syste = rs.getString("exam_system");
 
-        g2.dispose();
+            regoin.setText(regio);   // المنطقة
+            system.setText(syste);   // النظام
+        } else {
+            regoin.setText("—");
+            system.setText("—");
+        }
 
-        Document document = new Document(PageSize.A4.rotate(), 0, 0, 0, 0);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+ 
+    
+    
+private void resizeTable() {
 
-        PdfWriter.getInstance(document, new FileOutputStream(path));
+    int rowsPerPage = 35;
+    int rowHeight = jTable2.getRowHeight();
 
+    int panelWidth = 1130;
+
+    int headerHeight = 200;
+    int footerHeight = 250; // 👈 زودنا عشان الفوتر
+
+    int tableHeight = rowsPerPage * rowHeight;
+
+    // 👇 الجدول
+    jScrollPane1.setBounds(0, headerHeight, panelWidth, tableHeight);
+
+    // 👇 مهم جدًا: نحط الفوتر تحت الجدول مباشرة
+    int footerY = headerHeight + tableHeight;
+
+    jSeparator1.setBounds(0, footerY, 1100, 10);
+    jLabel14.setBounds(780, footerY + 20, 170, 20);
+    jLabel16.setBounds(0, footerY + 20, 200, 20);
+    jLabel17.setBounds(250, footerY + 20, 160, 20);
+    jLabel18.setBounds(510, footerY + 20, 170, 20);
+
+    // 👇 ارتفاع البانل النهائي
+    int totalHeight = footerY + footerHeight;
+
+    jPanel1.setPreferredSize(new Dimension(panelWidth, totalHeight));
+    jPanel1.setSize(panelWidth, totalHeight);
+
+    jPanel1.revalidate();
+    jPanel1.repaint();
+}
+
+public void createPDF() {
+    try {
+
+        int rowsPerPage = 35;
+
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        Vector<Vector> originalData = new Vector<>(model.getDataVector());
+
+        int totalRows = originalData.size();
+        int pageCount = (int) Math.ceil((double) totalRows / rowsPerPage);
+
+        Document document = new Document(PageSize.A4);
+        PdfWriter.getInstance(document, new FileOutputStream("report.pdf"));
         document.open();
 
-        com.itextpdf.text.Image img = com.itextpdf.text.Image.getInstance(image, null);
+        int globalIndex = 1;
 
-        float pageWidth = PageSize.A4.rotate().getWidth();
-        float pageHeight = PageSize.A4.rotate().getHeight();
+        for (int page = 0; page < pageCount; page++) {
 
-        float scaleX = pageWidth / width;
-        float scaleY = pageHeight / height;
+            model.setRowCount(0);
 
-        float scale = Math.max(scaleX, scaleY);
+            int start = page * rowsPerPage;
+            int end = Math.min(start + rowsPerPage, totalRows);
 
-        img.scaleAbsolute(width * scale, height * scale);
-        img.setAbsolutePosition(0, 0);
+            for (int i = start; i < end; i++) {
 
-        document.add(img);
+                Vector row = new Vector(originalData.get(i));
+
+                row.set(5, globalIndex++); // 👈 رقم الطالب (آخر عمود عندك)
+
+                model.addRow(row);
+            }
+
+            resizeTable();
+
+            jPanel1.doLayout();
+            jPanel1.validate();
+
+            int width = jPanel1.getWidth();
+            int height = jPanel1.getHeight();
+
+            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = img.createGraphics();
+            jPanel1.printAll(g2d);
+            g2d.dispose();
+
+            Image pdfImg = Image.getInstance(img, null);
+            pdfImg.scaleToFit(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+
+            document.add(pdfImg);
+
+            if (page < pageCount - 1) {
+                document.newPage();
+            }
+        }
+
+        // رجّع البيانات
+        model.setRowCount(0);
+        for (Vector row : originalData) {
+            model.addRow(row);
+        }
 
         document.close();
 
-        Desktop.getDesktop().open(new File(path));
+        Desktop.getDesktop().open(new File("report.pdf"));
 
     } catch (Exception e) {
         e.printStackTrace();
@@ -191,6 +285,9 @@ public void createPDF() {
         jSeparator1 = new javax.swing.JSeparator();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable2 = new javax.swing.JTable();
+        regoin = new javax.swing.JLabel();
+        cent = new javax.swing.JLabel();
+        system = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -201,25 +298,25 @@ public void createPDF() {
         jLabel2.setForeground(new java.awt.Color(30, 60, 114));
         jLabel2.setText("مصلحة الكفاية االنتاجية والتدريب المهنى");
         jPanel1.add(jLabel2);
-        jLabel2.setBounds(745, 20, 250, 20);
+        jLabel2.setBounds(810, 20, 250, 20);
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
         jLabel3.setText("الرئاسة العامة المتحانات دبلوم التلمذة الصناعية");
         jPanel1.add(jLabel3);
-        jLabel3.setBounds(725, 40, 290, 20);
+        jLabel3.setBounds(790, 40, 290, 20);
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(30, 60, 114));
         jLabel4.setText("لجنة النظام والمراقبة");
         jPanel1.add(jLabel4);
-        jLabel4.setBounds(795, 60, 140, 20);
+        jLabel4.setBounds(860, 60, 140, 20);
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel1.setText("وزارة التجارة والصناعة");
+        jLabel1.setText("وزارة الصناعة");
         jPanel1.add(jLabel1);
-        jLabel1.setBounds(805, 0, 140, 20);
+        jLabel1.setBounds(900, 0, 90, 20);
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel5.setForeground(new java.awt.Color(30, 60, 114));
@@ -251,43 +348,43 @@ public void createPDF() {
 
         jLabel7.setText("المنطقة /");
         jPanel1.add(jLabel7);
-        jLabel7.setBounds(930, 90, 70, 20);
+        jLabel7.setBounds(1000, 90, 70, 20);
 
         jLabel9.setText("مــــركز/");
         jPanel1.add(jLabel9);
-        jLabel9.setBounds(940, 120, 60, 20);
+        jLabel9.setBounds(1010, 120, 60, 20);
 
         jLabel12.setText("النظام /");
         jPanel1.add(jLabel12);
-        jLabel12.setBounds(940, 150, 70, 30);
+        jLabel12.setBounds(1010, 150, 70, 30);
 
         jLabel16.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel16.setForeground(new java.awt.Color(42, 82, 152));
         jLabel16.setText("رئيس لجنة النظام والمراقبة");
         jPanel1.add(jLabel16);
-        jLabel16.setBounds(10, 480, 180, 30);
+        jLabel16.setBounds(60, 810, 180, 30);
 
         jLabel17.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel17.setForeground(new java.awt.Color(42, 82, 152));
         jLabel17.setText("راجعه                ");
         jPanel1.add(jLabel17);
-        jLabel17.setBounds(250, 480, 140, 30);
+        jLabel17.setBounds(300, 810, 140, 30);
 
         jLabel14.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel14.setForeground(new java.awt.Color(42, 82, 152));
         jLabel14.setText("كتبه                 ");
         jPanel1.add(jLabel14);
-        jLabel14.setBounds(720, 480, 160, 30);
+        jLabel14.setBounds(770, 810, 160, 30);
 
         jLabel18.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel18.setForeground(new java.awt.Color(42, 82, 152));
         jLabel18.setText("املاه                ");
         jPanel1.add(jLabel18);
-        jLabel18.setBounds(490, 480, 160, 30);
+        jLabel18.setBounds(540, 810, 160, 30);
 
         jSeparator1.setForeground(new java.awt.Color(255, 153, 0));
         jPanel1.add(jSeparator1);
-        jSeparator1.setBounds(0, 463, 1030, 10);
+        jSeparator1.setBounds(0, 790, 1090, 10);
 
         jTable2.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -297,23 +394,35 @@ public void createPDF() {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "م", "الاسم", "المهنة", "رقم التسجيل", "رقم الجلوس", "حالة التلميذ"
+                "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
             }
         ));
         jScrollPane1.setViewportView(jTable2);
 
         jPanel1.add(jScrollPane1);
-        jScrollPane1.setBounds(0, 180, 1030, 260);
+        jScrollPane1.setBounds(0, 180, 1080, 610);
+
+        regoin.setText("jLabel13");
+        jPanel1.add(regoin);
+        regoin.setBounds(840, 90, 150, 16);
+
+        cent.setText("jLabel15");
+        jPanel1.add(cent);
+        cent.setBounds(840, 120, 170, 16);
+
+        system.setText("jLabel19");
+        jPanel1.add(system);
+        system.setBounds(840, 150, 170, 30);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 1032, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 1086, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 581, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 900, Short.MAX_VALUE)
         );
 
         pack();
@@ -343,6 +452,7 @@ public void createPDF() {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    public javax.swing.JLabel cent;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -363,5 +473,7 @@ public void createPDF() {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     public javax.swing.JTable jTable2;
+    private javax.swing.JLabel regoin;
+    private javax.swing.JLabel system;
     // End of variables declaration//GEN-END:variables
 }

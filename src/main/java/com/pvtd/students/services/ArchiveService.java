@@ -30,7 +30,7 @@ public class ArchiveService {
                 "id NUMBER PRIMARY KEY, " +
                 "name VARCHAR2(200) NOT NULL, " +
                 "description VARCHAR2(500), " +
-                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'';"
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
             stmt.execute(createGroups);
 
@@ -66,7 +66,7 @@ public class ArchiveService {
                 "status VARCHAR2(100), " +
                 "total_grade NUMBER, " +
                 "archive_note VARCHAR2(500), " +
-                "archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'';"
+                "archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)';"
                 + " EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF; END;";
             stmt.execute(createArchived);
 
@@ -147,7 +147,7 @@ public class ArchiveService {
             String insertSql =
                 "INSERT INTO archived_students " +
                 "(archive_group_id, original_student_id, student_name, secret_no, center_name, profession, status, archive_note) " +
-                "SELECT ?, id, student_name, secret_no, center_name, profession, status, ? " +
+                "SELECT ?, id, name, secret_no, center_name, profession, status, ? " +
                 "FROM students " + whereClause;
 
             PreparedStatement ins = con.prepareStatement(insertSql);
@@ -215,6 +215,100 @@ public class ArchiveService {
             return true;
         } catch (Exception e) {
             System.err.println("[ArchiveService] deleteArchiveGroup error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ─── Restore archived students back to active students table ──────────────
+    /**
+     * Moves all archived students in the given group back into the active students table.
+     * The archive group and records are deleted after successful restore.
+     *
+     * @return count of restored students, or -1 on failure
+     */
+    public static int restoreStudents(int groupId) {
+        ensureTables();
+        int count = 0;
+        try (Connection con = DatabaseConnection.getConnection()) {
+            con.setAutoCommit(false);
+
+            // Re-insert into students table from archived snapshot
+            String insertSql =
+                "INSERT INTO students (name, secret_no, center_name, profession, status, other_notes) " +
+                "SELECT student_name, secret_no, center_name, profession, status, archive_note " +
+                "FROM archived_students WHERE archive_group_id = ?";
+
+            PreparedStatement ins = con.prepareStatement(insertSql);
+            ins.setInt(1, groupId);
+            count = ins.executeUpdate();
+            ins.close();
+
+            // Remove from archive
+            con.createStatement().executeUpdate(
+                "DELETE FROM archived_students WHERE archive_group_id = " + groupId);
+            con.createStatement().executeUpdate(
+                "DELETE FROM archive_groups WHERE id = " + groupId);
+
+            con.commit();
+        } catch (Exception e) {
+            System.err.println("[ArchiveService] restoreStudents error: " + e.getMessage());
+            return -1;
+        }
+        return count;
+    }
+
+    // ─── Export archived group to Excel (.xlsx) ───────────────────────────────
+    /**
+     * Exports all archived students of the given group to an xlsx file.
+     *
+     * @param groupId   archive group ID
+     * @param groupName display name, used in sheet title and filename suggestion
+     * @param destFile  target .xlsx file chosen by the user
+     * @return true on success
+     */
+    public static boolean exportArchivedToExcel(int groupId, String groupName, java.io.File destFile) {
+        ensureTables();
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet(groupName.length() > 30 ? groupName.substring(0, 30) : groupName);
+
+            // Header style
+            org.apache.poi.ss.usermodel.CellStyle headerStyle = wb.createCellStyle();
+            org.apache.poi.ss.usermodel.Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(org.apache.poi.ss.usermodel.IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+            org.apache.poi.ss.usermodel.Font wf = wb.createFont();
+            wf.setColor(org.apache.poi.ss.usermodel.IndexedColors.WHITE.getIndex());
+            wf.setBold(true);
+            headerStyle.setFont(wf);
+
+            // Header row
+            String[] headers = {"الاسم", "الرقم السري", "المركز", "المهنة", "الحالة", "الملاحظة", "تاريخ الأرشفة"};
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 5000);
+            }
+
+            // Data rows
+            List<String[]> students = getArchivedStudents(groupId);
+            int rowIdx = 1;
+            for (String[] s : students) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIdx++);
+                for (int col = 0; col < s.length && col < 7; col++) {
+                    row.createCell(col).setCellValue(s[col] != null ? s[col] : "");
+                }
+            }
+
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile)) {
+                wb.write(fos);
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("[ArchiveService] exportArchivedToExcel error: " + e.getMessage());
             return false;
         }
     }

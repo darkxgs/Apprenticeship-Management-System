@@ -21,7 +21,11 @@ public class ArchivesPage extends JPanel {
     private DefaultTableModel groupsModel;
     private JTable groupsTable;
     private DefaultTableModel studentsModel;
+    private JTable studentsTable;
     private JTextArea logArea;
+    // Tracks selected archive group ID across panels
+    private final int[] selectedGroupId = {-1};
+    private final String[] selectedGroupName = {""};
 
     public ArchivesPage() {
         setLayout(new BorderLayout(0, 0));
@@ -184,8 +188,12 @@ public class ArchivesPage extends JPanel {
             if (!e.getValueIsAdjusting()) {
                 int row = groupsTable.getSelectedRow();
                 if (row >= 0) {
-                    int groupId = Integer.parseInt(groupsModel.getValueAt(row, 0).toString());
-                    loadStudentsForGroup(groupId);
+                    selectedGroupId[0] = Integer.parseInt(groupsModel.getValueAt(row, 0).toString());
+                    selectedGroupName[0] = groupsModel.getValueAt(row, 1).toString();
+                    loadStudentsForGroup(selectedGroupId[0]);
+                } else {
+                    selectedGroupId[0] = -1;
+                    selectedGroupName[0] = "";
                 }
             }
         });
@@ -213,6 +221,8 @@ public class ArchivesPage extends JPanel {
                 "تأكيد الحذف", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
             if (c == JOptionPane.YES_OPTION) {
                 ArchiveService.deleteArchiveGroup(groupId);
+                selectedGroupId[0] = -1;
+                selectedGroupName[0] = "";
                 refreshGroups();
                 studentsModel.setRowCount(0);
             }
@@ -256,7 +266,7 @@ public class ArchivesPage extends JPanel {
             public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        JTable studentsTable = new JTable(studentsModel);
+        studentsTable = new JTable(studentsModel);
         studentsTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         studentsTable.setRowHeight(30);
         studentsTable.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
@@ -264,8 +274,83 @@ public class ArchivesPage extends JPanel {
         JScrollPane scroll = new JScrollPane(studentsTable);
         scroll.setBorder(BorderFactory.createLineBorder(new Color(0xE2E8F0)));
 
+        // ── Action buttons at the bottom ──
+        JPanel actionsBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        actionsBar.setOpaque(false);
+
+        // Download button
+        JButton btnDownload = new JButton("⬇  تنزيل كـ Excel");
+        btnDownload.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnDownload.setBackground(new Color(0x16A34A));
+        btnDownload.setForeground(Color.WHITE);
+        btnDownload.setFocusPainted(false);
+        btnDownload.setBorderPainted(false);
+        btnDownload.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDownload.setPreferredSize(new Dimension(180, 40));
+        btnDownload.addActionListener(e -> {
+            if (selectedGroupId[0] < 0) {
+                JOptionPane.showMessageDialog(this, "اختر مجموعة أرشيف أولاً من القائمة اليسرى.");
+                return;
+            }
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("حفظ ملف Excel");
+            fc.setSelectedFile(new java.io.File(selectedGroupName[0].replaceAll("[^\\w\\s]", "") + ".xlsx"));
+            fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                java.io.File dest = fc.getSelectedFile();
+                if (!dest.getName().endsWith(".xlsx")) dest = new java.io.File(dest.getAbsolutePath() + ".xlsx");
+                boolean ok = ArchiveService.exportArchivedToExcel(selectedGroupId[0], selectedGroupName[0], dest);
+                if (ok) {
+                    JOptionPane.showMessageDialog(this,
+                        "تم التصدير بنجاح إلى:\n" + dest.getAbsolutePath(),
+                        "نجاح", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "فشل تصدير الملف.", "خطأ", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // Restore button
+        JButton btnRestore = new JButton("↩  استعادة إلى الطلاب");
+        btnRestore.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnRestore.setBackground(new Color(0x2563EB));
+        btnRestore.setForeground(Color.WHITE);
+        btnRestore.setFocusPainted(false);
+        btnRestore.setBorderPainted(false);
+        btnRestore.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRestore.setPreferredSize(new Dimension(200, 40));
+        btnRestore.addActionListener(e -> {
+            if (selectedGroupId[0] < 0) {
+                JOptionPane.showMessageDialog(this, "اختر مجموعة أرشيف أولاً من القائمة اليسرى.");
+                return;
+            }
+            int confirm = JOptionPane.showConfirmDialog(this,
+                "هل تريد استعادة طلاب مجموعة \"" + selectedGroupName[0] + "\" إلى قائمة الطلاب الحالية؟\n" +
+                "سيتم حذف هذه المجموعة من الأرشيف.",
+                "تأكيد الاستعادة", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION) return;
+
+            int restored = ArchiveService.restoreStudents(selectedGroupId[0]);
+            if (restored < 0) {
+                JOptionPane.showMessageDialog(this, "فشل استعادة الطلاب.", "خطأ", JOptionPane.ERROR_MESSAGE);
+            } else {
+                logArea.append("↩ تمت استعادة " + restored + " طالب من مجموعة: " + selectedGroupName[0] + "\n");
+                selectedGroupId[0] = -1;
+                selectedGroupName[0] = "";
+                studentsModel.setRowCount(0);
+                refreshGroups();
+                JOptionPane.showMessageDialog(this,
+                    "تمت الاستعادة بنجاح!\n" + restored + " طالب تمت إعادتهم إلى قائمة الطلاب.",
+                    "نجاح", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+        actionsBar.add(btnRestore);
+        actionsBar.add(btnDownload);
+
         panel.add(title, BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
+        panel.add(actionsBar, BorderLayout.SOUTH);
 
         return panel;
     }

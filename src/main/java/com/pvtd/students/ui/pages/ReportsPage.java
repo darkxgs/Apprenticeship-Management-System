@@ -30,112 +30,103 @@ public class ReportsPage extends JPanel {
         add(titleLabel, BorderLayout.NORTH);
 
         // Grid Panel
-        JPanel gridPanel = new JPanel(new GridLayout(2, 2, 25, 25)); // 2 cards per row
+        JPanel gridPanel = new JPanel(new GridLayout(0, 2, 25, 25));
         gridPanel.setOpaque(false);
 
-        gridPanel.add(createReportCard("تقرير الطلاب  الناجحين",
-                "استخراج تقرير  بي جميع الطلاب الناجحين",
+        gridPanel.add(createReportCard("تقرير الطلاب الناجحين",
+                "استخراج تقرير بجميع الطلاب الناجحين",
                 "icons/dashboard.svg", () -> {
 
-                   SucssfullPageEdit s = new SucssfullPageEdit();
-                   s.setVisible(true);
-                   s.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                  
+                    SucssfullPageEdit s = new SucssfullPageEdit();
+                    s.setVisible(true);
+                    s.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
                 }));
 
         gridPanel.add(createReportCard("كشف الطلاب المفصولين",
-                "اصدار قائمة كاملة بجميع الطلاب  المفصولين بملف pdf .",
+                "إصدار قائمة كاملة بجميع الطلاب المفصولين بملف PDF",
                 "icons/reports.svg",
                 () -> {
-                
-                DetailersFRamepage de =new DetailersFRamepage();
+
+                    DetailersFRamepage de = new DetailersFRamepage();
                     de.setVisible(true);
                     de.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
+
                 }));
 
         gridPanel.add(createReportCard("كشف الراسبين",
-                " اصدار تقرير بي جميع الطلاب الراسبين",
+                "إصدار تقرير بجميع الطلاب الراسبين",
                 "icons/reports.svg",
                 () -> {
                     FailedFramePage pa = new FailedFramePage();
-                pa.setVisible(true);
-                pa.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
-                        } ));
-        
+                    pa.setVisible(true);
+                    pa.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
         gridPanel.add(createReportCard("كشف المحرومين",
-                "اصدار تقرير بي الطلاب المحرومين",
+                "إصدار تقرير بالطلاب المحرومين",
                 "icons/reports.svg",
                 () -> {
-                DeprivedFramePage de=new DeprivedFramePage();
-                de.setVisible(true);
-                de.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                    DeprivedFramePage de = new DeprivedFramePage();
+                    de.setVisible(true);
+                    de.setExtendedState(JFrame.MAXIMIZED_BOTH);
                 }));
-        
+
         gridPanel.add(createReportCard("كشف دور ثاني",
-                "اصدار تقرير بي الطلاب الدور ثاني",
+                "إصدار تقرير بالطلاب (دور ثاني)",
                 "icons/reports.svg",
                 () -> {
-                
-                    ScoundRoundFramePage sc =new ScoundRoundFramePage();
-                   sc.setVisible(true);
-                sc.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
-                
+
+                    ScoundRoundFramePage sc = new ScoundRoundFramePage();
+                    sc.setVisible(true);
+                    sc.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
                 }));
-        
+
         gridPanel.add(createReportCard("كشف المعتذرين",
-                "اصدار تقرير بي الطلاب المعتذرين",
+                "إصدار تقرير بالطلاب المعتذرين",
                 "icons/reports.svg",
                 () -> {
-                
-                    ApologeticFramePage sc =new ApologeticFramePage();
-                   sc.setVisible(true);
-                sc.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
-                
+
+                    ApologeticFramePage sc = new ApologeticFramePage();
+                    sc.setVisible(true);
+                    sc.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
                 }));
-        
-        gridPanel.add(createReportCard("كشف غائبون ",
-                "اصدار تقرير بي الطلاب  غائبون ",
+
+        gridPanel.add(createReportCard("كشف الغائبين",
+                "إصدار تقرير بالطلاب الغائبين",
                 "icons/reports.svg",
                 () -> {
-                
-                    absentFramePage frame =new absentFramePage();
-                     frame.setVisible(true);
-                frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
-                
+
+                    absentFramePage frame = new absentFramePage();
+                    frame.setVisible(true);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
                 }));
-        
+
         gridPanel.add(createReportCard("كشف المؤجلين",
-                "اصدار تقرير بي الطلاب المؤجلين",
+                "إصدار تقرير بالطلاب المؤجلين",
                 "icons/reports.svg",
                 () -> {
-                
-                    delayedFramePage frame =new delayedFramePage();
-                     frame.setVisible(true);
-                frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-                
-                
+
+                    delayedFramePage frame = new delayedFramePage();
+                    frame.setVisible(true);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
                 }));
-        
-        
-        
-        
-        
-        
 
         gridPanel.add(createReportCard("تقرير إحصائي",
-                "توليد تقرير رسومي عن نسب النجاح والرسوب بصيغة PDF.",
+                "توليد تقرير رسومي عن نسب النجاح والرسوب بصيغة PDF",
                 "icons/students.svg",
                 () -> JOptionPane.showMessageDialog(this, "جاري العمل على تصدير التقرير...")));
 
         // ScrollPane
         JScrollPane scrollPane = new JScrollPane(gridPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(20); // سرعة السكرول
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         scrollPane.getVerticalScrollBar().setBlockIncrement(60);
 
         add(scrollPane, BorderLayout.CENTER);
@@ -144,7 +135,7 @@ public class ReportsPage extends JPanel {
     private JPanel createReportCard(String title, String description, String iconPath, Runnable action) {
 
         JPanel card = new JPanel(new BorderLayout(15, 15));
-        card.setPreferredSize(new Dimension(350, 220)); // نفس حجم كل كارد
+        card.setPreferredSize(new Dimension(350, 320)); // كبرنا الكارد
         card.setOpaque(false);
 
         card.setBorder(BorderFactory.createCompoundBorder(
@@ -153,11 +144,9 @@ public class ReportsPage extends JPanel {
 
         JLabel iconLbl = new JLabel();
         try {
-
-            FlatSVGIcon icon = new FlatSVGIcon(iconPath, 48, 48);
+            FlatSVGIcon icon = new FlatSVGIcon(iconPath, 60, 60); // كبرنا الأيقونة
             icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> UITheme.PRIMARY));
             iconLbl.setIcon(icon);
-
         } catch (Exception e) {
         }
 
@@ -169,14 +158,14 @@ public class ReportsPage extends JPanel {
         textPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         JLabel titleLbl = new JLabel(title, SwingConstants.CENTER);
-        titleLbl.setFont(UITheme.FONT_CARD_TITLE);
+        titleLbl.setFont(UITheme.FONT_CARD_TITLE.deriveFont(20f)); // كبرنا العنوان
         titleLbl.setForeground(UITheme.TEXT_PRIMARY);
 
         JLabel descLbl = new JLabel(
-                "<html><div style='text-align:center;width:220px;'>" + description + "</div></html>",
+                "<html><div style='text-align:center;'>" + description + "</div></html>",
                 SwingConstants.CENTER);
 
-        descLbl.setFont(UITheme.FONT_BODY);
+        descLbl.setFont(UITheme.FONT_BODY.deriveFont(15f)); // كبرنا الوصف
         descLbl.setForeground(UITheme.TEXT_SECONDARY);
 
         textPanel.add(titleLbl);
@@ -185,7 +174,7 @@ public class ReportsPage extends JPanel {
         card.add(textPanel, BorderLayout.CENTER);
 
         JButton actionBtn = new JButton("تصدير الآن");
-        actionBtn.setFont(UITheme.FONT_HEADER);
+        actionBtn.setFont(UITheme.FONT_HEADER.deriveFont(15f));
         actionBtn.setForeground(UITheme.PRIMARY);
         actionBtn.setBackground(UITheme.CARD_BG);
         actionBtn.putClientProperty("JButton.buttonType", "roundRect");

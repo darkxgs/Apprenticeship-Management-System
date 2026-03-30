@@ -11,6 +11,7 @@ import com.pvtd.students.ui.pages.UsersPage;
 import com.pvtd.students.ui.pages.DictionarySetupPage;
 import com.pvtd.students.ui.pages.DataEntryPage;
 import com.pvtd.students.ui.pages.ArchivesPage;
+import com.pvtd.students.ui.pages.AdminLogsPage;
 import com.pvtd.students.services.DictionaryService;
 import com.pvtd.students.ui.utils.UITheme;
 
@@ -80,7 +81,7 @@ public class Sidebar extends JPanel {
         // ── Nav Items ──────────────────────────────────────────────────────
         String role = frame.getLoggedInUser() != null ? frame.getLoggedInUser().getRole() : "admin";
 
-        HoverButton btnDash = menu("لوحة التحكم", () -> frame.showPage(new DashboardPage()));
+        HoverButton btnDash = menu("لوحة التحكم", () -> frame.showPage(new DashboardPage(frame)));
         HoverButton btnStudents = menu("الطلاب", () -> frame.showPage(new StudentsPage(frame)));
         HoverButton btnSubj = menu("المواد الدراسية", () -> frame.showPage(new SubjectsPage(frame)));
         HoverButton btnStat = menu("حالات الطلاب", () -> frame.showPage(new StatusesPage(frame)));
@@ -125,13 +126,15 @@ public class Sidebar extends JPanel {
         }
 
         if (role.equals("admin") || role.equals("data_entry")) {
-            navPanel.add(menu("استيراد Excel", () -> frame.showPage(new ImportPage())));
+            navPanel.add(menu("استيراد بيانات", () -> frame.showPage(new ImportPage(frame))));
             navPanel.add(Box.createVerticalStrut(8));
         }
         if (role.equals("admin")) {
             navPanel.add(menu("المستخدمين", () -> frame.showPage(new UsersPage(frame))));
             navPanel.add(Box.createVerticalStrut(8));
             navPanel.add(menu("الأرشيف", () -> frame.showPage(new ArchivesPage())));
+            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(menu("سجل النشاط", () -> frame.showPage(new AdminLogsPage(frame))));
         }
 
         add(navPanel, BorderLayout.CENTER);

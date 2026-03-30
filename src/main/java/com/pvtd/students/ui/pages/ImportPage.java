@@ -1,6 +1,7 @@
 package com.pvtd.students.ui.pages;
 
 import com.pvtd.students.services.ExcelService;
+import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
@@ -23,7 +24,10 @@ public class ImportPage extends JPanel {
     private JCheckBox includeImagesCheck;
     private JPanel imageFoldersPanel;
 
-    public ImportPage() {
+    private AppFrame frame;
+
+    public ImportPage(AppFrame frame) {
+        this.frame = frame;
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(40, 40, 40, 40));
         setBackground(UITheme.BG_LIGHT);
@@ -277,12 +281,13 @@ public class ImportPage extends JPanel {
         progressBar.setValue(0);
         statusLabel.setText("جاري التجهيز لبدء الاستيراد...");
 
+        final String username = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
         final File finalPf = pf, finalFf = ff, finalBf = bf;
 
         SwingWorker<Integer, String> worker = new SwingWorker<>() {
             @Override
             protected Integer doInBackground() {
-                return ExcelService.importStudentsFromExcel(selectedFile, finalPf, finalFf, finalBf,
+                return ExcelService.importStudentsFromExcel(selectedFile, finalPf, finalFf, finalBf, username,
                         (current, total, msg) -> {
                             int pct = (int) (((double) current / total) * 100);
                             setProgress(pct);
