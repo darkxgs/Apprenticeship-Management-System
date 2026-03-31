@@ -13,6 +13,7 @@ import com.pvtd.students.ui.pages.Report.ScoundRoundFramePage;
 import com.pvtd.students.ui.pages.Report.SucssfullPageEdit;
 import com.pvtd.students.ui.pages.Report.absentFramePage;
 import com.pvtd.students.ui.pages.Report.delayedFramePage;
+import com.pvtd.students.ui.pages.Report.GradReportFramePage;
 
 public class ReportsPage extends JPanel {
 
@@ -33,6 +34,20 @@ public class ReportsPage extends JPanel {
         JPanel gridPanel = new JPanel(new GridLayout(0, 2, 25, 25));
         gridPanel.setOpaque(false);
 
+        gridPanel.add(createReportCard("كشف درجات الناجحين",
+                "كشف نتائج دبلوم الصناعية - تلاميذ ناجحون مع درجاتهم",
+                "icons/dashboard.svg", () -> {
+                    GradReportFramePage f = new GradReportFramePage();
+                    f.setVisible(true);
+                }));
+
+        gridPanel.add(createReportCard("كشف درجات الراسبين",
+                "كشف نتائج دبلوم الصناعية - تلاميذ راسبون مع درجاتهم",
+                "icons/reports.svg", () -> {
+                    GradReportFramePage f = new GradReportFramePage();
+                    f.setVisible(true);
+                }));
+
         gridPanel.add(createReportCard("تقرير الطلاب الناجحين",
                 "استخراج تقرير بجميع الطلاب الناجحين",
                 "icons/dashboard.svg", () -> {
@@ -42,6 +57,7 @@ public class ReportsPage extends JPanel {
                     s.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
                 }));
+
 
         gridPanel.add(createReportCard("كشف الطلاب المفصولين",
                 "إصدار قائمة كاملة بجميع الطلاب المفصولين بملف PDF",

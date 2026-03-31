@@ -492,4 +492,60 @@ public class StudentService {
         // Rule 4: Passed التطبيقي AND all نظري+عملي → ناجح
         return "ناجح";
     }
+
+    /**
+     * Fetch students filtered by profession, optional center, and status.
+     * Includes their grades map.
+     */
+    public static List<Student> getStudentsByProfessionAndStatus(
+            String profession, String centerName, String status) {
+
+        List<Student> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT s.*, sg.subject_id, sg.obtained_mark " +
+            "FROM students s " +
+            "LEFT JOIN student_grades sg ON s.id = sg.student_id " +
+            "WHERE s.profession = ? AND s.status = ?");
+        if (centerName != null) sql.append(" AND s.center_name = ?");
+        sql.append(" ORDER BY s.seat_no");
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, profession);
+            ps.setString(2, status);
+            if (centerName != null) ps.setString(3, centerName);
+            ResultSet rs = ps.executeQuery();
+
+            Map<Integer, Student> map = new java.util.LinkedHashMap<>();
+            while (rs.next()) {
+                int sid = rs.getInt("id");
+                if (!map.containsKey(sid)) {
+                    Map<Integer, Integer> grades = new HashMap<>();
+                    Student st = new Student(
+                        sid, rs.getString("serial"), rs.getString("name"),
+                        rs.getString("registration_no"), rs.getString("national_id"),
+                        rs.getString("region"), rs.getString("center_name"),
+                        rs.getString("profession"), rs.getString("exam_system"),
+                        rs.getString("seat_no"), rs.getString("secret_no"),
+                        rs.getString("professional_group"), rs.getString("coordination_no"),
+                        rs.getString("dob_day"), rs.getString("dob_month"), rs.getString("dob_year"),
+                        rs.getString("gender"), rs.getString("neighborhood"),
+                        rs.getString("governorate"), rs.getString("religion"),
+                        rs.getString("nationality"), rs.getString("address"),
+                        rs.getString("other_notes"), rs.getString("image_path"),
+                        rs.getString("id_front_path"), rs.getString("id_back_path"),
+                        grades, rs.getString("status"));
+                    map.put(sid, st);
+                }
+                int subjectId = rs.getInt("subject_id");
+                if (!rs.wasNull()) {
+                    map.get(sid).getGrades().put(subjectId, rs.getInt("obtained_mark"));
+                }
+            }
+            list.addAll(map.values());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

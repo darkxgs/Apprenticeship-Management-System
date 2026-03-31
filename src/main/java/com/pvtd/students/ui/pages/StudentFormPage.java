@@ -338,7 +338,7 @@ public class StudentFormPage extends JPanel {
         previewLabel.setHorizontalAlignment(SwingConstants.CENTER);
         previewLabel.setVerticalAlignment(SwingConstants.CENTER);
         previewLabel.setText("لا توجد صورة");
-        previewLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        previewLabel.setFont(new Font("Tahoma", Font.PLAIN, 11));
         previewLabel.setForeground(Color.GRAY);
         previewLabel.setPreferredSize(new Dimension(220, 160));
         panel.add(previewLabel, BorderLayout.CENTER);

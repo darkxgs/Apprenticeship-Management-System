@@ -1,0 +1,21 @@
+﻿java : Error: Unable to 
+initialize main class com.p
+vtd.students.ExcelPreview
+At line:1 char:165
++ ... es;" + $cp; java -cp 
+$jars com.pvtd.students.Exc
+elPreview 2>&1 | Out- ...
++                 ~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (Err  
+  or: Unable t...ts.Exce   
+ lPreview:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+Caused by: java.lang.NoClas
+sDefFoundError: org/apache/
+poi/ss/usermodel/Workbook

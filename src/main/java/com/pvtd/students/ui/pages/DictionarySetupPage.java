@@ -68,7 +68,7 @@ public class DictionarySetupPage extends JPanel {
     }
 
     private JScrollPane buildGrid() {
-        gridPanel = new JPanel(new WrapLayout(FlowLayout.RIGHT, 20, 20));
+        gridPanel = new JPanel(new WrapLayout(FlowLayout.CENTER, 20, 20));
         gridPanel.setOpaque(false);
         gridPanel.setBackground(UITheme.BG_LIGHT);
         gridPanel.setBorder(new EmptyBorder(12, 24, 24, 24));
@@ -91,10 +91,12 @@ public class DictionarySetupPage extends JPanel {
         }
         
         if (items.isEmpty()) {
-            JLabel empty = new JLabel("لا توجد بيانات مُضافة بعد. اضغط «+ إضافة جديد» للإنشاء.",
-                    SwingConstants.CENTER);
-            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            JLabel empty = new JLabel(
+                "<html><div style='text-align:center'>لا توجد بيانات مُضافة بعد.<br>اضغط &laquo;+ إضافة جديد&raquo; للإنشاء.</div></html>",
+                SwingConstants.CENTER);
+            empty.setFont(new Font("Tahoma", Font.PLAIN, 14));  // Tahoma renders Arabic correctly
             empty.setForeground(UITheme.TEXT_SECONDARY);
+            empty.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
             gridPanel.add(empty);
         }
         gridPanel.revalidate();
@@ -104,7 +106,8 @@ public class DictionarySetupPage extends JPanel {
     private JPanel buildCard(String itemName) {
         JPanel cardWrapper = new JPanel(new BorderLayout());
         cardWrapper.setOpaque(false);
-        cardWrapper.setPreferredSize(new Dimension(280, 100)); // Slightly smaller than Status cards
+        // Fixed width, tall enough for 2 lines of Arabic text
+        cardWrapper.setPreferredSize(new Dimension(260, 130));
         cardWrapper.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 0, 0, 0)));
@@ -125,11 +128,13 @@ public class DictionarySetupPage extends JPanel {
             }
         };
         cardInner.setOpaque(false);
-        cardInner.setBorder(new EmptyBorder(16, 16, 14, 16));
+        cardInner.setBorder(new EmptyBorder(18, 18, 16, 18));
 
-        // Name
-        JLabel nameLbl = new JLabel(itemName, SwingConstants.RIGHT);
-        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        // Name — no width constraint, RTL dir, wraps automatically
+        JLabel nameLbl = new JLabel(
+            "<html><div dir='rtl' style='text-align:right; line-height:1.5'>" + itemName + "</div></html>",
+            SwingConstants.RIGHT);
+        nameLbl.setFont(new Font("Tahoma", Font.BOLD, 14));
         nameLbl.setForeground(UITheme.TEXT_PRIMARY);
 
         cardInner.add(nameLbl, BorderLayout.CENTER);

@@ -107,10 +107,12 @@ public class StatusesPage extends JPanel {
             gridPanel.add(buildCard(status, colors[0], colors[1], counts.getOrDefault(status, 0)));
         }
         if (statuses.isEmpty()) {
-            JLabel empty = new JLabel("لا توجد حالات مُضافة بعد. اضغط «+ إضافة حالة جديدة» لإنشاء أول حالة.",
-                    SwingConstants.CENTER);
-            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            JLabel empty = new JLabel(
+                "<html><div style='text-align:center'>لا توجد حالات مُضافة بعد.<br>اضغط &laquo;+ إضافة حالة جديدة&raquo; لإنشاء أول حالة.</div></html>",
+                SwingConstants.CENTER);
+            empty.setFont(new Font("Tahoma", Font.PLAIN, 14));
             empty.setForeground(UITheme.TEXT_SECONDARY);
+            empty.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
             gridPanel.add(empty);
         }
         gridPanel.revalidate();
@@ -166,8 +168,10 @@ public class StatusesPage extends JPanel {
         JPanel topRow = new JPanel(new BorderLayout());
         topRow.setOpaque(false);
 
-        JLabel nameLbl = new JLabel(statusName, SwingConstants.RIGHT);
-        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel nameLbl = new JLabel(
+            "<html><div dir='rtl' style='text-align:right'>" + statusName + "</div></html>",
+            SwingConstants.RIGHT);
+        nameLbl.setFont(new Font("Tahoma", Font.BOLD, 16));
         nameLbl.setForeground(UITheme.TEXT_PRIMARY);
 
         // Colored dot badge

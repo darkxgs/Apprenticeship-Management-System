@@ -124,7 +124,7 @@ public class ImportPage extends JPanel {
         JLabel imageHint = new JLabel(
                 "<html><center>تأكد أن أسماء الصور في المجلدات تطابق الرقم القومي لكل طالب<br>(مثال: 29901010111222.jpg)</center></html>",
                 SwingConstants.CENTER);
-        imageHint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        imageHint.setFont(new Font("Tahoma", Font.PLAIN, 12));
         imageHint.setForeground(new Color(0x9CA3AF));
         imageHint.setAlignmentX(Component.CENTER_ALIGNMENT);
         imageFoldersPanel.setBorder(new EmptyBorder(0, 0, 0, 0));

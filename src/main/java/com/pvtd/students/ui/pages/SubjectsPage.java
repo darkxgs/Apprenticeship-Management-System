@@ -3,14 +3,18 @@ package com.pvtd.students.ui.pages;
 import com.pvtd.students.models.Subject;
 import com.pvtd.students.services.SubjectService;
 import com.pvtd.students.services.StudentService;
+import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 import com.pvtd.students.ui.utils.DropShadowBorder;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -169,8 +173,27 @@ public class SubjectsPage extends JPanel {
 
     private void loadProfessionsIntoCombo() {
         professionCombo.removeAllItems();
-        List<String> profs = StudentService.getDistinctProfessions();
-        for (String p : profs) {
+        // Load from both students table (for imports) and Dictionary (for settings)
+        List<String> dictProfs = StudentService.getDistinctProfessions();
+        
+        // Manual query for students list professions
+        List<String> studentProfs = new ArrayList<>();
+        try (Connection con = DatabaseConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT DISTINCT profession FROM students WHERE profession IS NOT NULL ORDER BY profession");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String p = rs.getString(1);
+                if (p != null && !studentProfs.contains(p.trim())) studentProfs.add(p.trim());
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+
+        // Combine unique
+        java.util.Set<String> all = new java.util.TreeSet<>();
+        if (dictProfs != null) { for (String s : dictProfs) if (s != null) all.add(s.trim()); }
+        for (String s : studentProfs) all.add(s);
+
+        for (String p : all) {
             professionCombo.addItem(p);
         }
     }
@@ -250,8 +273,10 @@ public class SubjectsPage extends JPanel {
         card.add(topRow, BorderLayout.NORTH);
 
         // ── Subject Name ──────────────────────────────────────────────────────
-        JLabel nameLabel = new JLabel(subject.getName(), SwingConstants.CENTER);
-        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Bigger font
+        JLabel nameLabel = new JLabel(
+            "<html><div dir='rtl' style='text-align:center; line-height:1.4'>" + subject.getName() + "</div></html>",
+            SwingConstants.CENTER);
+        nameLabel.setFont(new Font("Tahoma", Font.BOLD, 15));
         nameLabel.setForeground(UITheme.TEXT_PRIMARY);
         nameLabel.setBorder(new EmptyBorder(6, 4, 6, 4));
         card.add(nameLabel, BorderLayout.CENTER);

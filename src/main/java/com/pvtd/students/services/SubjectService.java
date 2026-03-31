@@ -12,10 +12,10 @@ import java.util.List;
 public class SubjectService {
 
     public static int countSubjectsByProfession(String profession) {
-        String sql = "SELECT COUNT(*) FROM subjects WHERE profession = ?";
+        String sql = "SELECT COUNT(*) FROM subjects WHERE TRIM(profession) = TRIM(?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, profession);
+            ps.setString(1, profession != null ? profession.trim() : "");
             ResultSet rs = ps.executeQuery();
             if (rs.next())
                 return rs.getInt(1);
@@ -27,13 +27,13 @@ public class SubjectService {
 
     public static List<Subject> getSubjectsByProfession(String profession) {
         List<Subject> list = new ArrayList<>();
-        // Now ordering by display_order first, then id fallback
-        String sql = "SELECT * FROM subjects WHERE profession = ? ORDER BY display_order ASC, id ASC";
+        // Using TRIM for robust matching between UI and DB
+        String sql = "SELECT * FROM subjects WHERE TRIM(profession) = TRIM(?) ORDER BY display_order ASC, id ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, profession);
+            ps.setString(1, profession != null ? profession.trim() : "");
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
