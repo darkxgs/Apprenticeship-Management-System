@@ -37,7 +37,7 @@ public class StudentFormPage extends JPanel {
 
     // Personal Info Fields
     private JComboBox<String> dayCombo, monthCombo, yearCombo, genderCombo, govCombo;
-    private JTextField neighborhoodField, religionField, nationalityField, addressField;
+    private JTextField neighborhoodField, religionField, nationalityField, addressField, phoneNumberField;
 
     // Media Uploads
     private String currentPicPath, currentIdFrontPath, currentIdBackPath;
@@ -64,16 +64,16 @@ public class StudentFormPage extends JPanel {
         JPanel formContainer = new JPanel();
         formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
         formContainer.setBackground(UITheme.BG_LIGHT);
-        formContainer.setBorder(new EmptyBorder(25, 40, 40, 40));
+        formContainer.setBorder(new EmptyBorder(15, 20, 20, 20));
 
         formContainer.add(buildMainAcademicCard());
-        formContainer.add(Box.createVerticalStrut(24));
+        formContainer.add(Box.createVerticalStrut(12));
         formContainer.add(buildSecondaryAcademicCard());
-        formContainer.add(Box.createVerticalStrut(24));
+        formContainer.add(Box.createVerticalStrut(12));
         formContainer.add(buildPersonalCard());
-        formContainer.add(Box.createVerticalStrut(24));
+        formContainer.add(Box.createVerticalStrut(12));
         formContainer.add(buildMediaCard());
-        formContainer.add(Box.createVerticalStrut(24));
+        formContainer.add(Box.createVerticalStrut(12));
         formContainer.add(buildGradesCard());
 
         JScrollPane scrollPane = new JScrollPane(formContainer);
@@ -89,6 +89,57 @@ public class StudentFormPage extends JPanel {
                 renderDynamicSubjects((String) professionCombo.getSelectedItem());
             }
         }
+
+        setupDependencyListeners();
+    }
+
+    private void setupDependencyListeners() {
+        // 1. Center -> Region
+        centerNameCombo.addActionListener(e -> {
+            String selCenter = (String) centerNameCombo.getSelectedItem();
+            if (selCenter == null || selCenter.trim().isEmpty()) return;
+            try (java.sql.Connection conn = com.pvtd.students.db.DatabaseConnection.getConnection();
+                 java.sql.PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT r.name FROM centers c LEFT JOIN regions r ON c.region_id = r.id WHERE c.name = ?")) {
+                stmt.setString(1, selCenter);
+                try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String regionName = rs.getString(1);
+                        if (regionName != null) {
+                            regionCombo.setSelectedItem(regionName);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        // 2. Profession -> Professional Group
+        professionCombo.addActionListener(e -> {
+            String selProf = (String) professionCombo.getSelectedItem();
+            if (selProf == null || selProf.trim().isEmpty()) return;
+
+            // Existing logic to load subjects
+            renderDynamicSubjects(selProf);
+
+            // Fetch auto-group
+            try (java.sql.Connection conn = com.pvtd.students.db.DatabaseConnection.getConnection();
+                 java.sql.PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT pg.name FROM professions p LEFT JOIN professional_groups pg ON p.professional_group_id = pg.id WHERE p.name = ?")) {
+                stmt.setString(1, selProf);
+                try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String pgName = rs.getString(1);
+                        if (pgName != null) {
+                            profGroupCombo.setSelectedItem(pgName);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
     private JPanel buildHeader() {
@@ -129,13 +180,13 @@ public class StudentFormPage extends JPanel {
         JPanel card = new JPanel(new BorderLayout());
         card.setOpaque(false);
         card.setBorder(BorderFactory.createCompoundBorder(
-                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 6, 0.08f, 20, UITheme.CARD_BG),
-                new EmptyBorder(25, 25, 25, 25)));
+                new com.pvtd.students.ui.utils.DropShadowBorder(Color.BLACK, 4, 0.05f, 10, UITheme.CARD_BG),
+                new EmptyBorder(12, 15, 12, 15)));
 
         JLabel title = new JLabel(titleStr, SwingConstants.RIGHT);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
         title.setForeground(UITheme.PRIMARY);
-        title.setBorder(new EmptyBorder(0, 0, 20, 0));
+        title.setBorder(new EmptyBorder(0, 0, 10, 0));
         card.add(title, BorderLayout.NORTH);
         return card;
     }
@@ -143,7 +194,7 @@ public class StudentFormPage extends JPanel {
     private JPanel buildMainAcademicCard() {
         JPanel card = createCardContainer("البيانات الأكاديمية الأساسية");
 
-        JPanel grid = new JPanel(new GridLayout(0, 4, 20, 20));
+        JPanel grid = new JPanel(new GridLayout(0, 4, 16, 16));
         grid.setOpaque(false);
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
@@ -154,33 +205,22 @@ public class StudentFormPage extends JPanel {
         nationalIdField = addLabeledField(grid, "الرقم القومي");
 
         // Center Name Combo
-        grid.add(createLabel("اسم المركز"));
         centerNameCombo = new JComboBox<>();
-        centerNameCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         centerNameCombo.setEditable(true); // Allow typinig new centers
         centerNameCombo.addItem(""); // Add empty item for new students
         for (String c : StudentService.getDistinctCenters()) {
             centerNameCombo.addItem(c);
         }
-        grid.add(centerNameCombo);
+        addComboField(grid, "اسم المركز", centerNameCombo);
 
         // Profession Combo
-        grid.add(createLabel("المهنة"));
         professionCombo = new JComboBox<>();
         professionCombo.setEditable(true);
         professionCombo.addItem("");
-        professionCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         for (String p : StudentService.getDistinctProfessions()) {
             professionCombo.addItem(p);
         }
-        professionCombo.addActionListener(e -> {
-            String sel = (String) professionCombo.getSelectedItem();
-            if (sel != null && !sel.trim().isEmpty())
-                renderDynamicSubjects(sel);
-        });
-        grid.add(professionCombo);
-
-        // Status Override Combo REMOVED - Status is now fully auto-calculated
+        addComboField(grid, "المهنة", professionCombo);
 
         card.add(grid, BorderLayout.CENTER);
         return card;
@@ -188,32 +228,28 @@ public class StudentFormPage extends JPanel {
 
     private JPanel buildSecondaryAcademicCard() {
         JPanel card = createCardContainer("بيانات إضافية ونظام الامتحان");
-        JPanel grid = new JPanel(new GridLayout(0, 4, 20, 20));
+        JPanel grid = new JPanel(new GridLayout(0, 4, 16, 16));
         grid.setOpaque(false);
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        grid.add(createLabel("المنطقة"));
         regionCombo = new JComboBox<>();
-        regionCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         regionCombo.setEditable(true);
         regionCombo.addItem("");
         for (String r : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION)) {
             regionCombo.addItem(r);
         }
-        grid.add(regionCombo);
+        addComboField(grid, "المنطقة", regionCombo);
 
         examSystemField = addLabeledField(grid, "نظام الامتحان");
         secretNoField = addLabeledField(grid, "الرقم السري");
 
-        grid.add(createLabel("المجموعة المهنية"));
         profGroupCombo = new JComboBox<>();
-        profGroupCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         profGroupCombo.setEditable(true);
         profGroupCombo.addItem("");
         for (String pg : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROF_GROUP)) {
             profGroupCombo.addItem(pg);
         }
-        grid.add(profGroupCombo);
+        addComboField(grid, "المجموعة المهنية", profGroupCombo);
 
         coordinationNoField = addLabeledField(grid, "رقم التنسيق");
         otherNotesField = addLabeledField(grid, "ملاحظات أخرى");
@@ -224,12 +260,11 @@ public class StudentFormPage extends JPanel {
 
     private JPanel buildPersonalCard() {
         JPanel card = createCardContainer("البيانات الشخصية والعنوان");
-        JPanel grid = new JPanel(new GridLayout(0, 4, 20, 20));
+        JPanel grid = new JPanel(new GridLayout(0, 4, 16, 16));
         grid.setOpaque(false);
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         // Date of Birth logic
-        grid.add(createLabel("تاريخ الميلاد (يوم / شهر / سنة)"));
         JPanel dobPanel = new JPanel(new GridLayout(1, 3, 5, 0));
         dobPanel.setOpaque(false);
         dayCombo = new JComboBox<>();
@@ -245,12 +280,11 @@ public class StudentFormPage extends JPanel {
         dobPanel.add(dayCombo);
         dobPanel.add(monthCombo);
         dobPanel.add(yearCombo);
-        grid.add(dobPanel);
+        grid.add(buildFieldBox("تاريخ الميلاد (يوم / شهر / سنة)", dobPanel));
 
         // Gender
-        grid.add(createLabel("النوع"));
         genderCombo = new JComboBox<>(new String[] { "ذكر", "أنثى" });
-        grid.add(genderCombo);
+        addComboField(grid, "النوع", genderCombo);
 
         govCombo = new JComboBox<>();
         govCombo.setEditable(true); // Allow typing new governorate
@@ -258,13 +292,13 @@ public class StudentFormPage extends JPanel {
         for (String g : StudentService.getDistinctGovernorates()) {
             govCombo.addItem(g);
         }
-        grid.add(createLabel("محافظة السكن"));
-        grid.add(govCombo);
+        addComboField(grid, "محافظة السكن", govCombo);
 
         neighborhoodField = addLabeledField(grid, "الحي / القرية");
         religionField = addLabeledField(grid, "الديانة");
         nationalityField = addLabeledField(grid, "الجنسية");
         addressField = addLabeledField(grid, "العنوان بالتفصيل");
+        phoneNumberField = addLabeledField(grid, "رقم التليفون");
 
         card.add(grid, BorderLayout.CENTER);
         return card;
@@ -272,7 +306,7 @@ public class StudentFormPage extends JPanel {
 
     private JPanel buildMediaCard() {
         JPanel card = createCardContainer("الصور والمرفقات (الهوية الشخصية)");
-        JPanel grid = new JPanel(new GridLayout(1, 3, 20, 20));
+        JPanel grid = new JPanel(new GridLayout(1, 3, 10, 10));
         grid.setOpaque(false);
         grid.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
@@ -403,15 +437,37 @@ public class StudentFormPage extends JPanel {
     private JLabel createLabel(String text) {
         JLabel l = new JLabel(text, SwingConstants.RIGHT);
         l.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        l.setForeground(new Color(0x334155));
         return l;
     }
 
+    private JPanel buildFieldBox(String labelStr, JComponent field) {
+        JPanel box = new JPanel(new BorderLayout(0, 6)); // 6px vertical gap between label and field
+        box.setOpaque(false);
+        JLabel lbl = createLabel(labelStr);
+        lbl.setHorizontalAlignment(SwingConstants.RIGHT);
+        box.add(lbl, BorderLayout.NORTH);
+        
+        if (field instanceof JTextField) {
+            field.setPreferredSize(new Dimension(0, 36));
+            field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        } else if (field instanceof JComboBox) {
+            field.setPreferredSize(new Dimension(0, 36));
+            field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        }
+        
+        box.add(field, BorderLayout.CENTER);
+        return box;
+    }
+
     private JTextField addLabeledField(JPanel parent, String label) {
-        parent.add(createLabel(label));
         JTextField tf = new JTextField();
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        parent.add(tf);
+        parent.add(buildFieldBox(label, tf));
         return tf;
+    }
+
+    private void addComboField(JPanel parent, String label, JComboBox<?> combo) {
+        parent.add(buildFieldBox(label, combo));
     }
 
     private void renderDynamicSubjects(String profession) {
@@ -588,6 +644,7 @@ public class StudentFormPage extends JPanel {
         religionField.setText(student.getReligion());
         nationalityField.setText(student.getNationality());
         addressField.setText(student.getAddress());
+        phoneNumberField.setText(student.getPhoneNumber() != null ? student.getPhoneNumber() : "");
 
         // Combos
         if (student.getDobDay() != null)
@@ -727,6 +784,7 @@ public class StudentFormPage extends JPanel {
         student.setReligion(religionField.getText().trim());
         student.setNationality(nationalityField.getText().trim());
         student.setAddress(addressField.getText().trim());
+        student.setPhoneNumber(phoneNumberField.getText().trim());
 
         // Process images dynamically into student's unique folder
         student.setImagePath(copyToStudentFolder(currentPicPath, natId, "profile"));

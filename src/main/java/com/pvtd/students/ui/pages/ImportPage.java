@@ -284,9 +284,9 @@ public class ImportPage extends JPanel {
         final String username = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
         final File finalPf = pf, finalFf = ff, finalBf = bf;
 
-        SwingWorker<Integer, String> worker = new SwingWorker<>() {
+        SwingWorker<ExcelService.ImportResult, String> worker = new SwingWorker<ExcelService.ImportResult, String>() {
             @Override
-            protected Integer doInBackground() {
+            protected ExcelService.ImportResult doInBackground() {
                 return ExcelService.importStudentsFromExcel(selectedFile, finalPf, finalFf, finalBf, username,
                         (current, total, msg) -> {
                             int pct = (int) (((double) current / total) * 100);
@@ -307,16 +307,40 @@ public class ImportPage extends JPanel {
                 setCursor(Cursor.getDefaultCursor());
                 progressBar.setValue(100);
                 try {
-                    int count = get();
-                    if (count >= 0) {
-                        statusLabel.setText("✅ تم الانتهاء! تم معالجة " + count + " سجل بنجاح.");
+                    ExcelService.ImportResult result = get();
+                    if (result != null && result.errors.isEmpty() && result.importedCount > 0) {
+                        statusLabel.setText("✅ تم الانتهاء! تم معالجة " + result.importedCount + " سجل بنجاح.");
                         JOptionPane.showMessageDialog(ImportPage.this,
-                                "تم استيراد/تحديث " + count + " طالب بنجاح.",
+                                "تم استيراد/تحديث " + result.importedCount + " طالب بنجاح.",
                                 "نجاح", JOptionPane.INFORMATION_MESSAGE);
+                    } else if (result != null && (!result.errors.isEmpty() || result.skippedCount > 0)) {
+                        statusLabel.setText("تم معالجة " + result.importedCount + " سجل مع تخطي " + result.skippedCount + " سجل.");
+                        
+                        StringBuilder msg = new StringBuilder();
+                        msg.append("تم استيراد ").append(result.importedCount).append(" طالب.\n");
+                        msg.append("فشل استيراد/تخطي ").append(result.skippedCount).append(" طالب للأسباب التالية:\n\n");
+                        
+                        for (int i = 0; i < Math.min(10, result.errors.size()); i++) {
+                            msg.append("- ").append(result.errors.get(i)).append("\n");
+                        }
+                        if (result.errors.size() > 10) {
+                            msg.append("\n... والمزيد من الأخطاء.");
+                        }
+                        
+                        // Increase dialog size for readability
+                        JTextArea ta = new JTextArea(msg.toString());
+                        ta.setEditable(false);
+                        ta.setFont(UITheme.FONT_BODY);
+                        JScrollPane scroll = new JScrollPane(ta);
+                        scroll.setPreferredSize(new Dimension(450, 200));
+                        
+                        JOptionPane.showMessageDialog(ImportPage.this, scroll,
+                                "اكتمل مع وجود أخطاء", JOptionPane.WARNING_MESSAGE);
+                                
                     } else {
                         statusLabel.setText("❌ فشل معالجة الملف.");
                         JOptionPane.showMessageDialog(ImportPage.this,
-                                "حدث خطأ أثناء استيراد الملف. تأكد من تنسيق الملف وأنه xlsx.",
+                                "حدث خطأ أثناء استيراد الملف. تأكد من تنسيق الملف وأنه به بيانات.",
                                 "خطأ", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {

@@ -2,7 +2,6 @@ package com.pvtd.students.ui.pages;
 
 import com.pvtd.students.models.Subject;
 import com.pvtd.students.services.SubjectService;
-import com.pvtd.students.services.StudentService;
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
@@ -14,7 +13,6 @@ import java.awt.geom.RoundRectangle2D;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,6 +22,7 @@ public class SubjectsPage extends JPanel {
 
     private JPanel gridPanel;
     private List<Subject> currentSubjectsList;
+    private JComboBox<String> profGroupCombo;
     private JComboBox<String> professionCombo;
     private JLabel subjectCountLabel;
 
@@ -32,7 +31,13 @@ public class SubjectsPage extends JPanel {
         setBorder(new EmptyBorder(28, 28, 28, 28));
         setBackground(UITheme.BG_LIGHT);
 
-        // ─── Header ───────────────────────────────────────────────────────────
+        // 1. Initialize gridPanel first to avoid NullPointer in loadSubjects
+        gridPanel = new JPanel();
+        gridPanel.setLayout(new GridLayout(0, 4, 16, 16));
+        gridPanel.setOpaque(false);
+        gridPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        // 2. Build Header and UI
         JPanel headerPanel = new JPanel(new BorderLayout(0, 12));
         headerPanel.setOpaque(false);
 
@@ -65,22 +70,32 @@ public class SubjectsPage extends JPanel {
         topHeader.add(titleBlock, BorderLayout.EAST);
         topHeader.add(leftArea, BorderLayout.WEST);
 
-        // ─── Specialization Filter Bar ────────────────────────────────────────
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 8));
         filterBar.setBackground(UITheme.CARD_BG);
         filterBar.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 3, 0.04f, 10, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 8, 0, 8)));
 
-        JLabel filterLbl = new JLabel("⎇  اختر المهنة:");
-        filterLbl.setFont(UITheme.FONT_HEADER);
-        filterLbl.setForeground(UITheme.TEXT_PRIMARY);
+        JLabel filterGroupLbl = new JLabel("⎇  اختر المجموعة المهنيه:");
+        filterGroupLbl.setFont(UITheme.FONT_HEADER);
+        filterGroupLbl.setForeground(UITheme.TEXT_PRIMARY);
+
+        profGroupCombo = new JComboBox<>();
+        profGroupCombo.setFont(UITheme.FONT_BODY);
+        profGroupCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        profGroupCombo.setPreferredSize(new Dimension(280, 38));
+        loadProfGroupsIntoCombo();
+
+        JLabel filterProfLbl = new JLabel("⎇  اختر المهنة:");
+        filterProfLbl.setFont(UITheme.FONT_HEADER);
+        filterProfLbl.setForeground(UITheme.TEXT_PRIMARY);
 
         professionCombo = new JComboBox<>();
         professionCombo.setFont(UITheme.FONT_BODY);
         professionCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         professionCombo.setPreferredSize(new Dimension(280, 38));
-        loadProfessionsIntoCombo();
+
+        profGroupCombo.addActionListener(e -> loadProfessionsIntoCombo());
         professionCombo.addActionListener(e -> loadSubjects());
 
         subjectCountLabel = new JLabel("", SwingConstants.LEFT);
@@ -89,26 +104,44 @@ public class SubjectsPage extends JPanel {
 
         filterBar.add(subjectCountLabel);
         filterBar.add(professionCombo);
-        filterBar.add(filterLbl);
+        filterBar.add(filterProfLbl);
+        filterBar.add(profGroupCombo);
+        filterBar.add(filterGroupLbl);
+
+        // Preload first profession list
+        if (profGroupCombo.getItemCount() > 0) {
+            profGroupCombo.setSelectedIndex(0);
+        }
 
         headerPanel.add(topHeader, BorderLayout.NORTH);
         headerPanel.add(filterBar, BorderLayout.SOUTH);
         add(headerPanel, BorderLayout.NORTH);
 
-        // ─── Card Grid ────────────────────────────────────────────────────────
-        gridPanel = new JPanel(new GridLayout(0, 4, 20, 20));
-        gridPanel.setOpaque(false);
-        gridPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
+        // 3. Setup Scroll Pane with Grid
         JPanel gridWrapper = new JPanel(new BorderLayout());
         gridWrapper.setOpaque(false);
         gridWrapper.add(gridPanel, BorderLayout.NORTH);
 
-        JScrollPane scroll = new JScrollPane(gridWrapper);
+        JScrollPane scroll = new JScrollPane(gridWrapper,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UITheme.BG_LIGHT);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         add(scroll, BorderLayout.CENTER);
+
+        scroll.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int availableWidth = scroll.getViewport().getWidth();
+                int cardWidth = 240 + 20;
+                int cols = Math.max(1, availableWidth / cardWidth);
+                if (gridPanel.getLayout() instanceof GridLayout) {
+                    ((GridLayout) gridPanel.getLayout()).setColumns(cols);
+                    gridPanel.revalidate();
+                }
+            }
+        });
 
         loadSubjects();
     }
@@ -171,30 +204,76 @@ public class SubjectsPage extends JPanel {
         }
     }
 
-    private void loadProfessionsIntoCombo() {
-        professionCombo.removeAllItems();
-        // Load from both students table (for imports) and Dictionary (for settings)
-        List<String> dictProfs = StudentService.getDistinctProfessions();
+    private void loadProfGroupsIntoCombo() {
+        profGroupCombo.removeAllItems();
+        java.util.Set<String> groups = new java.util.TreeSet<>();
         
-        // Manual query for students list professions
-        List<String> studentProfs = new ArrayList<>();
         try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(
-                 "SELECT DISTINCT profession FROM students WHERE profession IS NOT NULL ORDER BY profession");
+             PreparedStatement ps = con.prepareStatement("SELECT name FROM professional_groups ORDER BY name");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                String p = rs.getString(1);
-                if (p != null && !studentProfs.contains(p.trim())) studentProfs.add(p.trim());
+                String pg = rs.getString(1);
+                if (pg != null && !pg.trim().isEmpty()) groups.add(pg.trim());
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {}
 
-        // Combine unique
+        try (Connection con = DatabaseConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT DISTINCT professional_group FROM students WHERE professional_group IS NOT NULL");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String pg = rs.getString(1);
+                if (pg != null && !pg.trim().isEmpty()) groups.add(pg.trim());
+            }
+        } catch (Exception e) {}
+
+        for (String g : groups) {
+            profGroupCombo.addItem(g);
+        }
+    }
+
+    private void loadProfessionsIntoCombo() {
+        professionCombo.removeAllItems();
+        String selGroup = (String) profGroupCombo.getSelectedItem();
+        if (selGroup == null || selGroup.trim().isEmpty()) return;
+
         java.util.Set<String> all = new java.util.TreeSet<>();
-        if (dictProfs != null) { for (String s : dictProfs) if (s != null) all.add(s.trim()); }
-        for (String s : studentProfs) all.add(s);
+
+        // Load from DB relation
+        try (Connection con = DatabaseConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT p.name FROM professions p " +
+                 "JOIN professional_groups pg ON p.professional_group_id = pg.id " +
+                 "WHERE pg.name = ? ORDER BY p.name")) {
+            ps.setString(1, selGroup);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String p = rs.getString(1);
+                    if (p != null && !p.trim().isEmpty()) all.add(p.trim());
+                }
+            }
+        } catch (Exception e) {}
+
+        // Load from students table (historical data)
+        try (Connection con = DatabaseConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT DISTINCT profession FROM students WHERE professional_group = ? AND profession IS NOT NULL")) {
+            ps.setString(1, selGroup);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String p = rs.getString(1);
+                    if (p != null && !p.trim().isEmpty()) all.add(p.trim());
+                }
+            }
+        } catch (Exception e) {}
 
         for (String p : all) {
             professionCombo.addItem(p);
+        }
+        
+        if (professionCombo.getItemCount() > 0) {
+            professionCombo.setSelectedIndex(0);
+        } else {
+            loadSubjects(); // trigger clear
         }
     }
 
@@ -245,7 +324,10 @@ public class SubjectsPage extends JPanel {
             }
         };
         card.setOpaque(false);
-        // Removed fixed preferredSize here so the card's height is determined by its layout naturally.
+        // Fixed size to prevent stretching and maintain grid alignment
+        card.setPreferredSize(new Dimension(240, 220));
+        card.setMinimumSize(new Dimension(240, 220));
+        card.setMaximumSize(new Dimension(240, 220));
         card.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 5, 0.05f, 15, UITheme.BG_LIGHT),
                 new EmptyBorder(16, 16, 14, 16)));
@@ -273,11 +355,17 @@ public class SubjectsPage extends JPanel {
         card.add(topRow, BorderLayout.NORTH);
 
         // ── Subject Name ──────────────────────────────────────────────────────
-        JLabel nameLabel = new JLabel(
-            "<html><div dir='rtl' style='text-align:center; line-height:1.4'>" + subject.getName() + "</div></html>",
-            SwingConstants.CENTER);
-        nameLabel.setFont(new Font("Tahoma", Font.BOLD, 15));
+        // Use JTextArea for subject name ( JLabel HTML breaks Arabic words)
+        JTextArea nameLabel = new JTextArea(subject.getName());
+        nameLabel.setFont(new Font("Tahoma", Font.BOLD, 14));
         nameLabel.setForeground(UITheme.TEXT_PRIMARY);
+        nameLabel.setBackground(Color.WHITE);
+        nameLabel.setOpaque(false);
+        nameLabel.setEditable(false);
+        nameLabel.setFocusable(false);
+        nameLabel.setLineWrap(true);
+        nameLabel.setWrapStyleWord(true);
+        nameLabel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         nameLabel.setBorder(new EmptyBorder(6, 4, 6, 4));
         card.add(nameLabel, BorderLayout.CENTER);
 

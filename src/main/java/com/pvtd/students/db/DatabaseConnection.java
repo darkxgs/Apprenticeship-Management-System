@@ -8,11 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DatabaseConnection {
-    // Oracle 11g Configuration
-    private static final String URL = "jdbc:oracle:thin:@localhost:1521:xe";
-    private static final String USER = "system";
-    private static final String PASSWORD = "123";
-    private static final int MAX_POOL_SIZE = 5;
+    private static final String URL = ConfigManager.get("db.url", "jdbc:oracle:thin:@localhost:1521:xe");
+    private static final String USER = ConfigManager.get("db.user", "system");
+    private static final String PASSWORD = ConfigManager.get("db.password", "123");
+    private static final int MAX_POOL_SIZE = 20;
 
     // Simple connection pool
     private static final List<Connection> pool = new ArrayList<>();
@@ -28,13 +27,16 @@ public class DatabaseConnection {
             System.err.println("Oracle JDBC Driver not found.");
         }
 
+        Connection rawConn = null;
+
         // Reuse any live pooled connection
         for (int i = 0; i < pool.size(); i++) {
             Connection c = pool.get(i);
             try {
                 if (c != null && !c.isClosed() && c.isValid(1)) {
                     pool.remove(i);
-                    return c;
+                    rawConn = c;
+                    break;
                 } else {
                     pool.remove(i);
                     i--;
@@ -46,7 +48,34 @@ public class DatabaseConnection {
         }
 
         // Create a new connection if pool is empty
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        if (rawConn == null) {
+            rawConn = DriverManager.getConnection(URL, USER, PASSWORD);
+        }
+
+        final Connection targetConn = rawConn;
+
+        // Return a proxy that intercepts close() so try-with-resources returns to pool instead of destroying
+        return (Connection) java.lang.reflect.Proxy.newProxyInstance(
+            Connection.class.getClassLoader(),
+            new Class<?>[]{Connection.class},
+            new java.lang.reflect.InvocationHandler() {
+                @Override
+                public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args) throws Throwable {
+                    if ("close".equals(method.getName())) {
+                        returnConnection(targetConn);
+                        return null;
+                    }
+                    if ("isClosed".equals(method.getName())) {
+                        return targetConn.isClosed();
+                    }
+                    try {
+                        return method.invoke(targetConn, args);
+                    } catch (java.lang.reflect.InvocationTargetException e) {
+                        throw e.getTargetException();
+                    }
+                }
+            }
+        );
     }
 
     /**
@@ -262,7 +291,81 @@ public class DatabaseConnection {
             addColumnIfMissing(stmt, "students", "id_front_path", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "id_back_path", "VARCHAR2(255)");
             addColumnIfMissing(stmt, "students", "profession", "VARCHAR2(100)");
+            addColumnIfMissing(stmt, "students", "phone_number", "VARCHAR2(20)");
             addColumnIfMissing(stmt, "subjects", "profession", "VARCHAR2(200)");
+
+            // Make national_id unique to prevent duplicates
+            try {
+                stmt.execute("ALTER TABLE students ADD CONSTRAINT uq_national_id UNIQUE (national_id)");
+            } catch (SQLException ignore) {
+                // Constraint may already exist or there are duplicates
+            }
+
+            // Create Regions Table
+            createSequence(stmt, "regions_seq");
+            String createRegionsTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE regions (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "name VARCHAR2(150) UNIQUE NOT NULL," +
+                    "code VARCHAR2(20))';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createRegionsTable);
+            createTrigger(stmt, "regions");
+
+            // Create Centers Table
+            createSequence(stmt, "centers_seq");
+            String createCentersTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE centers (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "name VARCHAR2(150) UNIQUE NOT NULL," +
+                    "code VARCHAR2(20)," +
+                    "region_id NUMBER," +
+                    "CONSTRAINT fk_center_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL)';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createCentersTable);
+            createTrigger(stmt, "centers");
+
+            // Create Professional Groups Table
+            createSequence(stmt, "professional_groups_seq");
+            String createProfGroupsTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE professional_groups (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "name VARCHAR2(100) UNIQUE NOT NULL)';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createProfGroupsTable);
+            createTrigger(stmt, "professional_groups");
+
+            // Create Professions Table
+            createSequence(stmt, "professions_seq");
+            String createProfessionsTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE professions (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "name VARCHAR2(150) UNIQUE NOT NULL," +
+                    "professional_group_id NUMBER," +
+                    "CONSTRAINT fk_prof_group FOREIGN KEY (professional_group_id) REFERENCES professional_groups(id) ON DELETE SET NULL)';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createProfessionsTable);
+            createTrigger(stmt, "professions");
+
+            // Create System Settings Table
+            String createSettingsTable = "BEGIN\n" +
+                    "  EXECUTE IMMEDIATE 'CREATE TABLE system_settings (" +
+                    "setting_key VARCHAR2(100) PRIMARY KEY," +
+                    "setting_value VARCHAR2(255))';\n" +
+                    "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
+                    "END;";
+            stmt.execute(createSettingsTable);
+
+            // Initialize default secret number increment setting
+            try {
+                stmt.execute("INSERT INTO system_settings (setting_key, setting_value) " +
+                        "SELECT 'secret_number_increment', '10' FROM DUAL " +
+                        "WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE setting_key = 'secret_number_increment')");
+            } catch (SQLException ignore) {}
 
             try {
                 stmt.execute("INSERT INTO users (username, password, role, full_name) " +

@@ -55,6 +55,9 @@ public class DataEntryPage extends JPanel {
     private List<Student> centerStudents = new ArrayList<>();
     private int currentIndex = -1;
     
+    // Maps display label (code or name) -> actual center name for DB queries
+    private java.util.Map<String, String> centerCodeToNameMap = new java.util.LinkedHashMap<>();
+    
     // Unsaved changes tracker
     private boolean isDirty = false;
 
@@ -390,8 +393,16 @@ public class DataEntryPage extends JPanel {
     private void loadCenters() {
         centerCombo.removeAllItems();
         centerCombo.addItem("اختر المركز...");
-        for (String c : StudentService.getDistinctCenters()) {
-            centerCombo.addItem(c);
+        centerCodeToNameMap.clear();
+
+        java.util.Map<String, String> centersMap = StudentService.getCentersWithCodes();
+        for (java.util.Map.Entry<String, String> entry : centersMap.entrySet()) {
+            String name = entry.getKey();
+            String code = entry.getValue();
+            // Display code in dropdown; if no code, show name
+            String displayLabel = code.equals(name) ? name : "كود: " + code;
+            centerCodeToNameMap.put(displayLabel, name);
+            centerCombo.addItem(displayLabel);
         }
     }
 
@@ -403,7 +414,9 @@ public class DataEntryPage extends JPanel {
             return;
         }
         
-        String center = (String) centerCombo.getSelectedItem();
+        String displayLabel = (String) centerCombo.getSelectedItem();
+        // Resolve the actual center name for DB query
+        String center = centerCodeToNameMap.getOrDefault(displayLabel, displayLabel);
         centerStudents = StudentService.searchStudents("", "", "الكل", "الكل", "الكل", center);
         
         if (centerStudents.isEmpty()) {

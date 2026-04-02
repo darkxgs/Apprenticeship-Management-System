@@ -4,11 +4,12 @@ import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 import com.pvtd.students.ui.utils.UITheme;
-import com.pvtd.students.ui.utils.WrapLayout;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.List;
 
 public class StatusesPage extends JPanel {
@@ -80,20 +81,40 @@ public class StatusesPage extends JPanel {
         return header;
     }
 
-    // ── Card Grid ──────────────────────────────────────────────────────────────
+    // ── Card Grid ────────────────────────────────────────────────────────────────────
     private JScrollPane buildGrid() {
-        // WrapLayout properly wraps cards inside JScrollPane (FlowLayout does not)
-        gridPanel = new JPanel(new WrapLayout(FlowLayout.RIGHT, 20, 20));
+        gridPanel = new JPanel();
+        gridPanel.setLayout(new GridLayout(0, 5, 16, 16));
         gridPanel.setOpaque(false);
         gridPanel.setBackground(UITheme.BG_LIGHT);
-        gridPanel.setBorder(new EmptyBorder(12, 24, 24, 24));
+        gridPanel.setBorder(new EmptyBorder(16, 24, 24, 24));
 
-        JScrollPane scroll = new JScrollPane(gridPanel,
+        // TO PREVENT VERTICAL STRETCHING: Wrap gridPanel in a panel that keeps it at the top
+        JPanel topWrapper = new JPanel(new BorderLayout());
+        topWrapper.setOpaque(false);
+        topWrapper.add(gridPanel, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(topWrapper,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UITheme.BG_LIGHT);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        scroll.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int availableWidth = scroll.getViewport().getWidth();
+                int cardWidth = 270 + 16;
+                int cols = Math.max(1, availableWidth / cardWidth);
+                if (gridPanel.getLayout() instanceof GridLayout) {
+                    ((GridLayout) gridPanel.getLayout()).setColumns(cols);
+                    gridPanel.revalidate();
+                    gridPanel.repaint();
+                }
+            }
+        });
+
         return scroll;
     }
 
@@ -107,13 +128,18 @@ public class StatusesPage extends JPanel {
             gridPanel.add(buildCard(status, colors[0], colors[1], counts.getOrDefault(status, 0)));
         }
         if (statuses.isEmpty()) {
+            gridPanel.setLayout(new BorderLayout());
             JLabel empty = new JLabel(
                 "<html><div style='text-align:center'>لا توجد حالات مُضافة بعد.<br>اضغط &laquo;+ إضافة حالة جديدة&raquo; لإنشاء أول حالة.</div></html>",
                 SwingConstants.CENTER);
-            empty.setFont(new Font("Tahoma", Font.PLAIN, 14));
+            empty.setFont(new Font("Tahoma", Font.PLAIN, 15));
             empty.setForeground(UITheme.TEXT_SECONDARY);
             empty.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-            gridPanel.add(empty);
+            gridPanel.add(empty, BorderLayout.CENTER);
+        } else {
+            if (!(gridPanel.getLayout() instanceof GridLayout)) {
+                gridPanel.setLayout(new GridLayout(0, 5, 16, 16));
+            }
         }
         gridPanel.revalidate();
         gridPanel.repaint();
@@ -141,7 +167,10 @@ public class StatusesPage extends JPanel {
     private JPanel buildCard(String statusName, Color bgColor, Color accentColor, int studentCount) {
         JPanel cardWrapper = new JPanel(new BorderLayout());
         cardWrapper.setOpaque(false);
-        cardWrapper.setPreferredSize(new Dimension(270, 115));
+        // Fixed height to prevent stretching
+        cardWrapper.setPreferredSize(new Dimension(270, 130));
+        cardWrapper.setMinimumSize(new Dimension(270, 130));
+        cardWrapper.setMaximumSize(new Dimension(270, 130));
         cardWrapper.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 0, 0, 0)));
@@ -168,11 +197,17 @@ public class StatusesPage extends JPanel {
         JPanel topRow = new JPanel(new BorderLayout());
         topRow.setOpaque(false);
 
-        JLabel nameLbl = new JLabel(
-            "<html><div dir='rtl' style='text-align:right'>" + statusName + "</div></html>",
-            SwingConstants.RIGHT);
-        nameLbl.setFont(new Font("Tahoma", Font.BOLD, 16));
+        JTextArea nameLbl = new JTextArea(statusName);
+        nameLbl.setFont(new Font("Tahoma", Font.BOLD, 14));
         nameLbl.setForeground(UITheme.TEXT_PRIMARY);
+        nameLbl.setBackground(Color.WHITE);
+        nameLbl.setOpaque(false);
+        nameLbl.setEditable(false);
+        nameLbl.setFocusable(false);
+        nameLbl.setLineWrap(true);
+        nameLbl.setWrapStyleWord(true);
+        nameLbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        nameLbl.setBorder(null);
 
         // Colored dot badge
         JPanel dotBadge = new JPanel() {

@@ -182,7 +182,7 @@ public class StudentsPage extends JPanel {
         filterCard.add(statusCombo);
         filterCard.add(labelFor("المركز:"));
         filterCard.add(centerCombo);
-        filterCard.add(labelFor("طبيعة العمل:"));
+        filterCard.add(labelFor("تخصص:"));
         filterCard.add(profCombo);
         filterCard.add(labelFor("محافظة:"));
         filterCard.add(govCombo);

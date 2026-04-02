@@ -21,31 +21,31 @@ public class DictionaryService {
      */
     public static List<String> getCombinedItems(String category) {
         List<String> items = new ArrayList<>();
-        String dictQuery = "SELECT value FROM system_dictionaries WHERE category = ? ORDER BY value";
-
-        String studentCol = getStudentColumnForCategory(category);
-        String studentsQuery = "SELECT DISTINCT " + studentCol + " FROM students WHERE " + studentCol + " IS NOT NULL";
+        String query = null;
+        
+        switch (category) {
+            case CAT_REGION:     query = "SELECT name FROM regions ORDER BY name"; break;
+            case CAT_CENTER:     query = "SELECT name FROM centers ORDER BY name"; break;
+            case CAT_PROFESSION: query = "SELECT name FROM professions ORDER BY name"; break;
+            case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups ORDER BY name"; break;
+            default: return items;
+        }
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement st1 = conn.prepareStatement(dictQuery);
-             PreparedStatement st2 = conn.prepareStatement(studentsQuery)) {
-
-            st1.setString(1, category);
-            ResultSet rs1 = st1.executeQuery();
-            while (rs1.next()) {
-                String val = rs1.getString(1).trim();
-                if (!items.contains(val)) items.add(val);
+             PreparedStatement st = conn.prepareStatement(query);
+             ResultSet rs = st.executeQuery()) {
+            
+            while (rs.next()) {
+                String val = rs.getString(1);
+                if (val != null && !val.trim().isEmpty()) {
+                    val = val.trim();
+                    if (!items.contains(val)) items.add(val);
+                }
             }
-
-            ResultSet rs2 = st2.executeQuery();
-            while (rs2.next()) {
-                String val = rs2.getString(1).trim();
-                if (!items.contains(val)) items.add(val);
-            }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        
         items.sort(String::compareTo);
         return items;
     }

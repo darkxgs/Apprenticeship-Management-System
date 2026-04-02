@@ -150,6 +150,36 @@ public class StudentService {
         return DictionaryService.getCombinedItems(DictionaryService.CAT_CENTER);
     }
 
+    /**
+     * Returns a map of center name -> center code for the DataEntry dropdown.
+     * If a center has no code in the centers table, uses the name as fallback.
+     */
+    public static java.util.Map<String, String> getCentersWithCodes() {
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
+        List<String> names = getDistinctCenters();
+        if (names.isEmpty()) return map;
+
+        String sql = "SELECT name, code FROM centers WHERE name = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String name : names) {
+                stmt.setString(1, name);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String code = rs.getString("code");
+                        map.put(name, (code != null && !code.trim().isEmpty()) ? code.trim() : name);
+                    } else {
+                        map.put(name, name); // no code yet
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fallback: just use name as key and value
+            for (String n : names) map.put(n, n);
+        }
+        return map;
+    }
+
     public static List<String> getDistinctProfessions() {
         return DictionaryService.getCombinedItems(DictionaryService.CAT_PROFESSION);
     }
@@ -184,6 +214,12 @@ public class StudentService {
         s.setIdFrontPath(rs.getString("id_front_path"));
         s.setIdBackPath(rs.getString("id_back_path"));
         s.setStatus(rs.getString("status"));
+        
+        // Use try-catch or safe check for phone_number to maintain backward compatibility if column is missing on older reads
+        try {
+            s.setPhoneNumber(rs.getString("phone_number"));
+        } catch (SQLException ignore) { }
+
         return s;
     }
 
@@ -202,38 +238,210 @@ public class StudentService {
         return map;
     }
 
-    public static String generateUniqueSecretNo() {
-        String secret = "";
-        java.util.Random rnd = new java.util.Random();
+    public static String autoGenerateSerial() {
+        String query = "SELECT MAX(CAST(serial AS NUMBER)) as max_serial FROM students WHERE REGEXP_LIKE(serial, '^[0-9]+$')";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT 1 FROM students WHERE secret_no = ?")) {
-            boolean unique = false;
-            while (!unique) {
-                int number = 10000 + rnd.nextInt(90000); // 10000 to 99999
-                secret = String.valueOf(number);
-                stmt.setString(1, secret);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (!rs.next()) {
-                        unique = true;
-                    }
-                }
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                long max = rs.getLong("max_serial");
+                if (max > 0) return String.valueOf(max + 1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            secret = String.valueOf(10000 + rnd.nextInt(90000));
         }
-        return secret;
+        return "1";
+    }
+
+    private static String getRegionCode(Connection conn, String regionName) {
+        if (regionName == null || regionName.trim().isEmpty()) return "00";
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT code FROM regions WHERE name = ?")) {
+            stmt.setString(1, regionName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String code = rs.getString("code");
+                    if (code != null && !code.isEmpty()) {
+                        return String.format("%02d", Integer.parseInt(code));
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return autoGenerateRegionCode(conn, regionName);
+    }
+
+    private static String autoGenerateRegionCode(Connection conn, String regionName) {
+        try {
+            int maxCode = 0;
+            try (PreparedStatement stmt = conn.prepareStatement("SELECT code FROM regions");
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String c = rs.getString("code");
+                    if (c != null && c.matches("\\d+")) {
+                        maxCode = Math.max(maxCode, Integer.parseInt(c));
+                    }
+                }
+            }
+            int nextCode = maxCode + 1;
+            String newCodeStr = String.format("%02d", nextCode);
+            try (PreparedStatement ins = conn.prepareStatement("INSERT INTO regions (name, code) VALUES (?, ?)")) {
+                ins.setString(1, regionName);
+                ins.setString(2, newCodeStr);
+                ins.executeUpdate();
+            }
+            return newCodeStr;
+        } catch (Exception e) {}
+        return "00";
+    }
+
+    private static String getCenterCode(Connection conn, String centerName, String regionName) {
+        if (centerName == null || centerName.trim().isEmpty()) return "000";
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT code FROM centers WHERE name = ?")) {
+            stmt.setString(1, centerName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String code = rs.getString("code");
+                    if (code != null && !code.isEmpty()) {
+                        return String.format("%03d", Integer.parseInt(code));
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return autoGenerateCenterCode(conn, centerName, regionName);
+    }
+
+    public static void syncProfessionAndGroup(Connection conn, String profession, String profGroup) {
+        if (profession == null || profession.trim().isEmpty()) return;
+        try {
+            Integer pgId = null;
+            if (profGroup != null && !profGroup.trim().isEmpty()) {
+                // Ensure profGroup exists
+                try (PreparedStatement stmt = conn.prepareStatement("MERGE INTO professional_groups pg USING (SELECT ? n FROM DUAL) src ON (pg.name = src.n) WHEN NOT MATCHED THEN INSERT (name) VALUES (src.n)")) {
+                    stmt.setString(1, profGroup);
+                    stmt.executeUpdate();
+                }
+                // Get its ID
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT id FROM professional_groups WHERE name = ?")) {
+                    stmt.setString(1, profGroup);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) pgId = rs.getInt(1);
+                    }
+                }
+            }
+
+            // Merge Profession
+            if (pgId != null) {
+                String sql = "MERGE INTO professions p USING (SELECT ? n, ? pgid FROM DUAL) src ON (p.name = src.n) WHEN NOT MATCHED THEN INSERT (name, professional_group_id) VALUES (src.n, src.pgid)";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, profession);
+                    stmt.setInt(2, pgId);
+                    stmt.executeUpdate();
+                }
+            } else {
+                String sql = "MERGE INTO professions p USING (SELECT ? n FROM DUAL) src ON (p.name = src.n) WHEN NOT MATCHED THEN INSERT (name) VALUES (src.n)";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, profession);
+                    stmt.executeUpdate();
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    private static String autoGenerateCenterCode(Connection conn, String centerName, String regionName) {
+        try {
+            int maxCode = 0;
+            try (PreparedStatement stmt = conn.prepareStatement("SELECT code FROM centers");
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String c = rs.getString("code");
+                    if (c != null && c.matches("\\d+")) {
+                        maxCode = Math.max(maxCode, Integer.parseInt(c));
+                    }
+                }
+            }
+            int nextCode = maxCode + 1;
+            String newCodeStr = String.format("%03d", nextCode);
+            
+            Integer regionId = null;
+            if (regionName != null && !regionName.isEmpty()) {
+                try (PreparedStatement st = conn.prepareStatement("SELECT id FROM regions WHERE name = ?")) {
+                    st.setString(1, regionName);
+                    try (ResultSet rs = st.executeQuery()) {
+                        if (rs.next()) regionId = rs.getInt(1);
+                    }
+                }
+            }
+
+            String sql = (regionId != null) 
+                    ? "INSERT INTO centers (name, code, region_id) VALUES (?, ?, ?)"
+                    : "INSERT INTO centers (name, code) VALUES (?, ?)";
+            try (PreparedStatement ins = conn.prepareStatement(sql)) {
+                ins.setString(1, centerName);
+                ins.setString(2, newCodeStr);
+                if (regionId != null) ins.setInt(3, regionId);
+                ins.executeUpdate();
+            }
+            return newCodeStr;
+        } catch (Exception e) {}
+        return "000";
+    }
+
+    public static int getSecretNumberIncrement() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT setting_value FROM system_settings WHERE setting_key = 'secret_number_increment'")) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Integer.parseInt(rs.getString("setting_value"));
+                }
+            }
+        } catch (Exception e) {}
+        return 10;
+    }
+
+    public static String generateSecretNo(Connection conn, String regionName, String centerName, String seatNo, int increment) {
+        String regionCode = getRegionCode(conn, regionName);
+        if (regionCode.length() > 2) regionCode = regionCode.substring(0, 2);
+        else if (regionCode.length() < 2) regionCode = String.format("%02d", Integer.parseInt(regionCode));
+
+        String centerCode = getCenterCode(conn, centerName, regionName);
+        if (centerCode.length() > 3) centerCode = centerCode.substring(0, 3);
+        else if (centerCode.length() < 3) centerCode = String.format("%03d", Integer.parseInt(centerCode));
+
+        if (seatNo == null || seatNo.trim().isEmpty()) seatNo = "000";
+        String seatPrefix = seatNo.length() >= 3 ? seatNo.substring(0, 3) : String.format("%03d", Integer.parseInt(seatNo));
+        int seatNumInt = 0;
+        try {
+            seatNumInt = Integer.parseInt(seatPrefix);
+        } catch (NumberFormatException ignored) {}
+
+        int lastDigitCombined = seatNumInt + increment;
+        return regionCode + centerCode + lastDigitCombined;
+    }
+
+    public static String generateSecretNo(String regionName, String centerName, String seatNo) {
+        int increment = getSecretNumberIncrement();
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return generateSecretNo(conn, regionName, centerName, seatNo, increment);
+        } catch (Exception e) {}
+        return "00000" + seatNo;
+    }
+
+    public static String generateSecretNo(Student s) {
+        return generateSecretNo(s.getRegion(), s.getCenterName(), s.getSeatNo());
     }
 
     public static void addStudent(Student s, String username) {
-        String query = "INSERT INTO students (serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String query = "INSERT INTO students (serial, name, registration_no, national_id, region, profession, exam_system, seat_no, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, gender, neighborhood, governorate, religion, nationality, address, other_notes, image_path, center_name, id_front_path, id_back_path, status, phone_number) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query, new String[] { "id" })) { // get generated ID
 
-            if (s.getSecretNo() == null || s.getSecretNo().trim().isEmpty()) {
-                s.setSecretNo(generateUniqueSecretNo());
+            // Handle Serial Auto Generation
+            if (s.getSerial() == null || s.getSerial().trim().isEmpty()) {
+                s.setSerial(autoGenerateSerial());
             }
+
+            // Handle Secret Number Auto Generation
+            s.setSecretNo(generateSecretNo(s));
 
             stmt.setString(1, s.getSerial());
             stmt.setString(2, s.getName());
@@ -267,6 +475,7 @@ public class StudentService {
                 tempStatus = calculateStatus(s.getProfession(), s.getGrades());
             }
             stmt.setString(26, tempStatus);
+            stmt.setString(27, s.getPhoneNumber());
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
@@ -289,12 +498,13 @@ public class StudentService {
     }
 
     public static void updateStudent(Student s, String username) {
-        String query = "UPDATE students SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=? WHERE id=?";
+        String query = "UPDATE students SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, exam_system=?, seat_no=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, status=?, phone_number=? WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
+            // Handle Secret Number Auto Generation
             if (s.getSecretNo() == null || s.getSecretNo().trim().isEmpty()) {
-                s.setSecretNo(generateUniqueSecretNo());
+                s.setSecretNo(generateSecretNo(s));
             }
 
             stmt.setString(1, s.getSerial());
@@ -323,13 +533,14 @@ public class StudentService {
             stmt.setString(24, s.getIdFrontPath());
             stmt.setString(25, s.getIdBackPath());
 
-            String tempStatus = s.getStatus();
-            if (tempStatus == null || tempStatus.trim().isEmpty() || tempStatus.equals("غير محدد")
-                    || tempStatus.equals("ناجح") || tempStatus.equals("راسب") || tempStatus.equals("دور ثاني")) {
-                tempStatus = calculateStatus(s.getProfession(), s.getGrades());
+            String currentStatus = s.getStatus();
+            if (currentStatus == null || currentStatus.trim().isEmpty() || currentStatus.equals("غير محدد")
+                    || currentStatus.equals("ناجح") || currentStatus.equals("راسب") || currentStatus.equals("دور ثاني")) {
+                currentStatus = calculateStatus(s.getProfession(), s.getGrades());
             }
-            stmt.setString(26, tempStatus);
-            stmt.setInt(27, s.getId());
+            stmt.setString(26, currentStatus);
+            stmt.setString(27, s.getPhoneNumber());
+            stmt.setInt(28, s.getId());
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {

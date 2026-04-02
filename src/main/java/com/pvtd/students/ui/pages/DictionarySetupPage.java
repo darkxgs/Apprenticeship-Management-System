@@ -4,11 +4,12 @@ import com.pvtd.students.services.DictionaryService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 import com.pvtd.students.ui.utils.UITheme;
-import com.pvtd.students.ui.utils.WrapLayout;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.List;
 
 public class DictionarySetupPage extends JPanel {
@@ -68,17 +69,40 @@ public class DictionarySetupPage extends JPanel {
     }
 
     private JScrollPane buildGrid() {
-        gridPanel = new JPanel(new WrapLayout(FlowLayout.CENTER, 20, 20));
+        // Use GridLayout with dynamic columns
+        gridPanel = new JPanel();
+        gridPanel.setLayout(new GridLayout(0, 5, 16, 16)); // 0 rows = auto, 5 cols default
         gridPanel.setOpaque(false);
         gridPanel.setBackground(UITheme.BG_LIGHT);
-        gridPanel.setBorder(new EmptyBorder(12, 24, 24, 24));
+        gridPanel.setBorder(new EmptyBorder(16, 24, 24, 24));
 
-        JScrollPane scroll = new JScrollPane(gridPanel,
+        // TO PREVENT VERTICAL STRETCHING: Wrap gridPanel in a panel that keeps it at the top
+        JPanel topWrapper = new JPanel(new BorderLayout());
+        topWrapper.setOpaque(false);
+        topWrapper.add(gridPanel, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(topWrapper,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UITheme.BG_LIGHT);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        // Recalculate columns when window is resized
+        scroll.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int availableWidth = scroll.getViewport().getWidth();
+                int cardWidth = 260 + 16; // card preferred width + gap
+                int cols = Math.max(1, availableWidth / cardWidth);
+                if (gridPanel.getLayout() instanceof GridLayout) {
+                    ((GridLayout) gridPanel.getLayout()).setColumns(cols);
+                    gridPanel.revalidate();
+                    gridPanel.repaint();
+                }
+            }
+        });
+
         return scroll;
     }
 
@@ -91,13 +115,20 @@ public class DictionarySetupPage extends JPanel {
         }
         
         if (items.isEmpty()) {
+            // Span full width for empty state
+            gridPanel.setLayout(new BorderLayout());
             JLabel empty = new JLabel(
                 "<html><div style='text-align:center'>لا توجد بيانات مُضافة بعد.<br>اضغط &laquo;+ إضافة جديد&raquo; للإنشاء.</div></html>",
                 SwingConstants.CENTER);
-            empty.setFont(new Font("Tahoma", Font.PLAIN, 14));  // Tahoma renders Arabic correctly
+            empty.setFont(new Font("Tahoma", Font.PLAIN, 15));
             empty.setForeground(UITheme.TEXT_SECONDARY);
             empty.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-            gridPanel.add(empty);
+            gridPanel.add(empty, BorderLayout.CENTER);
+        } else {
+            // Restore grid layout if it was changed
+            if (!(gridPanel.getLayout() instanceof GridLayout)) {
+                gridPanel.setLayout(new GridLayout(0, 5, 16, 16));
+            }
         }
         gridPanel.revalidate();
         gridPanel.repaint();
@@ -106,8 +137,10 @@ public class DictionarySetupPage extends JPanel {
     private JPanel buildCard(String itemName) {
         JPanel cardWrapper = new JPanel(new BorderLayout());
         cardWrapper.setOpaque(false);
-        // Fixed width, tall enough for 2 lines of Arabic text
+        // Let GridLayout control width, just set min/pref height
         cardWrapper.setPreferredSize(new Dimension(260, 130));
+        cardWrapper.setMinimumSize(new Dimension(260, 130));
+        cardWrapper.setMaximumSize(new Dimension(260, 130));
         cardWrapper.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 0, 0, 0)));
@@ -130,12 +163,19 @@ public class DictionarySetupPage extends JPanel {
         cardInner.setOpaque(false);
         cardInner.setBorder(new EmptyBorder(18, 18, 16, 18));
 
-        // Name — no width constraint, RTL dir, wraps automatically
-        JLabel nameLbl = new JLabel(
-            "<html><div dir='rtl' style='text-align:right; line-height:1.5'>" + itemName + "</div></html>",
-            SwingConstants.RIGHT);
+        // Use JTextArea for proper Arabic word-wrap (JLabel HTML breaks chars)
+        JTextArea nameLbl = new JTextArea(itemName);
         nameLbl.setFont(new Font("Tahoma", Font.BOLD, 14));
         nameLbl.setForeground(UITheme.TEXT_PRIMARY);
+        nameLbl.setBackground(Color.WHITE);
+        nameLbl.setOpaque(false);
+        nameLbl.setEditable(false);
+        nameLbl.setFocusable(false);
+        nameLbl.setLineWrap(true);
+        nameLbl.setWrapStyleWord(true);
+        nameLbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        nameLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        nameLbl.setBorder(null);
 
         cardInner.add(nameLbl, BorderLayout.CENTER);
 

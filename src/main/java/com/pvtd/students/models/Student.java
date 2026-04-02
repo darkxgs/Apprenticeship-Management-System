@@ -39,6 +39,9 @@ public class Student {
     // Status
     private String status; // حالة الطالب (ناجح/راسب/دور ثان/غائب...)
 
+    // V4 Added Fields
+    private String phoneNumber; // رقم التليفون
+
     // Constructor
     public Student(int id, String serial, String name, String registrationNo, String nationalId,
             String region, String centerName, String profession, String examSystem,
@@ -309,5 +312,13 @@ public class Student {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }
