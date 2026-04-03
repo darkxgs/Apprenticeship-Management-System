@@ -430,27 +430,33 @@ public class ExcelService {
     }
 
     private static String getCellValue(Cell cell) {
-        if (cell == null)
-            return "";
+        if (cell == null) return "";
+        String val = "";
         switch (cell.getCellType()) {
             case STRING:
-                return cell.getStringCellValue().trim();
+                val = cell.getStringCellValue();
+                break;
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell))
-                    return cell.getLocalDateTimeCellValue().toString();
-                // Return as long (no decimal point) for IDs/numbers
-                return String.valueOf((long) cell.getNumericCellValue());
+                    val = cell.getLocalDateTimeCellValue().toString();
+                else
+                    val = String.valueOf((long) cell.getNumericCellValue());
+                break;
             case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
+                val = String.valueOf(cell.getBooleanCellValue());
+                break;
             case FORMULA:
                 try {
-                    return String.valueOf((long) cell.getNumericCellValue());
+                    val = String.valueOf((long) cell.getNumericCellValue());
                 } catch (Exception e) {
-                    return cell.getStringCellValue().trim();
+                    val = cell.getStringCellValue();
                 }
+                break;
             default:
                 return "";
         }
+        // Aggressive trim for standard spaces, non-breaking spaces, and zero-width spaces
+        return val.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
     }
 
     public static void generateExcelTemplate(File targetFile) throws Exception {

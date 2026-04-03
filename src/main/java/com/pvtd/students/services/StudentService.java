@@ -88,7 +88,7 @@ public class StudentService {
         return students;
     }
 
-    public static List<Student> searchStudents(String keyword, String seatNo, String governorate, String profession,
+    public static List<Student> searchStudents(String keyword, String seatNo, String governorate, String region, String profession,
             String status, String centerName) {
         List<Student> students = new ArrayList<>();
         StringBuilder query = new StringBuilder("SELECT * FROM students WHERE 1=1 ");
@@ -105,21 +105,25 @@ public class StudentService {
             query.append("AND seat_no LIKE ? ");
             parameters.add("%" + seatNo.trim() + "%");
         }
-        if (governorate != null && !governorate.trim().isEmpty() && !governorate.equals("الكل")) {
+        if (governorate != null && !governorate.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() && !governorate.equals("الكل")) {
             query.append("AND TRIM(governorate) = ? ");
-            parameters.add(governorate.trim());
+            parameters.add(governorate.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", ""));
         }
-        if (profession != null && !profession.trim().isEmpty() && !profession.equals("الكل")) {
+        if (region != null && !region.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() && !region.equals("الكل")) {
+            query.append("AND TRIM(region) = ? ");
+            parameters.add(region.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", ""));
+        }
+        if (profession != null && !profession.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() && !profession.equals("الكل")) {
             query.append("AND TRIM(profession) = ? ");
-            parameters.add(profession.trim());
+            parameters.add(profession.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", ""));
         }
-        if (status != null && !status.trim().isEmpty() && !status.equals("الكل")) {
+        if (status != null && !status.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() && !status.equals("الكل")) {
             query.append("AND TRIM(status) = ? ");
-            parameters.add(status.trim());
+            parameters.add(status.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", ""));
         }
-        if (centerName != null && !centerName.trim().isEmpty() && !centerName.equals("الكل")) {
-            query.append("AND TRIM(center_name) = ? ");
-            parameters.add(centerName.trim());
+        if (centerName != null && !centerName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() && !centerName.equals("الكل")) {
+            query.append("AND center_name LIKE ? ");
+            parameters.add("%" + centerName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "") + "%");
         }
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -143,7 +147,7 @@ public class StudentService {
     }
 
     public static List<String> getDistinctGovernorates() {
-        return DictionaryService.getCombinedItems(DictionaryService.CAT_REGION);
+        return DictionaryService.getCombinedItems(DictionaryService.CAT_GOVERNORATE);
     }
 
     public static List<String> getDistinctCenters() {
@@ -182,16 +186,19 @@ public class StudentService {
 
     public static java.util.Map<String, String> getCentersByRegionWithCodes(String regionName) {
         java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
-        if (regionName == null || regionName.trim().isEmpty() || regionName.equals("الكل")) {
+        if (regionName == null || regionName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "").isEmpty() || regionName.equals("الكل")) {
             return getCentersWithCodes(); // Fallback to all
         }
 
+        String safeRegion = regionName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+
+        // 1. Get from proper metadata (centers joined with regions)
         String sql = "SELECT c.name, c.code FROM centers c " +
                      "JOIN regions r ON c.region_id = r.id " +
                      "WHERE TRIM(r.name) = TRIM(?) ORDER BY c.code";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, regionName);
+            stmt.setString(1, safeRegion);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString("name");
@@ -203,8 +210,38 @@ public class StudentService {
             e.printStackTrace();
         }
         
-        // If map is empty, maybe they have centers but no foreign key links? 
-        // We'll trust the DB relational mappings. If empty, the dropdown falls back gracefully.
+        // 2. Also retrieve centers implicitly mapped to this region in the students table (useful for imported Excel data)
+        String sqlFallback = "SELECT DISTINCT center_name FROM students WHERE TRIM(region) = TRIM(?) AND center_name IS NOT NULL";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sqlFallback)) {
+            stmt.setString(1, safeRegion);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String cName = rs.getString("center_name");
+                    if (cName != null) {
+                        cName = cName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+                        if (!cName.isEmpty() && !map.containsKey(cName)) {
+                        // Try to find if this implicit center has a code somehow
+                        String codeSql = "SELECT code FROM centers WHERE TRIM(name) = ?";
+                        try(PreparedStatement cStmt = conn.prepareStatement(codeSql)) {
+                            cStmt.setString(1, cName);
+                            try(ResultSet crs = cStmt.executeQuery()) {
+                                if(crs.next()) {
+                                    String code = crs.getString("code");
+                                    map.put(cName, (code != null && !code.trim().isEmpty()) ? code.trim() : cName);
+                                } else {
+                                    map.put(cName, cName); // Fallback code is name
+                                }
+                            }
+                        }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
         return map;
     }
 

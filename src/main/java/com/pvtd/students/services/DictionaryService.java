@@ -15,6 +15,7 @@ public class DictionaryService {
     public static final String CAT_REGION = "REGION";
     public static final String CAT_CENTER = "CENTER";
     public static final String CAT_PROF_GROUP = "PROF_GROUP";
+    public static final String CAT_GOVERNORATE = "GOVERNORATE";
 
     /**
      * Gets a combined list of dictionary items explicitly added + whatever is distinct in the students table.
@@ -28,6 +29,7 @@ public class DictionaryService {
             case CAT_CENTER:     query = "SELECT name FROM centers UNION SELECT center_name FROM students WHERE center_name IS NOT NULL"; break;
             case CAT_PROFESSION: query = "SELECT name FROM professions UNION SELECT profession FROM students WHERE profession IS NOT NULL"; break;
             case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups UNION SELECT professional_group FROM students WHERE professional_group IS NOT NULL"; break;
+            case CAT_GOVERNORATE: query = "SELECT governorate FROM students WHERE governorate IS NOT NULL"; break;
             default: return items;
         }
 
@@ -37,9 +39,11 @@ public class DictionaryService {
             
             while (rs.next()) {
                 String val = rs.getString(1);
-                if (val != null && !val.trim().isEmpty()) {
-                    val = val.trim();
-                    if (!items.contains(val)) items.add(val);
+                if (val != null) {
+                    val = val.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+                    if (!val.isEmpty()) {
+                        if (!items.contains(val)) items.add(val);
+                    }
                 }
             }
         } catch (SQLException e) {

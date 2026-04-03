@@ -78,55 +78,81 @@ public class Sidebar extends JPanel {
         navPanel.add(sep);
         navPanel.add(Box.createVerticalStrut(16));
 
-        // ── Nav Items ──────────────────────────────────────────────────────
+        // ── Navigation Buttons ──────────────────────────────────────────────────
         String role = frame.getLoggedInUser() != null ? frame.getLoggedInUser().getRole() : "admin";
 
         HoverButton btnDash      = menu("لوحة التحكم",                 () -> frame.showPage(new DashboardPage(frame)));
         HoverButton btnStudents  = menu("الطلاب",                      () -> frame.showPage(new StudentsPage(frame)));
+        HoverButton btnDataEntry = menu("إدخال الدرجات السريع",        () -> frame.showPage(new DataEntryPage(frame)));
+        HoverButton btnRep       = menu("التقارير",                    () -> frame.showPage(new ReportsPage()));
+
         HoverButton btnSubj      = menu("المواد الدراسية",             () -> frame.showPage(new SubjectsPage(frame)));
         HoverButton btnStat      = menu("حالات الطلاب",                () -> frame.showPage(new StatusesPage(frame)));
-        HoverButton btnRep       = menu("التقارير",                    () -> frame.showPage(new ReportsPage()));
-        HoverButton btnDataEntry = menu("إدخال الدرجات السريع",        () -> frame.showPage(new DataEntryPage(frame)));
+        HoverButton btnArchives  = menu("الأرشيف",                     () -> frame.showPage(new ArchivesPage()));
 
-        if (role.equals("data_entry")) {
-            navPanel.add(btnDataEntry);
-            navPanel.add(Box.createVerticalStrut(8));
-        } else {
-            navPanel.add(btnDash);
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(btnStudents);
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(btnSubj);
-            navPanel.add(Box.createVerticalStrut(8));
-        }
-        
-        if (role.equals("admin")) {
-            navPanel.add(btnStat);
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(menu("إعدادات النظام", () -> frame.showPage(new SystemSettingsPage(frame))));
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(menu("النسخ الاحتياطي", () -> frame.showPage(new BackupRestorePage(frame))));
-            navPanel.add(Box.createVerticalStrut(8));
-        } else if (!role.equals("data_entry")) {
-            navPanel.add(btnStat);
-            navPanel.add(Box.createVerticalStrut(8));
+        HoverButton btnUsers     = menu("المستخدمين",                  () -> frame.showPage(new UsersPage(frame)));
+        HoverButton btnImport    = menu("استيراد بيانات",              () -> frame.showPage(new ImportPage(frame)));
+        HoverButton btnLogs      = menu("سجل النشاط",                  () -> frame.showPage(new AdminLogsPage(frame)));
+        HoverButton btnBackup    = menu("النسخ الاحتياطي",             () -> frame.showPage(new BackupRestorePage(frame)));
+        HoverButton btnSettings  = menu("إعدادات النظام",              () -> frame.showPage(new SystemSettingsPage(frame)));
+
+        // 1. Operational Section
+        if (role.equals("admin") || role.equals("reporter") || !role.equals("data_entry")) {
+            navPanel.add(createSectionLabel("الإدارة التشغيلية"));
+            navPanel.add(Box.createVerticalStrut(4));
         }
         
         if (!role.equals("data_entry")) {
+            navPanel.add(btnDash);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnStudents);
+            navPanel.add(Box.createVerticalStrut(6));
+        }
+        if (role.equals("data_entry")) {
+            navPanel.add(btnDataEntry);
+            navPanel.add(Box.createVerticalStrut(6));
+        }
+        if (!role.equals("data_entry")) {
             navPanel.add(btnRep);
-            navPanel.add(Box.createVerticalStrut(8));
+            navPanel.add(Box.createVerticalStrut(16));
         }
 
-        if (role.equals("admin") || role.equals("data_entry")) {
-            navPanel.add(menu("استيراد بيانات", () -> frame.showPage(new ImportPage(frame))));
-            navPanel.add(Box.createVerticalStrut(8));
+        // 2. Academic Data Section
+        if (role.equals("admin") || !role.equals("data_entry")) {
+            navPanel.add(createSectionLabel("البيانات الأكاديمية"));
+            navPanel.add(Box.createVerticalStrut(4));
+
+            navPanel.add(btnSubj);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnStat);
+            navPanel.add(Box.createVerticalStrut(6));
+            if (role.equals("admin")) {
+                navPanel.add(btnArchives);
+                navPanel.add(Box.createVerticalStrut(6));
+                navPanel.add(btnSettings);
+                navPanel.add(Box.createVerticalStrut(6));
+            }
+            navPanel.add(Box.createVerticalStrut(10));
         }
+
+        // 3. System Section
         if (role.equals("admin")) {
-            navPanel.add(menu("المستخدمين", () -> frame.showPage(new UsersPage(frame))));
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(menu("الأرشيف", () -> frame.showPage(new ArchivesPage())));
-            navPanel.add(Box.createVerticalStrut(8));
-            navPanel.add(menu("سجل النشاط", () -> frame.showPage(new AdminLogsPage(frame))));
+            navPanel.add(createSectionLabel("النظام"));
+            navPanel.add(Box.createVerticalStrut(4));
+
+            navPanel.add(btnUsers);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnImport);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnLogs);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnBackup);
+            navPanel.add(Box.createVerticalStrut(6));
+        } else if (role.equals("data_entry")) {
+            navPanel.add(createSectionLabel("النظام"));
+            navPanel.add(Box.createVerticalStrut(4));
+            navPanel.add(btnImport);
+            navPanel.add(Box.createVerticalStrut(6));
         }
 
         add(navPanel, BorderLayout.CENTER);
@@ -200,6 +226,17 @@ public class Sidebar extends JPanel {
 
         navButtons.add(btn);
         return btn;
+    }
+    
+    private JLabel createSectionLabel(String title) {
+        JLabel lbl = new JLabel(title, SwingConstants.RIGHT);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(new Color(0x64748B)); // Muted slate color
+        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lbl.setBorder(new EmptyBorder(0, 0, 0, 16));
+        lbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        return lbl;
     }
 
     // ── Custom Button Class for Gradient & Indicator ─────────────────────

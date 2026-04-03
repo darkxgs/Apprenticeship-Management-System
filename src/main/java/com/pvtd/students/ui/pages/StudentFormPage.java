@@ -81,6 +81,8 @@ public class StudentFormPage extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
+        setupDependencyListeners();
+
         // Populate fields if edit mode
         if (isEditMode) {
             populateFields();
@@ -89,8 +91,6 @@ public class StudentFormPage extends JPanel {
                 renderDynamicSubjects((String) professionCombo.getSelectedItem());
             }
         }
-
-        setupDependencyListeners();
     }
 
     private void setupDependencyListeners() {
@@ -616,6 +616,11 @@ public class StudentFormPage extends JPanel {
         }
     }
 
+    private String cleanString(String input) {
+        if (input == null) return null;
+        return input.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+    }
+
     private void populateFields() {
         serialField.setText(student.getSerial());
         seatNoField.setText(student.getSeatNo());
@@ -624,19 +629,19 @@ public class StudentFormPage extends JPanel {
         nationalIdField.setText(student.getNationalId());
 
         if (student.getCenterName() != null) {
-            centerNameCombo.setSelectedItem(student.getCenterName());
+            centerNameCombo.setSelectedItem(cleanString(student.getCenterName()));
         }
 
         if (student.getRegion() != null) {
-            regionCombo.setSelectedItem(student.getRegion());
+            regionCombo.setSelectedItem(cleanString(student.getRegion()));
         }
         if (student.getProfession() != null) {
-            professionCombo.setSelectedItem(student.getProfession());
+            professionCombo.setSelectedItem(cleanString(student.getProfession()));
         }
         examSystemField.setText(student.getExamSystem());
         secretNoField.setText(student.getSecretNo());
         if (student.getProfessionalGroup() != null) {
-            profGroupCombo.setSelectedItem(student.getProfessionalGroup());
+            profGroupCombo.setSelectedItem(cleanString(student.getProfessionalGroup()));
         }
         coordinationNoField.setText(student.getCoordinationNo());
         otherNotesField.setText(student.getOtherNotes());
@@ -648,15 +653,15 @@ public class StudentFormPage extends JPanel {
 
         // Combos
         if (student.getDobDay() != null)
-            dayCombo.setSelectedItem(student.getDobDay());
+            dayCombo.setSelectedItem(cleanString(student.getDobDay()));
         if (student.getDobMonth() != null)
-            monthCombo.setSelectedItem(student.getDobMonth());
+            monthCombo.setSelectedItem(cleanString(student.getDobMonth()));
         if (student.getDobYear() != null)
-            yearCombo.setSelectedItem(student.getDobYear());
+            yearCombo.setSelectedItem(cleanString(student.getDobYear()));
         if (student.getGender() != null)
-            genderCombo.setSelectedItem(student.getGender());
+            genderCombo.setSelectedItem(cleanString(student.getGender()));
         if (student.getGovernorate() != null)
-            govCombo.setSelectedItem(student.getGovernorate());
+            govCombo.setSelectedItem(cleanString(student.getGovernorate()));
 
         // Status combo removed
 

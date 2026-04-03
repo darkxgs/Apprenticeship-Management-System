@@ -29,7 +29,8 @@ public class StudentsPage extends JPanel {
 
     // Filters
     private JTextField searchKeyField, searchSeatField;
-    private JComboBox<String> govCombo, profCombo, statusCombo, centerCombo;
+    private JComboBox<String> regionCombo, profCombo, statusCombo, centerCombo;
+    private java.util.Map<String, String> centerCodeToNameMap = new java.util.HashMap<>();
 
     // Live Stats
     private JLabel countLabel, passedLabel, failedLabel;
@@ -128,10 +129,10 @@ public class StudentsPage extends JPanel {
         searchSeatField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         searchSeatField.setPreferredSize(new Dimension(120, 36));
 
-        govCombo = makeCombo(); // will add items manually
-        govCombo.addItem("الكل");
-        for (String g : StudentService.getDistinctGovernorates()) {
-            govCombo.addItem(g);
+        regionCombo = makeCombo(); // will add items manually
+        regionCombo.addItem("الكل");
+        for (String r : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION)) {
+            regionCombo.addItem(r);
         }
 
         profCombo = makeCombo();
@@ -142,9 +143,29 @@ public class StudentsPage extends JPanel {
         
         centerCombo = makeCombo();
         centerCombo.addItem("الكل");
-        for (String c : StudentService.getDistinctCenters()) {
-            centerCombo.addItem(c);
-        }
+        
+        regionCombo.addActionListener(e -> {
+            centerCombo.removeAllItems();
+            centerCombo.addItem("الكل");
+            centerCodeToNameMap.clear();
+
+            String selReg = (String) regionCombo.getSelectedItem();
+            java.util.Map<String, String> centersMap;
+            if(selReg == null || selReg.equals("الكل")) {
+                centersMap = StudentService.getCentersWithCodes();
+            } else {
+                centersMap = StudentService.getCentersByRegionWithCodes(selReg);
+            }
+
+            for (java.util.Map.Entry<String, String> entry : centersMap.entrySet()) {
+                String displayLabel = entry.getValue().equals(entry.getKey()) ? entry.getKey() : "كود: " + entry.getValue();
+                centerCodeToNameMap.put(displayLabel, entry.getKey());
+                centerCombo.addItem(displayLabel);
+            }
+        });
+        
+        // Trigger initial load of centers
+        regionCombo.setSelectedIndex(0);
 
         statusCombo = makeCombo(); // will add items manually
         statusCombo.addItem("الكل");
@@ -168,7 +189,7 @@ public class StudentsPage extends JPanel {
         btnReset.addActionListener(e -> {
             searchKeyField.setText("");
             searchSeatField.setText("");
-            govCombo.setSelectedIndex(0);
+            regionCombo.setSelectedIndex(0);
             profCombo.setSelectedIndex(0);
             statusCombo.setSelectedIndex(0);
             centerCombo.setSelectedIndex(0);
@@ -185,8 +206,8 @@ public class StudentsPage extends JPanel {
         filterCard.add(centerCombo);
         filterCard.add(labelFor("تخصص:"));
         filterCard.add(profCombo);
-        filterCard.add(labelFor("محافظة:"));
-        filterCard.add(govCombo);
+        filterCard.add(labelFor("المنطقة:"));
+        filterCard.add(regionCombo);
         filterCard.add(searchSeatField);
         filterCard.add(labelFor("رقم الجلوس:"));
         filterCard.add(searchKeyField);
@@ -508,13 +529,18 @@ form.printSuccessForms(seatNumbers, nationalIds);
     }
 
     private void executeSearch() {
-        currentStudentsList = StudentService.searchStudents(
+        String displayLabel = (String) centerCombo.getSelectedItem();
+        String cName = displayLabel == null || displayLabel.equals("الكل") ? "الكل" : centerCodeToNameMap.getOrDefault(displayLabel, displayLabel);
+        
+        currentStudentsList = com.pvtd.students.services.StudentService.searchStudents(
                 searchKeyField.getText(),
                 searchSeatField.getText(),
-                (String) govCombo.getSelectedItem(),
+                "الكل", // Governorate
+                (String) regionCombo.getSelectedItem(), // Region
                 (String) profCombo.getSelectedItem(),
                 (String) statusCombo.getSelectedItem(),
-                (String) centerCombo.getSelectedItem());
+                cName
+        );
         populateTable();
     }
 

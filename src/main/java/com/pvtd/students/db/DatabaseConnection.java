@@ -373,6 +373,22 @@ public class DatabaseConnection {
                         "WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin')");
             } catch (SQLException e) {}
 
+            // Aggressive database sanitization for old Excel imports containing Non-Breaking Spaces (NBSP / CHR(160))
+            try {
+                String[] scrubQueries = {
+                        "UPDATE students SET center_name = TRIM(REPLACE(center_name, CHR(160), ' ')) WHERE center_name LIKE '%' || CHR(160) || '%'",
+                        "UPDATE students SET region = TRIM(REPLACE(region, CHR(160), ' ')) WHERE region LIKE '%' || CHR(160) || '%'",
+                        "UPDATE students SET profession = TRIM(REPLACE(profession, CHR(160), ' ')) WHERE profession LIKE '%' || CHR(160) || '%'",
+                        "UPDATE students SET governorate = TRIM(REPLACE(governorate, CHR(160), ' ')) WHERE governorate LIKE '%' || CHR(160) || '%'",
+                        "UPDATE centers SET name = TRIM(REPLACE(name, CHR(160), ' ')) WHERE name LIKE '%' || CHR(160) || '%'",
+                        "UPDATE regions SET name = TRIM(REPLACE(name, CHR(160), ' ')) WHERE name LIKE '%' || CHR(160) || '%'",
+                        "UPDATE professions SET name = TRIM(REPLACE(name, CHR(160), ' ')) WHERE name LIKE '%' || CHR(160) || '%'"
+                };
+                for (String q : scrubQueries) {
+                    stmt.execute(q);
+                }
+            } catch (SQLException ignore) {}
+
             System.out.println("Oracle Database initialized successfully.");
         } catch (SQLException e) {
             System.err.println("Failed to initialize Oracle DB schemas.");

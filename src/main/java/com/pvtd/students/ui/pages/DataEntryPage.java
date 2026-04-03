@@ -46,6 +46,7 @@ public class DataEntryPage extends JPanel {
     private JTextField appliedTotalField;
     private JTextField sumPracApplField;
     private JLabel grandTotalLabel;
+    private JLabel percentageLabel;
     
     private JPanel failedSubjectsListPanel;
     private JLabel statusPill;
@@ -253,6 +254,31 @@ public class DataEntryPage extends JPanel {
         
         middle.add(totalBox);
         middle.add(Box.createVerticalStrut(20));
+
+        // Percentage Box (Blue right, white left)
+        JPanel percPanel = new JPanel(new GridLayout(1, 2, 8, 0));
+        percPanel.setOpaque(false);
+        percPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        percPanel.setMaximumSize(new Dimension(500, 45));
+
+        RoundedPanel percRight = new RoundedPanel(10, new Color(0x3B82F6)); // Blue
+        percRight.setLayout(new BorderLayout());
+        JLabel percLbl = new JLabel("النسبة المئوية", SwingConstants.CENTER);
+        percLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        percLbl.setForeground(Color.WHITE);
+        percRight.add(percLbl, BorderLayout.CENTER);
+
+        RoundedPanel percLeft = new RoundedPanel(10, Color.WHITE);
+        percLeft.setLayout(new BorderLayout());
+        percentageLabel = new JLabel("0%", SwingConstants.CENTER);
+        percentageLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        percentageLabel.setForeground(Color.DARK_GRAY);
+        percLeft.add(percentageLabel, BorderLayout.CENTER);
+        
+        percPanel.add(percRight);
+        percPanel.add(percLeft);
+        middle.add(percPanel);
+        middle.add(Box.createVerticalStrut(10));
 
         // Rating Box (Green right, white left)
         JPanel ratingPanel = new JPanel(new GridLayout(1, 2, 8, 0));
@@ -519,7 +545,8 @@ public class DataEntryPage extends JPanel {
         
         String displayLabel = (String) centerCombo.getSelectedItem();
         String center = centerCodeToNameMap.getOrDefault(displayLabel, displayLabel);
-        centerStudents = StudentService.searchStudents("", "", "الكل", "الكل", "الكل", center);
+        String selReg = regionCombo.getSelectedIndex() > 0 ? (String) regionCombo.getSelectedItem() : "الكل";
+        centerStudents = StudentService.searchStudents("", "", "الكل", selReg, "الكل", "الكل", center);
         
         if (centerStudents.isEmpty()) {
             JOptionPane.showMessageDialog(this, "لا يوجد طلاب مسجلين في هذا المركز.", "معلومة", JOptionPane.INFORMATION_MESSAGE);
@@ -738,6 +765,13 @@ public class DataEntryPage extends JPanel {
         appliedTotalField.setText(String.valueOf(apTotal));
         sumPracApplField.setText(String.valueOf(prTotal + apTotal));
         grandTotalLabel.setText(String.valueOf(grandTotal));
+        
+        if (maxTotal > 0) {
+            double perc = (grandTotal * 100.0) / maxTotal;
+            percentageLabel.setText(String.format("%.2f%%", perc));
+        } else {
+            percentageLabel.setText("0%");
+        }
         
         ratingPill.setText(GradeCalculationService.calculateRating(grandTotal, maxTotal));
         
