@@ -111,6 +111,36 @@ public class SubjectService {
         }
     }
 
+    public static boolean updateSubject(int subjectId, String name, String type, int passMark, int maxMark, int displayOrder) {
+        String sql = "UPDATE subjects SET name=?, type=?, pass_mark=?, max_mark=?, display_order=? WHERE id=?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name);
+            ps.setString(2, type);
+            ps.setInt(3, passMark);
+            ps.setInt(4, maxMark);
+            ps.setInt(5, displayOrder);
+            ps.setInt(6, subjectId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static void autoGenerateStandardSubjects(String profession) {
+        // Generates the 6 standard template subjects with display orders 1 to 6
+        // Fixed ones:
+        addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 1);
+        addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 2);
+        // Empty slots for the user to edit later:
+        addSubject(profession, "مادة تخصص نظري 1 (اضغط هنا للتعديل)", "نظري", 50, 100, 3);
+        addSubject(profession, "مادة تخصص نظري 2 (اضغط هنا للتعديل)", "نظري", 50, 100, 4);
+        
+        addSubject(profession, "عملي", "عملي", 100, 200, 5);
+        addSubject(profession, "تطبيقي", "تطبيقي", 50, 100, 6);
+    }
+
     public static boolean deleteSubject(int id) {
         String sql = "DELETE FROM subjects WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();

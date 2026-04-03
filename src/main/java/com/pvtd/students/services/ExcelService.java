@@ -3,6 +3,10 @@ package com.pvtd.students.services;
 import com.pvtd.students.db.DatabaseConnection;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import java.io.FileOutputStream;
+import java.util.List;
+import com.pvtd.students.models.Student;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -446,6 +450,157 @@ public class ExcelService {
                 }
             default:
                 return "";
+        }
+    }
+
+    public static void generateExcelTemplate(File targetFile) throws Exception {
+        String[] headers = {
+            "مسلسل", "الاسم الرباعي", "رقم التسجيل", "الرقم القومي", "المنطقة", "اسم المركز", "المهنة", "نظام الامتحان",
+            "رقم الجلوس", "فارغ 1", "المجموعة المهنية", "رقم التنسيق", "يوم", "شهر", "سنة", "النوع",
+            "الحي / القرية", "المحافظة", "الديانة", "الجنسية", "العنوان بالتفصيل", "فارغ 2", "ملاحظات", "ملف الصورة", "رقم التليفون"
+        };
+
+        try (Workbook workbook = new XSSFWorkbook(); FileOutputStream fos = new FileOutputStream(targetFile)) {
+            Sheet sheet = workbook.createSheet("قالب إدخال الطلاب");
+            Sheet dictSheet = workbook.createSheet("DictionariesSettings");
+
+            // Write Headers
+            Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font f = workbook.createFont();
+            f.setBold(true);
+            headerStyle.setFont(f);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 256 * 15); // Adjust width
+            }
+            sheet.setColumnWidth(1, 256 * 35); // Name width
+
+            // Load Dictionary Data
+            List<String> regions = DictionaryService.getCombinedItems(DictionaryService.CAT_REGION);
+            List<String> centers = DictionaryService.getCombinedItems(DictionaryService.CAT_CENTER);
+            List<String> professions = DictionaryService.getCombinedItems(DictionaryService.CAT_PROFESSION);
+            List<String> profGroups = DictionaryService.getCombinedItems(DictionaryService.CAT_PROF_GROUP);
+
+            int maxRows = Math.max(regions.size(), Math.max(centers.size(), Math.max(professions.size(), profGroups.size())));
+            
+            // Populate hidden dictionary sheet
+            for (int i = 0; i < maxRows; i++) {
+                Row row = dictSheet.createRow(i);
+                if (i < regions.size()) row.createCell(0).setCellValue(regions.get(i));
+                if (i < centers.size()) row.createCell(1).setCellValue(centers.get(i));
+                if (i < professions.size()) row.createCell(2).setCellValue(professions.get(i));
+                if (i < profGroups.size()) row.createCell(3).setCellValue(profGroups.get(i));
+            }
+
+            workbook.setSheetHidden(1, true); // Hide dictionaries sheet from user
+
+            // Setup Data Validations (Dropdowns)
+            DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+            
+            // Col 4: Region
+            if (!regions.isEmpty()) {
+                DataValidationConstraint constr = dvHelper.createFormulaListConstraint("DictionariesSettings!$A$1:$A$" + regions.size());
+                DataValidation val = dvHelper.createValidation(constr, new CellRangeAddressList(1, 1048575, 4, 4));
+                sheet.addValidationData(val);
+            }
+            // Col 5: Center
+            if (!centers.isEmpty()) {
+                DataValidationConstraint constr = dvHelper.createFormulaListConstraint("DictionariesSettings!$B$1:$B$" + centers.size());
+                DataValidation val = dvHelper.createValidation(constr, new CellRangeAddressList(1, 1048575, 5, 5));
+                sheet.addValidationData(val);
+            }
+            // Col 6: Profession
+            if (!professions.isEmpty()) {
+                DataValidationConstraint constr = dvHelper.createFormulaListConstraint("DictionariesSettings!$C$1:$C$" + professions.size());
+                DataValidation val = dvHelper.createValidation(constr, new CellRangeAddressList(1, 1048575, 6, 6));
+                sheet.addValidationData(val);
+            }
+            // Col 10: Professional Group
+            if (!profGroups.isEmpty()) {
+                DataValidationConstraint constr = dvHelper.createFormulaListConstraint("DictionariesSettings!$D$1:$D$" + profGroups.size());
+                DataValidation val = dvHelper.createValidation(constr, new CellRangeAddressList(1, 1048575, 10, 10));
+                sheet.addValidationData(val);
+            }
+
+            workbook.write(fos);
+        }
+    }
+
+    public static void exportStudentsToExcel(List<Student> students, File targetFile) throws Exception {
+        String[] headers = {
+            "مسلسل", "الاسم الرباعي", "رقم التسجيل", "الرقم القومي", "المنطقة", "اسم المركز", "المهنة", "نظام الامتحان",
+            "رقم الجلوس", "فارغ 1", "المجموعة المهنية", "رقم التنسيق", "يوم", "شهر", "سنة", "النوع",
+            "الحي / القرية", "المحافظة", "الديانة", "الجنسية", "العنوان بالتفصيل", "فارغ 2", "ملاحظات", "ملف الصورة", "رقم التليفون"
+        };
+
+        try (Workbook workbook = new XSSFWorkbook(); FileOutputStream fos = new FileOutputStream(targetFile)) {
+            Sheet sheet = workbook.createSheet("بيانات الطلاب");
+
+            // Write Headers
+            Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font f = workbook.createFont();
+            f.setBold(true);
+            headerStyle.setFont(f);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 256 * 15);
+            }
+            sheet.setColumnWidth(1, 256 * 35); // Name width
+
+            // Write Data
+            int rIdx = 1;
+            for (Student s : students) {
+                Row row = sheet.createRow(rIdx++);
+                row.createCell(0).setCellValue(s.getSerial() == null ? "" : s.getSerial());
+                row.createCell(1).setCellValue(s.getName() == null ? "" : s.getName());
+                row.createCell(2).setCellValue(s.getRegistrationNo() == null ? "" : s.getRegistrationNo());
+                row.createCell(3).setCellValue(s.getNationalId() == null ? "" : s.getNationalId());
+                row.createCell(4).setCellValue(s.getRegion() == null ? "" : s.getRegion());
+                row.createCell(5).setCellValue(s.getCenterName() == null ? "" : s.getCenterName());
+                row.createCell(6).setCellValue(s.getProfession() == null ? "" : s.getProfession());
+                row.createCell(7).setCellValue(s.getExamSystem() == null ? "" : s.getExamSystem());
+                row.createCell(8).setCellValue(s.getSeatNo() == null ? "" : s.getSeatNo());
+                row.createCell(9).setCellValue(""); // empty 1
+                row.createCell(10).setCellValue(s.getProfessionalGroup() == null ? "" : s.getProfessionalGroup());
+                row.createCell(11).setCellValue(s.getCoordinationNo() == null ? "" : s.getCoordinationNo());
+                row.createCell(12).setCellValue(s.getDobDay() == null ? "" : s.getDobDay());
+                row.createCell(13).setCellValue(s.getDobMonth() == null ? "" : s.getDobMonth());
+                row.createCell(14).setCellValue(s.getDobYear() == null ? "" : s.getDobYear());
+                row.createCell(15).setCellValue(s.getGender() == null ? "" : s.getGender());
+                row.createCell(16).setCellValue(s.getNeighborhood() == null ? "" : s.getNeighborhood());
+                row.createCell(17).setCellValue(s.getGovernorate() == null ? "" : s.getGovernorate());
+                row.createCell(18).setCellValue(s.getReligion() == null ? "" : s.getReligion());
+                row.createCell(19).setCellValue(s.getNationality() == null ? "" : s.getNationality());
+                row.createCell(20).setCellValue(s.getAddress() == null ? "" : s.getAddress());
+                row.createCell(21).setCellValue(""); // empty 2
+                row.createCell(22).setCellValue(s.getOtherNotes() == null ? "" : s.getOtherNotes());
+                
+                // Original file parsed ref from col 23 image_path or fallback 
+                String picRef = "";
+                if(s.getImagePath() != null && !s.getImagePath().isEmpty()){
+                     String p = s.getImagePath();
+                     picRef = new File(p).getName(); 
+                } else if (s.getNationalId() != null) {
+                     picRef = s.getNationalId(); // Fallback matching ID
+                }
+                row.createCell(23).setCellValue(picRef);
+                
+                row.createCell(24).setCellValue(s.getPhoneNumber() == null ? "" : s.getPhoneNumber());
+            }
+
+            workbook.write(fos);
         }
     }
 }

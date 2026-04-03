@@ -106,19 +106,19 @@ public class StudentService {
             parameters.add("%" + seatNo.trim() + "%");
         }
         if (governorate != null && !governorate.trim().isEmpty() && !governorate.equals("الكل")) {
-            query.append("AND governorate = ? ");
+            query.append("AND TRIM(governorate) = ? ");
             parameters.add(governorate.trim());
         }
         if (profession != null && !profession.trim().isEmpty() && !profession.equals("الكل")) {
-            query.append("AND profession = ? ");
+            query.append("AND TRIM(profession) = ? ");
             parameters.add(profession.trim());
         }
         if (status != null && !status.trim().isEmpty() && !status.equals("الكل")) {
-            query.append("AND status = ? ");
+            query.append("AND TRIM(status) = ? ");
             parameters.add(status.trim());
         }
         if (centerName != null && !centerName.trim().isEmpty() && !centerName.equals("الكل")) {
-            query.append("AND center_name = ? ");
+            query.append("AND TRIM(center_name) = ? ");
             parameters.add(centerName.trim());
         }
 
@@ -177,6 +177,34 @@ public class StudentService {
             // Fallback: just use name as key and value
             for (String n : names) map.put(n, n);
         }
+        return map;
+    }
+
+    public static java.util.Map<String, String> getCentersByRegionWithCodes(String regionName) {
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
+        if (regionName == null || regionName.trim().isEmpty() || regionName.equals("الكل")) {
+            return getCentersWithCodes(); // Fallback to all
+        }
+
+        String sql = "SELECT c.name, c.code FROM centers c " +
+                     "JOIN regions r ON c.region_id = r.id " +
+                     "WHERE TRIM(r.name) = TRIM(?) ORDER BY c.code";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, regionName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String code = rs.getString("code");
+                    map.put(name, (code != null && !code.trim().isEmpty()) ? code.trim() : name);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // If map is empty, maybe they have centers but no foreign key links? 
+        // We'll trust the DB relational mappings. If empty, the dropdown falls back gracefully.
         return map;
     }
 

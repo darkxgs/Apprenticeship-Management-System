@@ -96,10 +96,34 @@ public class SystemSettingsPage extends JPanel {
         title.setForeground(UITheme.TEXT_PRIMARY);
         header.add(title, BorderLayout.EAST);
 
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setOpaque(false);
+        
+        JButton btnExportTemplate = new JButton("استخراج قالب أكسيل");
+        btnExportTemplate.setFont(UITheme.FONT_BODY);
+        btnExportTemplate.addActionListener(e -> {
+            javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+            chooser.setDialogTitle("حفظ قالب إكسيل");
+            chooser.setSelectedFile(new java.io.File("Student_Template.xlsx"));
+            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files", "xlsx"));
+            if (chooser.showSaveDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                try {
+                    com.pvtd.students.services.ExcelService.generateExcelTemplate(chooser.getSelectedFile());
+                    javax.swing.JOptionPane.showMessageDialog(this, "تم حفظ القالب بنجاح!", "نجاح", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    javax.swing.JOptionPane.showMessageDialog(this, "حدث خطأ أثناء حفظ القالب: " + ex.getMessage(), "خطأ", javax.swing.JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        leftPanel.add(btnExportTemplate);
+
         JLabel sub = new JLabel("إدارة أكواد المناطق والمراكز وإعدادات الرقم السري", SwingConstants.LEFT);
         sub.setFont(UITheme.FONT_BODY);
         sub.setForeground(UITheme.TEXT_SECONDARY);
-        header.add(sub, BorderLayout.WEST);
+        leftPanel.add(sub);
+        
+        header.add(leftPanel, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 
         // Tabs

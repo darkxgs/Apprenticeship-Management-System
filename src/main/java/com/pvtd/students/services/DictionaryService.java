@@ -24,10 +24,10 @@ public class DictionaryService {
         String query = null;
         
         switch (category) {
-            case CAT_REGION:     query = "SELECT name FROM regions ORDER BY name"; break;
-            case CAT_CENTER:     query = "SELECT name FROM centers ORDER BY name"; break;
-            case CAT_PROFESSION: query = "SELECT name FROM professions ORDER BY name"; break;
-            case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups ORDER BY name"; break;
+            case CAT_REGION:     query = "SELECT name FROM regions UNION SELECT region FROM students WHERE region IS NOT NULL"; break;
+            case CAT_CENTER:     query = "SELECT name FROM centers UNION SELECT center_name FROM students WHERE center_name IS NOT NULL"; break;
+            case CAT_PROFESSION: query = "SELECT name FROM professions UNION SELECT profession FROM students WHERE profession IS NOT NULL"; break;
+            case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups UNION SELECT professional_group FROM students WHERE professional_group IS NOT NULL"; break;
             default: return items;
         }
 

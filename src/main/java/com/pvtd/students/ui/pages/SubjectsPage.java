@@ -287,6 +287,10 @@ public class SubjectsPage extends JPanel {
             return;
         }
         currentSubjectsList = SubjectService.getSubjectsByProfession(sel);
+        if (currentSubjectsList.isEmpty()) {
+            SubjectService.autoGenerateStandardSubjects(sel);
+            currentSubjectsList = SubjectService.getSubjectsByProfession(sel);
+        }
         for (Subject sub : currentSubjectsList) {
             gridPanel.add(buildSubjectCard(sub));
         }
@@ -381,8 +385,19 @@ public class SubjectsPage extends JPanel {
                 new Color(0xDCFCE7), new Color(0x15803D)));
         footer.add(marksRow, BorderLayout.NORTH);
 
+        // Edit Button
+        JButton btnEdit = new JButton("تعديل ✎");
+        btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnEdit.setForeground(new Color(0x1E3A8A)); // Dark Blue
+        btnEdit.setBackground(new Color(0xE0F2FE)); // Light Blue
+        btnEdit.setBorderPainted(false);
+        btnEdit.setFocusPainted(false);
+        btnEdit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEdit.putClientProperty("JButton.buttonType", "roundRect");
+        btnEdit.addActionListener(e -> showEditSubjectDialog(subject, (String) professionCombo.getSelectedItem()));
+
         // Delete Button
-        JButton btnDel = new JButton("حذف المادة");
+        JButton btnDel = new JButton("حذف");
         btnDel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnDel.setForeground(UITheme.DANGER);
         btnDel.setBackground(new Color(0xFEF2F2));
@@ -399,9 +414,10 @@ public class SubjectsPage extends JPanel {
             }
         });
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         btnPanel.setOpaque(false);
         btnPanel.add(btnDel);
+        btnPanel.add(btnEdit);
         footer.add(btnPanel, BorderLayout.SOUTH);
 
         card.add(footer, BorderLayout.SOUTH);
@@ -433,6 +449,52 @@ public class SubjectsPage extends JPanel {
         chip.add(valLbl, BorderLayout.CENTER);
         chip.add(txtLbl, BorderLayout.SOUTH);
         return chip;
+    }
+
+    private void showEditSubjectDialog(Subject subject, String selProfession) {
+        JPanel p = new JPanel(new GridLayout(5, 2, 10, 10));
+        p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        
+        JTextField nameF = new JTextField(subject.getName());
+        nameF.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JComboBox<String> typeCombo = new JComboBox<>(new String[] { "نظري", "عملي", "تطبيقي" });
+        typeCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        typeCombo.setSelectedItem(subject.getType() != null ? subject.getType() : "نظري");
+
+        JTextField maxF = new JTextField(String.valueOf(subject.getMaxMark()));
+        JTextField passF = new JTextField(String.valueOf(subject.getPassMark()));
+        JTextField orderF = new JTextField(String.valueOf(subject.getDisplayOrder()));
+
+        p.add(new JLabel("اسم المادة:", SwingConstants.RIGHT));
+        p.add(nameF);
+        p.add(new JLabel("نوع المادة:", SwingConstants.RIGHT));
+        p.add(typeCombo);
+        p.add(new JLabel("الدرجة العظمى:", SwingConstants.RIGHT));
+        p.add(maxF);
+        p.add(new JLabel("درجة النجاح:", SwingConstants.RIGHT));
+        p.add(passF);
+        p.add(new JLabel("ترتيب العرض (1, 2, 3..):", SwingConstants.RIGHT));
+        p.add(orderF);
+
+        if (JOptionPane.showConfirmDialog(this, p, "تعديل مادة", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            try {
+                String name = nameF.getText().trim();
+                String type = (String) typeCombo.getSelectedItem();
+                int mx = Integer.parseInt(maxF.getText().trim());
+                int ps = Integer.parseInt(passF.getText().trim());
+                int displayOrder = subject.getDisplayOrder();
+                try { displayOrder = Integer.parseInt(orderF.getText().trim()); } catch (NumberFormatException ignored) {}
+
+                if (name.isEmpty()) { warn("اسم المادة لا يمكن أن يكون فارغاً."); return; }
+                if (ps > mx) { warn("درجة النجاح لا يمكن أن تتجاوز الدرجة العظمى."); return; }
+                
+                SubjectService.updateSubject(subject.getId(), name, type, ps, mx, displayOrder);
+                loadSubjects();
+            } catch (NumberFormatException ex) {
+                warn("يرجى إدخال أرقام صحيحة للدرجات.");
+            }
+        }
     }
 
     private void warn(String msg) {

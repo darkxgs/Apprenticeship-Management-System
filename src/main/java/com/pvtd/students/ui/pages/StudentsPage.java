@@ -56,6 +56,7 @@ public class StudentsPage extends JPanel {
             { "الديانة", 100 },
             { "الجنسية", 100 },
             { "العنوان", 200 },
+            { "التليفون", 120 },
             { "الحالة", 110 },
             { "أخرى", 140 },
     };
@@ -328,6 +329,7 @@ public class StudentsPage extends JPanel {
         JButton btnDelete = actionBtn("حذف", new Color(0xFEF2F2), UITheme.DANGER, false);
         JButton btnSelectAll = actionBtn("تحديد الكل", new Color(0xF1F5F9), UITheme.TEXT_PRIMARY, false);
         JButton btnPdf = actionBtn("شهادة نجاح", new Color(0xF0FDF4), new Color(0x15803D), false);
+        JButton btnExportExcel = actionBtn("تصدير إكسيل", new Color(0xECFDF5), new Color(0x065F46), false);
         JButton btnForm = actionBtn("استمارة طالب", new Color(0xFEF3C7), new Color(0xB45309), false);
         JButton btnIdCard = actionBtn("عرض الهوية", new Color(0xFAFAF9), UITheme.TEXT_SECONDARY, false);
 
@@ -471,6 +473,22 @@ form.printSuccessForms(seatNumbers, nationalIds);
             }
         });
 
+        btnExportExcel.addActionListener(e -> {
+            javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+            chooser.setDialogTitle("تصدير بيانات الطلاب الحالية بصيغة إكسيل");
+            chooser.setSelectedFile(new File("Students_Export.xlsx"));
+            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files", "xlsx"));
+            if (chooser.showSaveDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                try {
+                    com.pvtd.students.services.ExcelService.exportStudentsToExcel(currentStudentsList, chooser.getSelectedFile());
+                    JOptionPane.showMessageDialog(this, "تم تصدير البيانات بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التصدير: " + ex.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        bar.add(btnExportExcel);
         bar.add(btnSelectAll);
         bar.add(btnIdCard);
         bar.add(btnForm);
@@ -534,6 +552,7 @@ form.printSuccessForms(seatNumbers, nationalIds);
                     s.getReligion(),
                     s.getNationality(),
                     s.getAddress(),
+                    s.getPhoneNumber() != null ? s.getPhoneNumber() : "",
                     stat,
                     s.getOtherNotes()
             });
