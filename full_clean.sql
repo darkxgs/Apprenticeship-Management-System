@@ -1,0 +1,10 @@
+DELETE FROM student_grades;  
+DELETE FROM subjects;  
+DELETE FROM students;  
+DELETE FROM professions;  
+DELETE FROM specializations;  
+DELETE FROM professional_groups;  
+DELETE FROM centers;
+DELETE FROM regions;
+COMMIT;  
+EXIT;  

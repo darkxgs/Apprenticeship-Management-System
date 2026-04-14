@@ -1,0 +1,171 @@
+package com.pvtd.students.services;
+
+import com.pvtd.students.db.DatabaseConnection;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DictionaryService {
+
+    public static final String CAT_PROFESSION = "PROFESSION";
+    public static final String CAT_REGION = "REGION";
+    public static final String CAT_CENTER = "CENTER";
+    public static final String CAT_PROF_GROUP = "PROF_GROUP";
+    public static final String CAT_GOVERNORATE = "GOVERNORATE";
+
+    /**
+     * Gets a combined list of dictionary items explicitly added + whatever is distinct in the students table.
+     */
+    public static List<String> getCombinedItems(String category) {
+        List<String> items = new ArrayList<>();
+        String query = null;
+        
+        switch (category) {
+            case CAT_REGION:     query = "SELECT name FROM regions UNION SELECT region FROM students WHERE region IS NOT NULL"; break;
+            case CAT_CENTER:     query = "SELECT name FROM centers UNION SELECT center_name FROM students WHERE center_name IS NOT NULL"; break;
+            case CAT_PROFESSION: query = "SELECT name FROM professions UNION SELECT profession FROM students WHERE profession IS NOT NULL"; break;
+            case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups UNION SELECT professional_group FROM students WHERE professional_group IS NOT NULL"; break;
+            case CAT_GOVERNORATE: query = "SELECT governorate FROM students WHERE governorate IS NOT NULL"; break;
+            default: return items;
+        }
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement st = conn.prepareStatement(query);
+             ResultSet rs = st.executeQuery()) {
+            
+            while (rs.next()) {
+                String val = rs.getString(1);
+                if (val != null) {
+                    val = val.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+                    if (!val.isEmpty()) {
+                        if (!items.contains(val)) items.add(val);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        items.sort(String::compareTo);
+        return items;
+    }
+
+    public static void addItem(String category, String value, String username) throws SQLException {
+        if (value == null || value.trim().isEmpty()) return;
+        String query = "INSERT INTO system_dictionaries (category, value) VALUES (?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, category);
+            stmt.setString(2, value.trim());
+            stmt.executeUpdate();
+            LogService.logAction(username, "ADD_DICT_ITEM", "تم إضافة " + value + " لقائمة " + category);
+        } catch (SQLException e) {
+            if (e.getErrorCode() != 1) { // Ignore Unique Constraint error (ORA-00001)
+                throw e;
+            }
+        }
+    }
+
+    public static void deleteItem(String category, String value, String username) throws SQLException {
+        String query = "DELETE FROM system_dictionaries WHERE category = ? AND value = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, category);
+            stmt.setString(2, value);
+            stmt.executeUpdate();
+            LogService.logAction(username, "DEL_DICT_ITEM", "تم حذف " + value + " من قائمة " + category);
+        }
+    }
+
+    public static void renameItem(String category, String oldVal, String newVal, String username) throws SQLException {
+        if (newVal == null || newVal.trim().isEmpty()) return;
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Update dictionary mapping
+                String updateDict = "UPDATE system_dictionaries SET value = ? WHERE category = ? AND value = ?";
+                try (PreparedStatement stmt1 = conn.prepareStatement(updateDict)) {
+                    stmt1.setString(1, newVal.trim());
+                    stmt1.setString(2, category);
+                    stmt1.setString(3, oldVal);
+                    stmt1.executeUpdate();
+                }
+
+                // 2. Cascade rename into students table
+                String col = getStudentColumnForCategory(category);
+                String updateStudents = "UPDATE students SET " + col + " = ? WHERE " + col + " = ?";
+                try (PreparedStatement stmt2 = conn.prepareStatement(updateStudents)) {
+                    stmt2.setString(1, newVal.trim());
+                    stmt2.setString(2, oldVal);
+                    stmt2.executeUpdate();
+                }
+
+                // If updating profession, update subjects mapped to this profession
+                if (CAT_PROFESSION.equals(category)) {
+                    String updateSubjects = "UPDATE subjects SET profession = ? WHERE profession = ?";
+                    try (PreparedStatement stmt3 = conn.prepareStatement(updateSubjects)) {
+                        stmt3.setString(1, newVal.trim());
+                        stmt3.setString(2, oldVal);
+                        stmt3.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                LogService.logAction(username, "RENAME_DICT_ITEM", "تم تعديل " + oldVal + " إلى " + newVal + " في قائمة " + category);
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    public static List<String> getProfessionsByGroup(String groupName) {
+        List<String> items = new ArrayList<>();
+        if (groupName == null || groupName.isEmpty() || groupName.equals("الكل")) {
+            return getCombinedItems(CAT_PROFESSION);
+        }
+
+        String query = "SELECT p.name FROM professions p " +
+                      "JOIN professional_groups pg ON p.professional_group_id = pg.id " +
+                      "WHERE TRIM(pg.name) = TRIM(?) " +
+                      "UNION " +
+                      "SELECT DISTINCT profession FROM students " +
+                      "WHERE TRIM(professional_group) = TRIM(?) AND profession IS NOT NULL";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement st = conn.prepareStatement(query)) {
+            st.setString(1, groupName);
+            st.setString(2, groupName);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    String val = rs.getString(1);
+                    if (val != null) {
+                        val = val.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+                        if (!val.isEmpty() && !items.contains(val)) items.add(val);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        items.sort(String::compareTo);
+        return items;
+    }
+
+    private static String getStudentColumnForCategory(String category) {
+        switch (category) {
+            case CAT_PROFESSION: return "profession";
+            case CAT_REGION: return "region";
+            case CAT_CENTER: return "center_name";
+            case CAT_PROF_GROUP: return "professional_group";
+            default: return "other_notes";
+        }
+    }
+}

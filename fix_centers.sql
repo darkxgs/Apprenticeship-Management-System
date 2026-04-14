@@ -1,0 +1,2 @@
+ALTER TABLE centers MODIFY name VARCHAR2(300);  
+EXIT;  
