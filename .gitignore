@@ -33,6 +33,10 @@ error.txt
 
 # Binary and Data (Exclude unless explicitly needed)
 Apprenticeship_Manager.exe
+*.exe
+*.jar
+*.db
+*.sqlite
 
 *.xls
 *.csv
