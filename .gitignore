@@ -32,7 +32,7 @@ buildNumber.properties
 error.txt
 
 # Binary and Data (Exclude unless explicitly needed)
-
+Apprenticeship_Manager.exe
 
 *.xls
 *.csv
@@ -44,3 +44,4 @@ error.txt
 # OS files
 .DS_Store
 Thumbs.db
+students_images
