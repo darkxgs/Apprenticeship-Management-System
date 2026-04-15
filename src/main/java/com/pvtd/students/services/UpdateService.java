@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
  */
 public class UpdateService {
 
-    private static final String BRANCH_NAME = "modernization";
+    private static final String BRANCH_NAME = "updates";
 
     public static void startUpdateCheck() {
         Executors.newSingleThreadExecutor().execute(() -> {
