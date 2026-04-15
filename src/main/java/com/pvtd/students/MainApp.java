@@ -37,6 +37,9 @@ public class MainApp {
         System.out.println("Initializing Database Connections...");
         DatabaseConnection.initializeDatabase();
 
+        System.out.println("Checking for updates...");
+        com.pvtd.students.services.UpdateService.startUpdateCheck();
+
         SwingUtilities.invokeLater(() -> {
             new SplashScreenFrame(() -> {
                 SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
