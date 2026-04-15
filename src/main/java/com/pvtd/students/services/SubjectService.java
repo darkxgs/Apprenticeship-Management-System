@@ -89,11 +89,13 @@ public class SubjectService {
         return 1; // Fallback
     }
 
-    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark, int displayOrder) {
+    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark,
+            int displayOrder) {
         return addSubject(profession, name, type, passMark, maxMark, displayOrder, null, null);
     }
 
-    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark, int displayOrder, Integer parentSubjectId, String subName) {
+    public static boolean addSubject(String profession, String name, String type, int passMark, int maxMark,
+            int displayOrder, Integer parentSubjectId, String subName) {
         String sql = "INSERT INTO subjects (profession, name, type, pass_mark, max_mark, specialization_id, display_order, parent_subject_id, sub_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection()) {
 
@@ -108,9 +110,12 @@ public class SubjectService {
                 ps.setInt(5, maxMark);
                 ps.setInt(6, specId);
                 ps.setInt(7, displayOrder);
-                if (parentSubjectId != null) ps.setInt(8, parentSubjectId); else ps.setNull(8, java.sql.Types.INTEGER);
+                if (parentSubjectId != null)
+                    ps.setInt(8, parentSubjectId);
+                else
+                    ps.setNull(8, java.sql.Types.INTEGER);
                 ps.setString(9, subName);
-                
+
                 int affected = ps.executeUpdate();
                 if (affected > 0) {
                     LogService.logAction("SYSTEM", "ADD_SUBJECT", "تم إضافة مادة: " + name + " لتخصص: " + profession);
@@ -127,7 +132,8 @@ public class SubjectService {
         return updateSubject(id, name, type, passMark, maxMark, displayOrder, null, null);
     }
 
-    public static boolean updateSubject(int id, String name, String type, int passMark, int maxMark, int displayOrder, Integer parentSubjectId, String subName) {
+    public static boolean updateSubject(int id, String name, String type, int passMark, int maxMark, int displayOrder,
+            Integer parentSubjectId, String subName) {
         String sql = "UPDATE subjects SET name = ?, type = ?, pass_mark = ?, max_mark = ?, display_order = ?, parent_subject_id = ?, sub_name = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -137,7 +143,10 @@ public class SubjectService {
             ps.setInt(3, passMark);
             ps.setInt(4, maxMark);
             ps.setInt(5, displayOrder);
-            if (parentSubjectId != null) ps.setInt(6, parentSubjectId); else ps.setNull(6, java.sql.Types.INTEGER);
+            if (parentSubjectId != null)
+                ps.setInt(6, parentSubjectId);
+            else
+                ps.setNull(6, java.sql.Types.INTEGER);
             ps.setString(7, subName);
             ps.setInt(8, id);
 
@@ -158,8 +167,8 @@ public class SubjectService {
         addSubject(profession, "رسم (اضغط للتعديل)", "نظري", 50, 100, 2);
         addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 3);
         addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 4);
-        
-        addSubject(profession, "عملي", "عملي", 100, 200, 5);
+
+        addSubject(profession, "عملي", "عملي", 120, 200, 5);
         addSubject(profession, "تطبيقي", "تطبيقي", 50, 100, 6);
     }
 
@@ -170,7 +179,7 @@ public class SubjectService {
         List<Subject> list = new ArrayList<>();
         String sql = "SELECT * FROM subjects WHERE parent_subject_id = ? ORDER BY display_order ASC, id ASC";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, parentId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -194,18 +203,41 @@ public class SubjectService {
     /**
      * Enables the 30/70 split on a subject.
      * Creates two child records (30 and 70 marks) linked to the parent.
-     * @param parentId  ID of the parent subject
-     * @param profession  profession name (for INSERT)
-     * @param type  subject type
-     * @param name30  display name for the 30-mark part
-     * @param name70  display name for the 70-mark part
+     * 
+     * @param parentId   ID of the parent subject
+     * @param profession profession name (for INSERT)
+     * @param type       subject type
+     * @param name30     display name for the 30-mark part
+     * @param name70     display name for the 70-mark part
      */
     public static boolean enableComposite(int parentId, String profession, String type, String name30, String name70) {
         // First remove existing children
         disableComposite(parentId);
-        // Create the two children
-        boolean ok1 = addSubject(profession, profession, type, 15, 30, 1, parentId, name30);
-        boolean ok2 = addSubject(profession, profession, type, 35, 70, 2, parentId, name70);
+
+        // Fetch parent subject to get actual max/pass marks
+        int parentMax = 100, parentPass = 50; // defaults
+        String sql = "SELECT max_mark, pass_mark FROM subjects WHERE id = ?";
+        try (java.sql.Connection conn = DatabaseConnection.getConnection();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, parentId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    parentMax = rs.getInt("max_mark");
+                    parentPass = rs.getInt("pass_mark");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Split: 30% portion and 70% portion (proportional to parent)
+        int max30 = Math.round(parentMax * 0.30f);
+        int max70 = parentMax - max30; // so max30 + max70 == parentMax
+        int pass30 = Math.round(parentPass * 0.30f);
+        int pass70 = parentPass - pass30; // so pass30 + pass70 == parentPass
+
+        boolean ok1 = addSubject(profession, profession, type, pass30, max30, 1, parentId, name30);
+        boolean ok2 = addSubject(profession, profession, type, pass70, max70, 2, parentId, name70);
         if (ok1 && ok2) {
             LogService.logAction("SYSTEM", "ENABLE_COMPOSITE", "تم تفعيل التقسيم 30/70 للمادة رقم: " + parentId);
         }
@@ -218,7 +250,7 @@ public class SubjectService {
     public static boolean disableComposite(int parentId) {
         String sql = "DELETE FROM subjects WHERE parent_subject_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, parentId);
             int deleted = ps.executeUpdate();
             if (deleted > 0) {

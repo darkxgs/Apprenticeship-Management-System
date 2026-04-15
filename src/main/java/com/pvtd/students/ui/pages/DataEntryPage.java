@@ -58,6 +58,7 @@ public class DataEntryPage extends JPanel {
     private List<Student> centerStudents = new ArrayList<>();
     private int currentIndex = -1;
     private java.util.Map<String, String> centerCodeToNameMap = new java.util.LinkedHashMap<>();
+    private java.util.Map<String, String> regionCodeToNameMap = new java.util.LinkedHashMap<>();
     private boolean isDirty = false;
 
     // Colors matched from screenshot
@@ -503,9 +504,13 @@ public class DataEntryPage extends JPanel {
     private void loadCenters() {
         regionCombo.removeAllItems();
         regionCombo.addItem("كل المناطق");
-        List<String> regions = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION);
-        for(String r : regions) {
-            regionCombo.addItem(r);
+        regionCodeToNameMap.clear();
+        
+        java.util.Map<String, String> regionsMap = StudentService.getRegionsWithCodes();
+        for (java.util.Map.Entry<String, String> entry : regionsMap.entrySet()) {
+            String displayLabel = entry.getValue().equals(entry.getKey()) ? entry.getKey() : "كود: " + entry.getValue();
+            regionCodeToNameMap.put(displayLabel, entry.getKey());
+            regionCombo.addItem(displayLabel);
         }
         onRegionSelected(); // This will trigger loading centers
     }
@@ -522,9 +527,11 @@ public class DataEntryPage extends JPanel {
         centerCombo.addItem("اختر المركز...");
         centerCodeToNameMap.clear();
 
-        String selReg = (String) regionCombo.getSelectedItem();
+        String selDisplay = (String) regionCombo.getSelectedItem();
+        String selReg = regionCodeToNameMap.getOrDefault(selDisplay, selDisplay);
+        
         java.util.Map<String, String> centersMap;
-        if(selReg == null || selReg.equals("كل المناطق")) {
+        if(selDisplay == null || selDisplay.equals("كل المناطق")) {
             centersMap = StudentService.getCentersWithCodes();
         } else {
             centersMap = StudentService.getCentersByRegionWithCodes(selReg);
@@ -545,7 +552,9 @@ public class DataEntryPage extends JPanel {
         
         String displayLabel = (String) centerCombo.getSelectedItem();
         String center = centerCodeToNameMap.getOrDefault(displayLabel, displayLabel);
-        String selReg = regionCombo.getSelectedIndex() > 0 ? (String) regionCombo.getSelectedItem() : "الكل";
+        
+        String regDisplay = (String) regionCombo.getSelectedItem();
+        String selReg = regionCombo.getSelectedIndex() > 0 ? regionCodeToNameMap.getOrDefault(regDisplay, regDisplay) : "الكل";
         centerStudents = StudentService.searchStudents("", "", "الكل", selReg, "الكل", "الكل", center);
         
         if (centerStudents.isEmpty()) {
@@ -831,6 +840,8 @@ public class DataEntryPage extends JPanel {
         if (currentStudent == null) return;
         
         Map<Integer, Integer> grades = extractGradesFromUI();
+        Map<Integer, Integer> resolvedGrades = GradeCalculationService.resolveCompositeGrades(currentSubjects, grades);
+        
         int thTotal = GradeCalculationService.calculateTheoryTotal(currentSubjects, grades);
         int prTotal = GradeCalculationService.calculatePracticalTotal(currentSubjects, grades);
         int apTotal = GradeCalculationService.calculateAppliedTotal(currentSubjects, grades);
@@ -852,10 +863,12 @@ public class DataEntryPage extends JPanel {
         
         ratingPill.setText(GradeCalculationService.calculateRating(grandTotal, maxTotal));
         
-        // Failing subjects bullets
+        // Failing subjects bullets (Only show top-level subjects)
         failedSubjectsListPanel.removeAll();
         for (Subject sub : currentSubjects) {
-            int mark = grades.getOrDefault(sub.getId(), 0);
+            if (sub.getParentSubjectId() != null) continue; // Skip sub-parts in failure list
+            
+            int mark = resolvedGrades.getOrDefault(sub.getId(), 0);
             if (mark < sub.getPassMark()) {
                 JLabel flbl = new JLabel("• " + sub.getName(), SwingConstants.RIGHT);
                 flbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -866,9 +879,9 @@ public class DataEntryPage extends JPanel {
         }
         failedSubjectsListPanel.revalidate();
         failedSubjectsListPanel.repaint();
-        
+
         // Status calculate
-        String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
+        String status = StudentService.calculateStatus(currentStudent.getProfession(), resolvedGrades);
         statusPill.setText(status);
         if ("ناجح".equals(status)) {
             statusPill.setBackground(new Color(0xD1FAE5));
@@ -886,11 +899,13 @@ public class DataEntryPage extends JPanel {
         if (currentStudent == null) return;
         String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
         Map<Integer, Integer> grades = extractGradesFromUI();
-        boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), grades, user);
+        Map<Integer, Integer> resolvedGrades = GradeCalculationService.resolveCompositeGrades(currentSubjects, grades);
+        
+        boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), resolvedGrades, user);
         if (ok) {
-            String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
+            String status = StudentService.calculateStatus(currentStudent.getProfession(), resolvedGrades);
             StudentService.updateStudentStatusDirectly(currentStudent.getId(), status);
-            currentStudent.setGrades(grades);
+            currentStudent.setGrades(resolvedGrades);
             currentStudent.setStatus(status);
             isDirty = false;
         } else {

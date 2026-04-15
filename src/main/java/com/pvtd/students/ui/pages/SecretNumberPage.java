@@ -86,9 +86,9 @@ public class SecretNumberPage extends JPanel {
                 centersMap = StudentService.getCentersByRegionWithCodes(selReg);
             }
             for (Map.Entry<String, String> entry : centersMap.entrySet()) {
-                String displayLabel = entry.getValue().equals(entry.getKey()) ? entry.getKey() : "كود: " + entry.getValue();
-                centerCodeToNameMap.put(displayLabel, entry.getKey());
-                centerCombo.addItem(displayLabel);
+                String centerName = entry.getKey(); // Show center name directly
+                centerCodeToNameMap.put(centerName, centerName);
+                centerCombo.addItem(centerName);
             }
         });
 

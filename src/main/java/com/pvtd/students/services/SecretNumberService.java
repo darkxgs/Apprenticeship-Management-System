@@ -26,11 +26,8 @@ public class SecretNumberService {
         while (cleanSeat.length() < 3) cleanSeat = "0" + cleanSeat;
         String last3 = cleanSeat.substring(cleanSeat.length() - 3);
         
-        // عكس الأرقام
-        String reversed = new StringBuilder(last3).reverse().toString();
-
-        // تجميع الرقم: كود المنطقة + كود المركز + الرقم المعكوس
-        String combined = rCode + cCode + reversed;
+        // تجميع الرقم: كود المنطقة + كود المركز + آخر 3 أرقام (بدون عكس)
+        String combined = rCode + cCode + last3;
 
         // إضافة الفاكتور (secret_number_increment) من الإعدادات
         int factor = getSecretNumberFactor();

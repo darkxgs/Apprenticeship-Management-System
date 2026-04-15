@@ -66,35 +66,19 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
     
     
     public void loadRegions() {
-        try {
-            try (Connection con = DatabaseConnection.getConnection()) {
-                String sql = "SELECT DISTINCT region FROM students WHERE region IS NOT NULL";
-                PreparedStatement pst = con.prepareStatement(sql);
-                ResultSet rs = pst.executeQuery();
-                cmdcenter1.removeAllItems();
-                cmdcenter1.addItem("اختر...");
-                while (rs.next()) {
-                    cmdcenter1.addItem(rs.getString("region"));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        cmdcenter1.removeAllItems();
+        cmdcenter1.addItem("اختر...");
+        for (String r : com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION)) {
+            cmdcenter1.addItem(r);
         }
     }
 
     public void loadCenters(String region) {
-        try (Connection con = DatabaseConnection.getConnection()) {
-            String sql = "SELECT DISTINCT center_name FROM students WHERE region = ? AND center_name IS NOT NULL";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, region);
-            ResultSet rs = ps.executeQuery();
-            cmdcenter.removeAllItems();
-            cmdcenter.addItem("اختر...");
-            while (rs.next()) {
-                cmdcenter.addItem(rs.getString("center_name"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        cmdcenter.removeAllItems();
+        cmdcenter.addItem("اختر...");
+        java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
+        for (String c : centers.keySet()) {
+            cmdcenter.addItem(c);
         }
     }
     

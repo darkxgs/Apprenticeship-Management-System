@@ -36,19 +36,22 @@ public class QRCodeComponent extends JLabel {
         generate();
     }
 
-    // ✅ بيانات الطالب (بدون التخصص)
+    // ✅ بيانات الطالب (مضاف لها التليفون والدرجات)
     public void setStudentData(String name, String nationalId, String seatNo,
-                               String center, String group, String percentage) {
+                               String center, String group, String percentage, String phone, String gradesText) {
 
         String dataStr =
-                "📄 شهادة نجاح\n" +
+                "📄 بيانات الطالب\n" +
                 "------------------------\n" +
                 "👤 الاسم: " + name + "\n" +
                 "🆔 الرقم القومي: " + nationalId + "\n" +
                 "🎓 رقم الجلوس: " + seatNo + "\n" +
+                "📱 التليفون: " + (phone != null && !phone.trim().isEmpty() ? phone : "غير مسجل") + "\n" +
                 "🏫 المركز: " + center + "\n" +
                 "📊 النسبة: " + percentage + "%\n" +
-                "👥 المجموعة: " + group;
+                "👥 المجموعة: " + group + "\n" +
+                "------------------------\n" +
+                "📚 درجات الطالب:\n" + gradesText;
 
         setData(dataStr);
     }

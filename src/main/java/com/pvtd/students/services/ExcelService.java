@@ -53,6 +53,8 @@ public class ExcelService {
         java.util.Map<String, String> regionCodesCache = new java.util.HashMap<>();
         java.util.Map<String, String> centerCodesCache = new java.util.HashMap<>();
         java.util.Set<String> syncedProfGroups = new java.util.HashSet<>();
+        java.util.Set<String> syncedRegions = new java.util.HashSet<>();
+        java.util.Set<String> syncedCenters = new java.util.HashSet<>();
 
         try (Connection c = DatabaseConnection.getConnection();
              java.sql.Statement s = c.createStatement()) {
@@ -104,6 +106,17 @@ public class ExcelService {
                 if (!syncedProfGroups.contains(syncKey)) {
                     StudentService.syncProfessionAndGroup(conn, profession, profGroup);
                     syncedProfGroups.add(syncKey);
+                }
+                
+                // Sync region and center to their tables so they appear in SystemSettings
+                if (region != null && !region.trim().isEmpty() && !syncedRegions.contains(region.trim())) {
+                    syncRegionToTable(conn, region.trim());
+                    syncedRegions.add(region.trim());
+                }
+                String centerKey = region + "@@" + centerName;
+                if (centerName != null && !centerName.trim().isEmpty() && !syncedCenters.contains(centerKey)) {
+                    syncCenterToTable(conn, centerName.trim(), region != null ? region.trim() : null);
+                    syncedCenters.add(centerKey);
                 }
                 
                 // Secret Number Generation (Requirement: always auto-generate during import)
@@ -246,6 +259,79 @@ public class ExcelService {
             return result;
         }
         return result;
+    }
+
+    /**
+     * Syncs a region name into the regions table if it doesn't already exist.
+     */
+    private static void syncRegionToTable(Connection conn, String regionName) {
+        try {
+            // Check if already exists
+            try (PreparedStatement check = conn.prepareStatement("SELECT id FROM regions WHERE TRIM(name) = TRIM(?)")) {
+                check.setString(1, regionName);
+                try (java.sql.ResultSet rs = check.executeQuery()) {
+                    if (rs.next()) return; // Already exists
+                }
+            }
+            // Auto-generate next code
+            int maxCode = 0;
+            try (PreparedStatement ps = conn.prepareStatement("SELECT MAX(CAST(code AS NUMBER)) FROM regions WHERE REGEXP_LIKE(code, '^[0-9]+$')");
+                 java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getObject(1) != null) maxCode = rs.getInt(1);
+            }
+            String newCode = String.format("%02d", maxCode + 1);
+            try (PreparedStatement ins = conn.prepareStatement("INSERT INTO regions (name, code) VALUES (?, ?)")) {
+                ins.setString(1, regionName);
+                ins.setString(2, newCode);
+                ins.executeUpdate();
+            }
+        } catch (Exception e) { /* Ignore duplicates / errors */ }
+    }
+
+    /**
+     * Syncs a center name into the centers table if it doesn't already exist, linked to its region.
+     */
+    private static void syncCenterToTable(Connection conn, String centerName, String regionName) {
+        try {
+            // Check if already exists
+            try (PreparedStatement check = conn.prepareStatement("SELECT id FROM centers WHERE TRIM(name) = TRIM(?)")) {
+                check.setString(1, centerName);
+                try (java.sql.ResultSet rs = check.executeQuery()) {
+                    if (rs.next()) return; // Already exists
+                }
+            }
+            // Resolve region id
+            Integer regionId = null;
+            if (regionName != null && !regionName.isEmpty()) {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM regions WHERE TRIM(name) = TRIM(?)")) {
+                    ps.setString(1, regionName);
+                    try (java.sql.ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) regionId = rs.getInt(1);
+                    }
+                }
+            }
+            // Auto-generate next code
+            int maxCode = 0;
+            try (PreparedStatement ps = conn.prepareStatement("SELECT MAX(CAST(code AS NUMBER)) FROM centers WHERE REGEXP_LIKE(code, '^[0-9]+$')");
+                 java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getObject(1) != null) maxCode = rs.getInt(1);
+            }
+            String newCode = String.format("%03d", maxCode + 1);
+            if (regionId != null) {
+                try (PreparedStatement ins = conn.prepareStatement("INSERT INTO centers (name, code, region_id) VALUES (?, ?, ?)")) {
+                    ins.setString(1, centerName);
+                    ins.setString(2, newCode);
+                    ins.setInt(3, regionId);
+                    ins.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement ins = conn.prepareStatement("INSERT INTO centers (name, code) VALUES (?, ?)")) {
+                    ins.setString(1, centerName);
+                    ins.setString(2, newCode);
+                    ins.executeUpdate();
+                }
+            }
+        } catch (Exception e) { /* Ignore duplicates / errors */ }
     }
 
     private static boolean isRowEmpty(Row row) {

@@ -155,6 +155,34 @@ public class StudentService {
     }
 
     /**
+     * Returns a map of region name -> region code for the dropdowns.
+     */
+    public static java.util.Map<String, String> getRegionsWithCodes() {
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
+        List<String> names = DictionaryService.getCombinedItems(DictionaryService.CAT_REGION);
+        if (names.isEmpty()) return map;
+
+        String sql = "SELECT name, code FROM regions WHERE TRIM(name) = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String name : names) {
+                stmt.setString(1, name.trim());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String code = rs.getString("code");
+                        map.put(name, (code != null && !code.trim().isEmpty()) ? code.trim() : name);
+                    } else {
+                        map.put(name, name);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            for (String n : names) map.put(n, n);
+        }
+        return map;
+    }
+
+    /**
      * Returns a map of center name -> center code for the DataEntry dropdown.
      * If a center has no code in the centers table, uses the name as fallback.
      */
@@ -713,11 +741,6 @@ public class StudentService {
             return "غير محدد";
 
         // Check for specific negative markers first (global status override)
-        // -1 = غائب
-        // -2 = محروم
-        // -3 = مفصول
-        // -4 = معتذر
-        // -5 = مؤجل
         for (Integer mark : grades.values()) {
             if (mark != null) {
                 if (mark == -1) return "غائب";
@@ -733,21 +756,25 @@ public class StudentService {
         if (subjects.isEmpty())
             return "غير محدد";
 
+        // Resolve composite totals (sum children into parents)
+        Map<Integer, Integer> resGrades = GradeCalculationService.resolveCompositeGrades(subjects, grades);
+
         int failedTheoryPracticalCount = 0; // Only نظري + عملي (NOT التطبيقي)
         boolean failedAppliedSubject = false;
 
         for (com.pvtd.students.models.Subject sub : subjects) {
-            int obtained = grades.getOrDefault(sub.getId(), 0);
+            // Only evaluate pass/fail for top-level subjects
+            if (sub.getParentSubjectId() != null) continue;
+
+            int obtained = resGrades.getOrDefault(sub.getId(), 0);
 
             // التطبيقي is identified by its name containing "تطبيقي"
-            // Regular عملي (practical) subjects do NOT count as applied
             boolean isApplied = (sub.getName() != null && sub.getName().contains("تطبيقي"));
 
             if (obtained < sub.getPassMark()) {
                 if (isApplied) {
                     failedAppliedSubject = true;
                 } else {
-                    // This is a نظري or عملي (non-applied) subject
                     failedTheoryPracticalCount++;
                 }
             }

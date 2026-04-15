@@ -277,8 +277,10 @@ public class EltaSoeda extends javax.swing.JFrame {
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
         for (int i : selectedRows) {
-            String seatNo = String.valueOf(model1.getValueAt(i, 5)); // col 5 = رقم الجلوس
-            String prof   = String.valueOf(model1.getValueAt(i, 1)); // col 1 = المهنة
+            String seatNoCol = String.valueOf(model1.getValueAt(i, 5)); // col 5 = رقم الجلوس
+            String profCol   = String.valueOf(model1.getValueAt(i, 1)); // col 1 = المهنة
+            String seatNo = seatNoCol != null ? seatNoCol.trim() : "";
+            String prof   = profCol != null ? profCol.trim() : "";
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 

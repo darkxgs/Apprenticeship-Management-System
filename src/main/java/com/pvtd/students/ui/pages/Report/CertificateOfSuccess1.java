@@ -80,9 +80,9 @@ jLabel15.setText(arabicYear);
 
     public void loadStudentData(String seatNo) {
 
-        String sql = "SELECT s.name, s.national_id, s.center_name, "
+        String sql = "SELECT s.id, s.name, s.national_id, s.center_name, "
                 + "s.profession AS specialization, "
-                + "s.professional_group, s.region "
+                + "s.professional_group, s.region, s.phone_number "
                 + "FROM students s "
                 + "WHERE s.seat_no = ?";
 
@@ -115,6 +115,22 @@ String percentArabic = formatted
 
 // حطه في الليبل
 jLabel9.setText(percentArabic + "٪");
+
+                int stuId = rs.getInt("id");
+                String gradesText = "لا توجد درجات\n";
+                String gradesSql = "SELECT sub.name, sg.obtained_mark FROM student_grades sg JOIN subjects sub ON sg.subject_id = sub.id WHERE sg.student_id = ?";
+                try (PreparedStatement psG = con.prepareStatement(gradesSql)) {
+                    psG.setInt(1, stuId);
+                    try (ResultSet rsG = psG.executeQuery()) {
+                        StringBuilder sb = new StringBuilder();
+                        while (rsG.next()) {
+                            sb.append(" - ").append(rsG.getString("name")).append(": ").append(rsG.getString("obtained_mark") != null ? rsG.getString("obtained_mark") : "0").append("\n");
+                        }
+                        if (sb.length() > 0) {
+                            gradesText = sb.toString();
+                        }
+                    }
+                }
                 
                 lblName.setText(rs.getString("name"));
                 lblNationalId.setText(rs.getString("national_id"));
@@ -126,15 +142,15 @@ if (specializationFromDB != null) {
     lblProfession.setText(specializationFromDB);
 }                lblGroup.setText(rs.getString("professional_group"));
                 lblRegion.setText(rs.getString("region"));
-          qRCodeComponent1.setStudentData(
+          qRCodeComponent2.setStudentData(
     rs.getString("name"),
     rs.getString("national_id"),
     seatNo,
     rs.getString("center_name"),
     rs.getString("professional_group"),
-    percentArabic
-
-
+    percentArabic,
+    rs.getString("phone_number"),
+    gradesText
 );
             }
 
@@ -349,7 +365,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel4 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
         jLabel9 = new javax.swing.JLabel();
-        qRCodeComponent1 = new com.pvtd.students.ui.components.QRCodeComponent();
+        qRCodeComponent2 = new com.pvtd.students.ui.components.QRCodeComponent();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -493,8 +509,8 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel9.setText("jLabel9");
         jPanel2.add(jLabel9);
         jLabel9.setBounds(60, 320, 90, 20);
-        jPanel2.add(qRCodeComponent1);
-        qRCodeComponent1.setBounds(60, 0, 170, 180);
+        jPanel2.add(qRCodeComponent2);
+        qRCodeComponent2.setBounds(30, 10, 200, 180);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -583,6 +599,6 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
     public javax.swing.JLabel lblProfession;
     private javax.swing.JLabel lblRegion;
     private javax.swing.JLabel lblcenter;
-    private com.pvtd.students.ui.components.QRCodeComponent qRCodeComponent1;
+    private com.pvtd.students.ui.components.QRCodeComponent qRCodeComponent2;
     // End of variables declaration//GEN-END:variables
 }

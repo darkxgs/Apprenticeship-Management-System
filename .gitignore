@@ -32,10 +32,14 @@ buildNumber.properties
 error.txt
 
 # Binary and Data (Exclude unless explicitly needed)
-*.pdf
-*.xlsx
+
+
 *.xls
 *.csv
+*.accdb
+*.mdb
+*.laccdb
+الدور الاول2022_Backup.accdb
 
 # OS files
 .DS_Store

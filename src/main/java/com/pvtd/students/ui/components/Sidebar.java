@@ -149,6 +149,9 @@ public class Sidebar extends JPanel {
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnArchives);
             navPanel.add(Box.createVerticalStrut(6));
+            HoverButton btnAccessLink = menu("ربط صور الأكسس", () -> frame.showPage(new com.pvtd.students.ui.pages.AccessLinkerPage(frame)));
+            navPanel.add(btnAccessLink);
+            navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(btnUsers);
             navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(btnLogs);

@@ -83,7 +83,7 @@ public class gradReportTasoeda extends JFrame {
                     .filter(s -> s.getParentSubjectId() == null)
                     .collect(java.util.stream.Collectors.toList());
         } else {
-            // 30/70 view: replace parents with their children
+            // 30/70 view: include children AND their parent as a "Total" column
             List<Subject> result = new ArrayList<>();
             for (Subject s : allSubjects) {
                 if (s.getParentSubjectId() == null) {
@@ -92,6 +92,8 @@ public class gradReportTasoeda extends JFrame {
                             .collect(java.util.stream.Collectors.toList());
                     if (!children.isEmpty()) {
                         result.addAll(children);
+                        // Add the parent itself as the "Total" column
+                        result.add(s);
                     } else {
                         result.add(s);
                     }
@@ -158,20 +160,27 @@ public class gradReportTasoeda extends JFrame {
 
     private JPanel buildTable(List<Student> chunk) {
         int subCount = displayColumns.size();
-        // 10 base columns + subCount + 6 summary columns
-        String[] cols = new String[10 + subCount + 6];
+        // 11 base columns (including empty) + subCount + 6 summary columns
+        String[] cols = new String[11 + subCount + 6];
         int i = 0;
         cols[i++] = "م"; cols[i++] = "الاسم"; cols[i++] = "رقم التسجيل";
         cols[i++] = "كود التنسيق";
         cols[i++] = "الحرفة"; cols[i++] = "المجموعة المهنية"; cols[i++] = "الرقم القومي";
         cols[i++] = "رقم الجلوس"; 
-        cols[i++] = "الرقم السري 1"; cols[i++] = "الرقم السري 2";
+        cols[i++] = "الرقم السري 1"; 
+        cols[i++] = " "; // Empty column between secret numbers
+        cols[i++] = "الرقم السري 2";
         
         for (Subject s : displayColumns) {
             String displayName = s.getName();
-            if (s.getSubName() != null && !s.getSubName().isEmpty()) {
+            boolean isParentCol = allSubjects.stream().anyMatch(sub -> sub.getParentSubjectId() != null && sub.getParentSubjectId().equals(s.getId()));
+            
+            if (isParentCol) {
+                displayName = "مجموع " + displayName;
+            } else if (s.getSubName() != null && !s.getSubName().isEmpty()) {
                 displayName += " (" + s.getSubName() + ")";
             }
+            
             if (displayName.length() > 10) {
                 cols[i++] = "<html><center>" + displayName.replace(" ", "<br/>") + "</center></html>";
             } else {
@@ -189,13 +198,27 @@ public class gradReportTasoeda extends JFrame {
         // Header rows: Max / Pass marks
         Object[] maxRow = new Object[cols.length];
         maxRow[1] = "النهاية العظمى";
-        int totalMax = 0, theoryMaxSum = 0, practicalMax = 0, appliedMax = 0, subIdx = 10;
+        int totalMax = 0, theoryMaxSum = 0, practicalMax = 0, appliedMax = 0, subIdx = 11;
         for (Subject s : displayColumns) {
-            maxRow[subIdx++] = s.getMaxMark();
-            totalMax += s.getMaxMark();
-            if ("نظري".equals(s.getType())) theoryMaxSum += s.getMaxMark();
-            else if ("تطبيقي".equals(s.getType())) appliedMax = s.getMaxMark();
-            else practicalMax = s.getMaxMark();
+            // Check if this is a parent subject
+            List<Subject> children = allSubjects.stream()
+                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                    .collect(Collectors.toList());
+            
+            int curMax = s.getMaxMark();
+            if (!children.isEmpty()) {
+                curMax = children.stream().mapToInt(Subject::getMaxMark).sum();
+            }
+            
+            maxRow[subIdx++] = curMax;
+            
+            // Only add to total sums if it's a top-level subject (orphan or parent) to avoid double counting children
+            if (s.getParentSubjectId() == null) {
+                totalMax += curMax;
+                if ("نظري".equals(s.getType())) theoryMaxSum += curMax;
+                else if ("تطبيقي".equals(s.getType())) appliedMax = curMax;
+                else practicalMax = curMax;
+            }
         }
         maxRow[subIdx++] = theoryMaxSum; maxRow[subIdx++] = practicalMax;
         maxRow[subIdx++] = appliedMax; maxRow[subIdx++] = (practicalMax + appliedMax);
@@ -205,16 +228,32 @@ public class gradReportTasoeda extends JFrame {
         Object[] minRow = new Object[cols.length];
         minRow[1] = "النهاية الصغرى";
         int theoryPassSum = 0, practicalPass = 0, appliedPass = 0;
-        subIdx = 10;
+        subIdx = 11;
         for (Subject s : displayColumns) {
-            minRow[subIdx++] = s.getPassMark();
-            if ("نظري".equals(s.getType())) theoryPassSum += s.getPassMark();
-            else if ("تطبيقي".equals(s.getType())) appliedPass = s.getPassMark();
-            else practicalPass = s.getPassMark();
+            List<Subject> children = allSubjects.stream()
+                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                    .collect(Collectors.toList());
+            
+            int curPass = s.getPassMark();
+            if (!children.isEmpty()) {
+                curPass = children.stream().mapToInt(Subject::getPassMark).sum();
+            }
+            
+            minRow[subIdx++] = curPass;
+            
+            if (s.getParentSubjectId() == null) {
+                if ("نظري".equals(s.getType())) theoryPassSum += curPass;
+                else if ("تطبيقي".equals(s.getType())) appliedPass = curPass;
+                else practicalPass = curPass;
+            }
         }
-        minRow[subIdx++] = theoryPassSum; minRow[subIdx++] = practicalPass;
-        minRow[subIdx++] = appliedPass; minRow[subIdx++] = (practicalPass + appliedPass);
-        minRow[subIdx++] = " "; minRow[subIdx] = " ";
+        minRow[subIdx++] = theoryPassSum; 
+        minRow[subIdx++] = practicalPass;
+        minRow[subIdx++] = appliedPass; 
+        minRow[subIdx++] = (practicalPass + appliedPass);
+        int totalPass = theoryPassSum + practicalPass + appliedPass;
+        minRow[subIdx++] = totalPass > 0 ? totalPass : 150; 
+        minRow[subIdx] = " ";
         model.addRow(minRow);
 
         for (Student st : chunk) {
@@ -229,20 +268,32 @@ public class gradReportTasoeda extends JFrame {
             row[colIdx++] = st.getNationalId(); 
             row[colIdx++] = st.getSeatNo();
             row[colIdx++] = st.getSecretNo();
+            row[colIdx++] = " "; // Empty column
             row[colIdx++] = st.getSecretNo();
             
             int theorySum = 0, practicalMark = 0, appliedMark = 0;
             Map<Integer, Integer> grades = st.getGrades();
+            // Resolve composite totals on the fly to ensure parent columns are populated
+            Map<Integer, Integer> resolvedGrades = com.pvtd.students.services.GradeCalculationService.resolveCompositeGrades(allSubjects, grades);
+            
             for (Subject sub : displayColumns) {
-                int mark = grades != null ? grades.getOrDefault(sub.getId(), 0) : 0;
-                row[colIdx++] = mark > 0 ? mark : "0";
-                if ("نظري".equals(sub.getType())) theorySum += mark;
-                else if ("تطبيقي".equals(sub.getType())) appliedMark = mark;
-                else practicalMark = mark;
+                Integer mark = resolvedGrades != null ? resolvedGrades.get(sub.getId()) : null;
+                row[colIdx++] = (mark != null && mark > 0) ? mark : "";
+                int markVal = (mark != null && mark > 0) ? mark : 0;
+                
+                // Only add to total sums if it's a top-level subject (orphan or parent)
+                if (sub.getParentSubjectId() == null) {
+                    if ("نظري".equals(sub.getType())) theorySum += markVal;
+                    else if ("تطبيقي".equals(sub.getType())) appliedMark = markVal;
+                    else practicalMark = markVal;
+                }
             }
-            row[colIdx++] = theorySum; row[colIdx++] = practicalMark;
-            row[colIdx++] = appliedMark; row[colIdx++] = (practicalMark + appliedMark);
-            row[colIdx++] = (theorySum + practicalMark + appliedMark); row[colIdx] = st.getStatus();
+            row[colIdx++] = theorySum > 0 ? theorySum : "";
+            row[colIdx++] = practicalMark > 0 ? practicalMark : "";
+            row[colIdx++] = appliedMark > 0 ? appliedMark : "";
+            row[colIdx++] = (practicalMark + appliedMark) > 0 ? (practicalMark + appliedMark) : "";
+            row[colIdx++] = (theorySum + practicalMark + appliedMark) > 0 ? (theorySum + practicalMark + appliedMark) : "";
+            row[colIdx] = st.getStatus();
             model.addRow(row);
         }
 
@@ -295,6 +346,7 @@ public class gradReportTasoeda extends JFrame {
         try { table.getColumn("رقم الجلوس").setPreferredWidth(250); } catch (Exception e) {}
         try { table.getColumn("رقم التسجيل").setPreferredWidth(250); } catch (Exception e) {}
         try { table.getColumn("الرقم السري 1").setPreferredWidth(250); } catch (Exception e) {}
+        try { table.getColumnModel().getColumn(9).setPreferredWidth(100); } catch (Exception e) {} // The empty column
         try { table.getColumn("الرقم السري 2").setPreferredWidth(250); } catch (Exception e) {}
         try { table.getColumn("مجموع عملي وتطبيقي").setPreferredWidth(380); } catch (Exception e) {}
     }
