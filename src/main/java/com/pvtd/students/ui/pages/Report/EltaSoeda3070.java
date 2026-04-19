@@ -262,6 +262,14 @@ public class EltaSoeda3070 extends JFrame {
             return;
         }
 
+        // Add Month selection
+        String[] months = {"يناير", "مايو", "أغسطس", "أكتوبر"};
+        String selectedMonth = (String) JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
+                JOptionPane.QUESTION_MESSAGE, null, months, months[1]);
+        if (selectedMonth == null) return;
+        
+        String currentYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
+
         // Group selected students by profession
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         for (int i : selectedRows) {
@@ -290,10 +298,9 @@ public class EltaSoeda3070 extends JFrame {
                 String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
                 PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
 
+                java.util.List<Student> allSelectedStudents = new java.util.ArrayList<>();
                 for (Map.Entry<String, java.util.List<String>> entry : byProfession.entrySet()) {
-                    String prof = entry.getKey();
-                    java.util.List<Student> list = new java.util.ArrayList<>();
-
+                    String professionName = entry.getKey();
                     for (String seatNo : entry.getValue()) {
                         getStudentPs.setString(1, seatNo);
                         try (ResultSet rsStudent = getStudentPs.executeQuery()) {
@@ -308,7 +315,7 @@ public class EltaSoeda3070 extends JFrame {
                                 st.setNationalId(rsStudent.getString("national_id"));
                                 st.setProfessionalGroup(rsStudent.getString("professional_group"));
                                 st.setSecretNo(rsStudent.getString("secret_no"));
-                                st.setProfession(prof);
+                                st.setProfession(professionName);
 
                                 if (centerName.isEmpty() && rsStudent.getString("center_name") != null)
                                     centerName = rsStudent.getString("center_name");
@@ -324,14 +331,50 @@ public class EltaSoeda3070 extends JFrame {
                                     }
                                 }
                                 st.setGrades(grades);
-                                list.add(st);
+                                allSelectedStudents.add(st);
                             }
                         }
                     }
+                }
 
+                // Group and Sort Professions by their minimum Secret Number (Numerical)
+                java.util.Map<String, java.util.List<Student>> grouped = allSelectedStudents.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+
+                java.util.List<String> sortedProfessions = grouped.keySet().stream()
+                    .sorted((p1, p2) -> {
+                        Integer min1 = grouped.get(p1).stream()
+                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                            .filter(s -> !s.isEmpty())
+                            .map(Integer::parseInt)
+                            .min(Integer::compare).orElse(99999999);
+                        Integer min2 = grouped.get(p2).stream()
+                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                            .filter(s -> !s.isEmpty())
+                            .map(Integer::parseInt)
+                            .min(Integer::compare).orElse(99999999);
+                        return min1.compareTo(min2);
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+
+                for (String prof : sortedProfessions) {
+                    java.util.List<Student> list = grouped.get(prof);
                     if (!list.isEmpty()) {
+                        // Sort by secret number (Numerical)
+                        list.sort((s1, s2) -> {
+                            String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
+                            String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
+                            
+                            try {
+                                if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
+                                    return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
+                                }
+                            } catch (Exception ex) {}
+                            return sn1Str.compareTo(sn2Str);
+                        });
+
                         // is3070 = true → gradReportTasoeda يعرض مواد الابن (30/70)
-                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, true);
+                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, true, selectedMonth, currentYear);
                         report.appendToDocument(document);
                     }
                 }

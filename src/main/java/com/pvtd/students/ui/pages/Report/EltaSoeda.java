@@ -284,6 +284,13 @@ public class EltaSoeda extends javax.swing.JFrame {
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 
+        String[] months = {"يناير", "مايو", "أغسطس", "أكتوبر"};
+        String selectedMonth = (String) javax.swing.JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
+                javax.swing.JOptionPane.QUESTION_MESSAGE, null, months, months[1]);
+        if (selectedMonth == null) return;
+
+        String currentYear = String.valueOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR));
+
         ReportWorker worker = new ReportWorker(this, "تسويدة رصد الدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
@@ -302,14 +309,11 @@ public class EltaSoeda extends javax.swing.JFrame {
                     PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
 
                     int processed = 0;
+                    // First, collect all students and their metadata
+                    java.util.List<Student> allSelectedStudents = new java.util.ArrayList<>();
                     for (java.util.Map.Entry<String, java.util.List<String>> entry : byProfession.entrySet()) {
-                        String prof = entry.getKey();
-                        java.util.List<Student> list = new java.util.ArrayList<>();
-
+                        String professionName = entry.getKey();
                         for (String seatNo : entry.getValue()) {
-                            processed++;
-                            updateStatus(processed, totalSelected, "جاري استخراج بيانات التسويدة: " + seatNo);
-
                             getStudentPs.setString(1, seatNo);
                             try (ResultSet rsStudent = getStudentPs.executeQuery()) {
                                 if (rsStudent.next()) {
@@ -323,7 +327,7 @@ public class EltaSoeda extends javax.swing.JFrame {
                                     st.setNationalId(rsStudent.getString("national_id"));
                                     st.setProfessionalGroup(rsStudent.getString("professional_group"));
                                     st.setSecretNo(rsStudent.getString("secret_no"));
-                                    st.setProfession(prof);
+                                    st.setProfession(professionName);
                                     
                                     if (centerName.isEmpty()) centerName = rsStudent.getString("center_name");
                                     if (regionName.isEmpty()) regionName = rsStudent.getString("region");
@@ -336,26 +340,52 @@ public class EltaSoeda extends javax.swing.JFrame {
                                         }
                                     }
                                     st.setGrades(grades);
-                                    list.add(st);
+                                    allSelectedStudents.add(st);
                                 }
                             }
                         }
+                    }
 
-                        if (!list.isEmpty()) {
-                            updateStatus(processed, totalSelected, "جاري معالجة بيانات التسويدة مهنة: " + prof);
-                            list.sort((s1, s2) -> {
-                                String sn1 = s1.getSecretNo() != null ? s1.getSecretNo().trim() : "";
-                                String sn2 = s2.getSecretNo() != null ? s2.getSecretNo().trim() : "";
-                                try {
-                                    if(sn1.matches("\\d+") && sn2.matches("\\d+")) {
-                                        return Integer.compare(Integer.parseInt(sn1), Integer.parseInt(sn2));
-                                    }
-                                } catch (Exception ex) {}
-                                return sn1.compareTo(sn2);
-                            });
-                            gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, false);
-                            report.appendToDocument(document);
-                        }
+                    // Group and Sort Professions by their minimum Secret Number (Numerical)
+                    java.util.Map<String, java.util.List<Student>> grouped = allSelectedStudents.stream()
+                        .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+
+                    java.util.List<String> sortedProfessions = grouped.keySet().stream()
+                        .sorted((p1, p2) -> {
+                            Integer min1 = grouped.get(p1).stream()
+                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                .filter(s -> !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .min(Integer::compare).orElse(99999999);
+                            Integer min2 = grouped.get(p2).stream()
+                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                .filter(s -> !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .min(Integer::compare).orElse(99999999);
+                            return min1.compareTo(min2);
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+
+                    for (String prof : sortedProfessions) {
+                        java.util.List<Student> list = grouped.get(prof);
+                        processed += list.size();
+                        updateStatus(processed, totalSelected, "جاري معالجة بيانات التسويدة مهنة: " + prof);
+                        
+                        // Sort within profession by secret number (Numerical)
+                        list.sort((s1, s2) -> {
+                            String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
+                            String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
+                            
+                            try {
+                                if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
+                                    return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
+                                }
+                            } catch (Exception ex) {}
+                            return sn1Str.compareTo(sn2Str);
+                        });
+                        
+                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, false, selectedMonth, currentYear);
+                        report.appendToDocument(document);
                     }
                 }
 

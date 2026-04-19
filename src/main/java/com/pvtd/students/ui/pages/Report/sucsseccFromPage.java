@@ -30,6 +30,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     public sucsseccFromPage() {
         initComponents();
         nameLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         percentLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -805,10 +806,13 @@ private void clearLabels() {
         eed.setBounds(100, 666, 60, 70);
 
         nameLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        nameLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        nameLbl.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
         jPanel1.add(nameLbl);
         nameLbl.setBounds(280, 380, 340, 20);
 
         specLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        specLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(specLbl);
         specLbl.setBounds(523, 410, 150, 20);
 

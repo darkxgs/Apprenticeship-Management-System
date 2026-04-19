@@ -53,13 +53,17 @@ public class gradReportTasoeda extends JFrame {
     private final List<Subject> allSubjects;
     private final List<Subject> displayColumns;
     private boolean is3070;
+    private final String examMonth;
+    private final String examYear;
     private int dynamicRowHeight = 140; // auto-calculated to fill A3 page
 
-    public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070) {
+    public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070, String examMonth, String examYear) {
         this.profession = profession;
         this.center = center;
         this.region = region;
         this.students = students;
+        this.examMonth = (examMonth != null) ? examMonth : "........";
+        this.examYear  = (examYear  != null) ? examYear  : "........";
         
         this.allSubjects = com.pvtd.students.services.SubjectService.getSubjectsByProfession(profession);
         this.displayColumns = calculateDisplayColumns();
@@ -103,49 +107,101 @@ public class gradReportTasoeda extends JFrame {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(10, 30, 20, 30));
-        p.setPreferredSize(new Dimension(2800, 180));
+        p.setPreferredSize(new Dimension(2800, 320)); 
         
         Font fontBold = new Font("Arial", Font.BOLD, 26);
+        Font fontTitle = new Font("Arial", Font.BOLD, 34);
         
+        // --- RIGHT PANEL (Page Box & Special Table) ---
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
         rightPanel.setOpaque(false);
         rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        rightPanel.add(createLabel("وزارة التجارة والصناعة", fontBold));
-        rightPanel.add(createLabel("مصلحة الكفاية الانتاجية والتدريب المهني", fontBold));
-        rightPanel.add(createLabel("الادارة العامة للقياس والتقويم", fontBold));
+
+        // Page indicator box - Matches the image layout [Total / Page]
+        JPanel pageBox = new JPanel();
+        pageBox.setOpaque(false);
+        pageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+        pageBox.setLayout(new BoxLayout(pageBox, BoxLayout.Y_AXIS));
+        pageBox.setPreferredSize(new Dimension(120, 100));
+        pageBox.setMaximumSize(new Dimension(120, 100));
         
+        JLabel pTot = new JLabel("  ", SwingConstants.CENTER);
+        JLabel pLine = new JLabel("-------", SwingConstants.CENTER);
+        JLabel pCur = new JLabel("  ", SwingConstants.CENTER);
+        pTot.setFont(new Font("Arial", Font.BOLD, 30)); 
+        pLine.setFont(new Font("Arial", Font.BOLD, 15)); 
+        pCur.setFont(new Font("Arial", Font.BOLD, 30));
+        pTot.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pCur.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pageBox.add(pTot); pageBox.add(pLine); pageBox.add(pCur);
+        pageBox.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        
+        rightPanel.add(pageBox);
+        rightPanel.add(Box.createVerticalStrut(15));
+        
+        // Small 6-row table on the right
+        JPanel smallTable = new JPanel(new GridBagLayout());
+        smallTable.setOpaque(false);
+        smallTable.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        String[] labels = {"ناجحون", "راسبون", "دور ثاني", "محرومون", "غائبون", "توقيع"};
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridy = i;
+            
+            // Value cell (Empty box with border)
+            gbc.gridx = 0; gbc.weightx = 0.6;
+            JPanel valCell = new JPanel();
+            valCell.setBackground(Color.WHITE);
+            valCell.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
+            valCell.setPreferredSize(new Dimension(280, 40));
+            smallTable.add(valCell, gbc);
+            
+            // Label cell
+            gbc.gridx = 1; gbc.weightx = 0.4;
+            JLabel label = new JLabel(labels[i] + "  ", SwingConstants.RIGHT);
+            label.setFont(new Font("Arial", Font.BOLD, 24));
+            label.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
+            label.setPreferredSize(new Dimension(160, 40));
+            smallTable.add(label, gbc);
+        }
+        rightPanel.add(smallTable);
+
+        // --- CENTER PANEL (Multi-line titles) ---
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setOpaque(false);
         centerPanel.add(Box.createVerticalStrut(20));
-        JLabel t1 = new JLabel("تسويدة نتائج دبلوم التلمذة الصناعية لعام ........ / ........", SwingConstants.CENTER);
-        t1.setFont(new Font("Arial", Font.BOLD, 30));
-        t1.setAlignmentX(Component.CENTER_ALIGNMENT);
-        centerPanel.add(t1);
-        centerPanel.add(Box.createVerticalStrut(10));
-        JLabel t2 = new JLabel("مهنة : " + profession, SwingConstants.CENTER);
-        t2.setFont(new Font("Arial", Font.BOLD, 30));
-        t2.setAlignmentX(Component.CENTER_ALIGNMENT);
-        centerPanel.add(t2);
         
+        String[] centerLines = {
+            " مسودة نتائج الصف الثالث ",
+            " دبلوم التلمذة الصناعية ",
+            " دفعة قبول " + examYear + " ",
+            " دور " + examMonth + " المنعقد في " + examYear + " "
+        };
+        
+        for (String line : centerLines) {
+            JLabel lbl = new JLabel(line, SwingConstants.CENTER);
+            lbl.setFont(fontTitle);
+            lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+            centerPanel.add(lbl);
+            centerPanel.add(Box.createVerticalStrut(12));
+        }
+
+        // --- LEFT PANEL (Center Name) ---
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setOpaque(false);
         leftPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        leftPanel.add(Box.createVerticalStrut(100)); // Push down slightly
         
-        JPanel pageBox = new JPanel();
-        pageBox.setOpaque(false);
-        pageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
-        JLabel pageLabel = new JLabel("  " + pageNum + " / " + totalPages + "  ");
-        pageLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        pageBox.add(pageLabel);
-        pageBox.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        leftPanel.add(pageBox);
-        leftPanel.add(Box.createVerticalStrut(10));
-        
-        leftPanel.add(createLabel("لجنة مركز : " + ((center != null && !center.trim().isEmpty()) ? center : "........................"), fontBold));
-        leftPanel.add(createLabel("رقم الجلوس من .................... إلي ....................", fontBold));
+        JLabel centerLbl = new JLabel("لجنة مركز : " + ((center != null && !center.trim().isEmpty()) ? center : "........................"));
+        centerLbl.setFont(fontBold);
+        centerLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        leftPanel.add(centerLbl);
 
         p.add(rightPanel, BorderLayout.EAST);
         p.add(centerPanel, BorderLayout.CENTER);
@@ -182,8 +238,12 @@ public class gradReportTasoeda extends JFrame {
                 cols[i++] = (displayName != null ? displayName : "");
             }
         }
-        cols[i++] = "مجموع النظري"; cols[i++] = "درجات العملي"; cols[i++] = "درجات التطبيقي";
-        cols[i++] = "مجموع عملي وتطبيقي"; cols[i++] = "المجموع الكلي"; cols[i] = "التقدير";
+        cols[i++] = "<html><center>مجموع<br/>النظري</center></html>"; 
+        cols[i++] = "<html><center>درجات<br/>العملي</center></html>"; 
+        cols[i++] = "<html><center>درجات<br/>التطبيقي</center></html>";
+        cols[i++] = "<html><center>مجموع عملي<br/>وتطبيقي</center></html>"; 
+        cols[i++] = "<html><center>المجموع<br/>الكلي</center></html>"; 
+        cols[i] = "التقدير";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
@@ -345,22 +405,23 @@ public class gradReportTasoeda extends JFrame {
         table.getTableHeader().setFont(new Font("Arial", Font.PLAIN, 22));
         table.getTableHeader().setBackground(new Color(204, 255, 255));
         table.getTableHeader().setForeground(Color.BLACK);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 180));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 220));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(300);
         }
         table.getColumn("م").setPreferredWidth(80);
-        table.getColumn("الاسم").setPreferredWidth(850);
-        table.getColumn("الحرفة").setPreferredWidth(550);
-        table.getColumn("المجموعة المهنية").setPreferredWidth(550);
-        try { table.getColumn("الرقم القومي").setPreferredWidth(450); } catch (Exception e) {}
-        try { table.getColumn("رقم الجلوس").setPreferredWidth(250); } catch (Exception e) {}
-        try { table.getColumn("رقم التسجيل").setPreferredWidth(250); } catch (Exception e) {}
-        try { table.getColumn("الرقم السري 1").setPreferredWidth(250); } catch (Exception e) {}
+        table.getColumn("الاسم").setPreferredWidth(1000);
+        table.getColumn("الحرفة").setPreferredWidth(700);
+        table.getColumn("المجموعة المهنية").setPreferredWidth(700);
+        try { table.getColumn("الرقم القومي").setPreferredWidth(500); } catch (Exception e) {}
+        try { table.getColumn("رقم الجلوس").setPreferredWidth(350); } catch (Exception e) {}
+        try { table.getColumn("كود التنسيق").setPreferredWidth(350); } catch (Exception e) {}
+        try { table.getColumn("رقم التسجيل").setPreferredWidth(350); } catch (Exception e) {}
+        try { table.getColumn("الرقم السري 1").setPreferredWidth(300); } catch (Exception e) {}
         try { table.getColumnModel().getColumn(9).setPreferredWidth(100); } catch (Exception e) {} // The empty column
-        try { table.getColumn("الرقم السري 2").setPreferredWidth(250); } catch (Exception e) {}
+        try { table.getColumn("الرقم السري 2").setPreferredWidth(300); } catch (Exception e) {}
         try { table.getColumn("مجموع عملي وتطبيقي").setPreferredWidth(380); } catch (Exception e) {}
     }
 
@@ -457,8 +518,8 @@ public class gradReportTasoeda extends JFrame {
         int panelHeight = (int)(panelWidth / 1.4142); // ~1980px
         
         // Calculate row height to fill available space dynamically
-        int headerH = 150, footerH = 220, tableHeaderH = 120;
-        int available = panelHeight - headerH - footerH - tableHeaderH;
+        int headerH = 320, footerH = 220, tableHeaderH = 220;
+        int available = panelHeight - headerH - footerH - tableHeaderH - 50; // 50px safety margin for borders
         int totalRows = 10 + 2; // +2 for النهاية العظمى / الصغرى rows
         dynamicRowHeight = Math.max(50, available / totalRows);
         

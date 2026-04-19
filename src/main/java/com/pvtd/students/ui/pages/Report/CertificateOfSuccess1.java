@@ -510,7 +510,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jPanel2.add(jLabel9);
         jLabel9.setBounds(60, 320, 90, 20);
         jPanel2.add(qRCodeComponent2);
-        qRCodeComponent2.setBounds(30, 10, 200, 180);
+        qRCodeComponent2.setBounds(30, 10, 230, 190);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
