@@ -76,7 +76,7 @@ public class EltaSoeda extends javax.swing.JFrame {
         if (profession != null && !profession.equals("الكل")) {
             sql.append("AND TRIM(profession) = TRIM(?) ");
         }
-        sql.append("ORDER BY name ASC");
+        sql.append("ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
 
         try (Connection con = DatabaseConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql.toString())) {
@@ -94,7 +94,6 @@ public class EltaSoeda extends javax.swing.JFrame {
                     model.addRow(new Object[]{
                         rs.getString("status"),
                         rs.getString("profession"),
-                        rs.getString("professional_group"),
                         rs.getString("registration_no"),
                         rs.getString("coordination_no"),
                         rs.getString("seat_no"),
@@ -203,11 +202,11 @@ public class EltaSoeda extends javax.swing.JFrame {
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
-                "الحالة", "المهنة", "المجموعة المهنية", "رقم التسجيل", "كود التنسيق", "رقم الجلوس", "الاسم"
+                "الحالة", "المهنة", "رقم التسجيل", "كود التنسيق", "رقم الجلوس", "الاسم"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false, false
+                false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -277,7 +276,7 @@ public class EltaSoeda extends javax.swing.JFrame {
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
         for (int i : selectedRows) {
-            String seatNoCol = String.valueOf(model1.getValueAt(i, 5)); // col 5 = رقم الجلوس
+            String seatNoCol = String.valueOf(model1.getValueAt(i, 4)); // col 4 = رقم الجلوس
             String profCol   = String.valueOf(model1.getValueAt(i, 1)); // col 1 = المهنة
             String seatNo = seatNoCol != null ? seatNoCol.trim() : "";
             String prof   = profCol != null ? profCol.trim() : "";

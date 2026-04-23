@@ -97,7 +97,8 @@ public void loadStudents(String center, String region) {
         "FROM students " +
         "WHERE center_name = ? " +
         "AND region = ? " +
-        "AND status = 'دور ثاني' " ;
+        "AND status = 'دور ثاني' " +
+        "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
         PreparedStatement ps = con.prepareStatement(sql);
 
         ps.setString(1, center);

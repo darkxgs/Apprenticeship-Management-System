@@ -99,7 +99,7 @@ public class EltaSoeda3070 extends JFrame {
         // ── Table ─────────────────────────────────────────────────────
         jTable1 = new JTable(new DefaultTableModel(
             new Object[][]{},
-            new String[]{"الحالة", "الرقم السري", "رقم الجلوس", "الرقم القومي", "المجموعة المهنية", "الحرفة", "كود التنسيق", "رقم التسجيل", "الاسم"}
+            new String[]{"الحالة", "الرقم السري", "رقم الجلوس", "الرقم القومي", "الحرفة", "كود التنسيق", "رقم التسجيل", "الاسم"}
         ) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         });
@@ -218,7 +218,6 @@ public class EltaSoeda3070 extends JFrame {
                         rs.getString("secret_no"),
                         rs.getString("seat_no"),
                         rs.getString("national_id"),
-                        rs.getString("professional_group"),
                         rs.getString("profession"),
                         rs.getString("coordination_no"),
                         rs.getString("registration_no"),
@@ -273,8 +272,8 @@ public class EltaSoeda3070 extends JFrame {
         // Group selected students by profession
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         for (int i : selectedRows) {
-            String seatNo = String.valueOf(model1.getValueAt(i, 2)); // col 2 = رقم الجلوس (updated index)
-            String prof   = String.valueOf(model1.getValueAt(i, 5)); // col 5 = الحرفة (updated index)
+            String seatNo = String.valueOf(model1.getValueAt(i, 2)); // col 2 = رقم الجلوس
+            String prof   = String.valueOf(model1.getValueAt(i, 4)); // col 4 = الحرفة
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 

@@ -31,6 +31,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         initComponents();
         nameLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         
+        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         percentLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -633,6 +634,7 @@ private void clearLabels() {
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -853,19 +855,24 @@ private void clearLabels() {
         jLabel4.setBounds(460, 210, 306, 25);
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel5.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية ونظائرها لها بجمهورية مصر العربية وذلك طبقًا للقرار الوزاري");
+        jLabel5.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");
         jPanel1.add(jLabel5);
-        jLabel5.setBounds(120, 1050, 640, 20);
+        jLabel5.setBounds(10, 1030, 780, 20);
 
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel6.setText("التربية والتعليم رقم ٩٢ الصادر في ١٧ / ٦ / ١٩٨٧ ويتم تعديلها بالقرار رقم ٣٥٧ لسنة ١٩٩٦");
+        jLabel6.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة علي نظام إدارة الجودة 9001 ISO");
         jPanel1.add(jLabel6);
-        jLabel6.setBounds(120, 1070, 640, 20);
+        jLabel6.setBounds(270, 1070, 490, 20);
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         jLabel7.setText("1038530");
         jPanel1.add(jLabel7);
         jLabel7.setBounds(680, 1180, 80, 25);
+
+        jLabel8.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel8.setText(" رقم ٩٢ الصادر في ١٧ / ٦ /١٩٦٨ وتم تعديل بالقرار رقم ٥٧ لسنة ١٩٦٩");
+        jPanel1.add(jLabel8);
+        jLabel8.setBounds(350, 1050, 410, 20);
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/certificate_1.jpg"))); // NOI18N
@@ -934,6 +941,7 @@ private void clearLabels() {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel mark1Lbl;
     private javax.swing.JLabel mark2Lbl;

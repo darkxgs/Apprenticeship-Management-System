@@ -261,7 +261,8 @@ public class FailedFramePage extends javax.swing.JFrame {
                         "FROM students " +
                         "WHERE center_name = ? " +
                         "AND region = ? " +
-                        "AND status = 'راسب' ";
+                        "AND status = 'راسب' " +
+                        "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
 
                 PreparedStatement ps = con.prepareStatement(sql);
 
@@ -475,7 +476,8 @@ public class FailedFramePage extends javax.swing.JFrame {
         // The 'Failed' constructor shows a dialog, so we must call it on EDT or before
         // the worker.
         Failed report = new Failed();
-        if (report.isCancelled) return;
+        if (report.isCancelled)
+            return;
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
         DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
         model2.setRowCount(0);

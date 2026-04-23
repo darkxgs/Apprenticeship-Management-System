@@ -570,6 +570,8 @@ public class StudentsPage extends JPanel {
         tableModel.setRowCount(0);
 
         long passed = 0, failed = 0;
+        java.util.Map<String, Integer> statusCounters = new java.util.HashMap<>();
+
         for (Student s : currentStudentsList) {
             String stat = s.getStatus() != null ? s.getStatus() : "غير محدد";
             if ("ناجح".equals(stat))
@@ -577,9 +579,12 @@ public class StudentsPage extends JPanel {
             if ("راسب".equals(stat))
                 failed++;
 
+            int currentSerial = statusCounters.getOrDefault(stat, 0) + 1;
+            statusCounters.put(stat, currentSerial);
+
             tableModel.addRow(new Object[] {
                     false,
-                    s.getSerial(),
+                    currentSerial,
                     s.getName(),
                     s.getRegistrationNo(),
                     s.getNationalId(),

@@ -236,7 +236,8 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                     + "FROM students "
                     + "WHERE center_name = ? "
                     + "AND region = ? "
-                    + "AND status = 'ناجح'";
+                    + "AND status = 'ناجح' "
+                    + "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
 
             PreparedStatement ps = con.prepareStatement(sql);
 

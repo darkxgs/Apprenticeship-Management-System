@@ -186,6 +186,7 @@ String arabicYear = toArabicNumbers(String.valueOf(year));
         SELECT name, profession, registration_no, seat_no
         FROM students
         WHERE center_name = ?
+        ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC
         """;
 
         PreparedStatement pst = con.prepareStatement(sql);
@@ -245,11 +246,15 @@ public void buildPagePanel(int rowCount) {
     jLabel15.setBounds(30, 20, 100, 100);
     
     // Ministry Info (Right Top)
-    int rAlign = 850; 
-    jLabel1.setBounds(rAlign, 10, 320, 25);
-    jLabel2.setBounds(rAlign - 50, 35, 370, 25);
-    jLabel3.setBounds(rAlign - 70, 60, 390, 25);
-    jLabel4.setBounds(rAlign, 85, 320, 25);
+    int rAlign = 780; 
+    jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+    jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+    jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+    jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+    jLabel1.setBounds(rAlign, 10, 390, 25);
+    jLabel2.setBounds(rAlign, 35, 390, 25);
+    jLabel3.setBounds(rAlign, 60, 390, 25);
+    jLabel4.setBounds(rAlign, 85, 390, 25);
     
     // School Head Data (Right)
     int dataX = 850;

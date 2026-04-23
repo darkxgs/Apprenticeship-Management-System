@@ -462,17 +462,17 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         lblRegion.setBounds(110, 380, 143, 20);
 
         jLabel22.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel22.setText("وهى معادلة لشهادة دبلوم المدارس الصناعية ومناظرة لها بجمهورية مصر العربية وذلك طبقا للقرار الوزارى");
+        jLabel22.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");
         jPanel2.add(jLabel22);
-        jLabel22.setBounds(170, 430, 637, 20);
+        jLabel22.setBounds(60, 430, 820, 20);
 
         jLabel23.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel23.setText("لوزارة التربية والتعليم رقم ٩٢ الصادر فى ١٧ / ٦ / ١٩٦٨ م وتم تعديله بالقرار رقم ٥٧ لسنة ١٩٦٩ م.");
+        jLabel23.setText(" رقم ٩٢ الصادر في ١٧ / ٦ /١٩٦٨ وتم تعديل بالقرار رقم ٥٧ لسنة ١٩٦٩");
         jPanel2.add(jLabel23);
-        jLabel23.setBounds(180, 450, 590, 20);
+        jLabel23.setBounds(260, 450, 590, 20);
 
         jLabel24.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel24.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة على نظام إدارة الجودة ٩٠٠١ ISO");
+        jLabel24.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة علي نظام إدارة الجودة 9001 ISO");
         jPanel2.add(jLabel24);
         jLabel24.setBounds(240, 470, 480, 20);
 

@@ -147,13 +147,9 @@ public class DeprivedFramePage extends javax.swing.JFrame {
 
         try (Connection con = DatabaseConnection.getConnection()) {
 
-        String sql =
-        "SELECT name, profession, registration_no, seat_no, status " +
-        "FROM students " +
-        "WHERE center_name = ? " +
-                        "AND region = ? " +
-        "AND status LIKE '%محروم%' " 
-       ;
+        String sql = "SELECT name, seat_no, registration_no, profession FROM students " +
+                     "WHERE center_name = ? AND region = ? AND status LIKE '%محروم%' " +
+                     "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
 
         PreparedStatement ps = con.prepareStatement(sql);
 

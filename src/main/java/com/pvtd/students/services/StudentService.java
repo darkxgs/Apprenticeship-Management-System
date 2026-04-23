@@ -72,7 +72,7 @@ public class StudentService {
 
     public static List<Student> getAllStudents() {
         List<Student> students = new ArrayList<>();
-        String query = "SELECT * FROM students ORDER BY CASE WHEN REGEXP_LIKE(serial, '^[0-9]+$') THEN TO_NUMBER(serial) ELSE 999999 END, id ASC";
+        String query = "SELECT * FROM students ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query);
                 ResultSet rs = stmt.executeQuery()) {
@@ -126,7 +126,7 @@ public class StudentService {
             parameters.add("%" + centerName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "") + "%");
         }
 
-        query.append(" ORDER BY CASE WHEN REGEXP_LIKE(serial, '^[0-9]+$') THEN TO_NUMBER(serial) ELSE 999999 END, id ASC");
+        query.append(" ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query.toString())) {

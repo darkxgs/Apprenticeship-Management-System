@@ -660,11 +660,11 @@
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
               <Font name="Segoe UI" size="14" style="1"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="&#x648;&#x647;&#x64a; &#x645;&#x639;&#x627;&#x62f;&#x644;&#x629; &#x644;&#x634;&#x647;&#x627;&#x62f;&#x629; &#x62f;&#x628;&#x644;&#x648;&#x645; &#x627;&#x644;&#x645;&#x62f;&#x627;&#x631;&#x633; &#x627;&#x644;&#x635;&#x646;&#x627;&#x639;&#x64a;&#x629; &#x648;&#x646;&#x638;&#x627;&#x626;&#x631;&#x647;&#x627; &#x644;&#x647;&#x627; &#x628;&#x62c;&#x645;&#x647;&#x648;&#x631;&#x64a;&#x629; &#x645;&#x635;&#x631; &#x627;&#x644;&#x639;&#x631;&#x628;&#x64a;&#x629; &#x648;&#x630;&#x644;&#x643; &#x637;&#x628;&#x642;&#x64b;&#x627; &#x644;&#x644;&#x642;&#x631;&#x627;&#x631; &#x627;&#x644;&#x648;&#x632;&#x627;&#x631;&#x64a;"/>
+            <Property name="text" type="java.lang.String" value="&#x648;&#x647;&#x64a; &#x645;&#x639;&#x627;&#x62f;&#x644;&#x629; &#x644;&#x634;&#x647;&#x627;&#x62f;&#x629; &#x62f;&#x628;&#x644;&#x648;&#x645; &#x627;&#x644;&#x645;&#x62f;&#x627;&#x631;&#x633; &#x627;&#x644;&#x635;&#x646;&#x627;&#x639;&#x64a;&#x629; &#x628;&#x648;&#x632;&#x627;&#x631;&#x629; &#x627;&#x644;&#x62a;&#x631;&#x628;&#x64a;&#x629; &#x648;&#x627;&#x644;&#x62a;&#x639;&#x644;&#x64a;&#x645; &#x628;&#x62c;&#x645;&#x647;&#x648;&#x631;&#x64a;&#x629; &#x645;&#x635;&#x631; &#x627;&#x644;&#x639;&#x631;&#x628;&#x64a;&#x629; &#x648;&#x630;&#x644;&#x643; &#x637;&#x628;&#x642;&#x627; &#x644;&#x644;&#x642;&#x631;&#x627;&#x631; &#x627;&#x644;&#x648;&#x632;&#x627;&#x631;&#x64a; &#x644;&#x644;&#x62a;&#x631;&#x628;&#x64a;&#x629; &#x648;&#x627;&#x644;&#x62a;&#x639;&#x644;&#x64a;&#x645; "/>
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="120" y="1050" width="640" height="-1"/>
+              <AbsoluteConstraints x="10" y="1030" width="780" height="-1"/>
             </Constraint>
           </Constraints>
         </Component>
@@ -673,11 +673,11 @@
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
               <Font name="Segoe UI" size="14" style="1"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="&#x627;&#x644;&#x62a;&#x631;&#x628;&#x64a;&#x629; &#x648;&#x627;&#x644;&#x62a;&#x639;&#x644;&#x64a;&#x645; &#x631;&#x642;&#x645; &#x669;&#x662; &#x627;&#x644;&#x635;&#x627;&#x62f;&#x631; &#x641;&#x64a; &#x661;&#x667; / &#x666; / &#x661;&#x669;&#x668;&#x667; &#x648;&#x64a;&#x62a;&#x645; &#x62a;&#x639;&#x62f;&#x64a;&#x644;&#x647;&#x627; &#x628;&#x627;&#x644;&#x642;&#x631;&#x627;&#x631; &#x631;&#x642;&#x645; &#x663;&#x665;&#x667; &#x644;&#x633;&#x646;&#x629; &#x661;&#x669;&#x669;&#x666;"/>
+            <Property name="text" type="java.lang.String" value="&#x645;&#x635;&#x644;&#x62d;&#x629; &#x627;&#x644;&#x643;&#x641;&#x627;&#x64a;&#x629; &#x627;&#x644;&#x625;&#x646;&#x62a;&#x627;&#x62c;&#x64a;&#x629; &#x648;&#x627;&#x644;&#x62a;&#x62f;&#x631;&#x64a;&#x628; &#x627;&#x644;&#x645;&#x647;&#x646;&#x64a; &#x62d;&#x627;&#x635;&#x644;&#x629; &#x639;&#x644;&#x64a; &#x646;&#x638;&#x627;&#x645; &#x625;&#x62f;&#x627;&#x631;&#x629; &#x627;&#x644;&#x62c;&#x648;&#x62f;&#x629; 9001 ISO"/>
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="120" y="1070" width="640" height="20"/>
+              <AbsoluteConstraints x="270" y="1070" width="490" height="20"/>
             </Constraint>
           </Constraints>
         </Component>
@@ -691,6 +691,19 @@
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
               <AbsoluteConstraints x="680" y="1180" width="80" height="-1"/>
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="jLabel8">
+          <Properties>
+            <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
+              <Font name="Segoe UI" size="14" style="1"/>
+            </Property>
+            <Property name="text" type="java.lang.String" value=" &#x631;&#x642;&#x645; &#x669;&#x662; &#x627;&#x644;&#x635;&#x627;&#x62f;&#x631; &#x641;&#x64a; &#x661;&#x667; / &#x666; /&#x661;&#x669;&#x666;&#x668; &#x648;&#x62a;&#x645; &#x62a;&#x639;&#x62f;&#x64a;&#x644; &#x628;&#x627;&#x644;&#x642;&#x631;&#x627;&#x631; &#x631;&#x642;&#x645; &#x665;&#x667; &#x644;&#x633;&#x646;&#x629; &#x661;&#x669;&#x666;&#x669;"/>
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+              <AbsoluteConstraints x="350" y="1050" width="410" height="20"/>
             </Constraint>
           </Constraints>
         </Component>

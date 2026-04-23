@@ -37,15 +37,17 @@ public class SubjectService {
 
     public static List<Subject> getSubjectsByProfession(String profession) {
         List<Subject> list = new ArrayList<>();
-        // Improved sorting: uses COALESCE to ensure children inherit parent's display_order for sorting.
-        // This keeps the profession columns in the correct logical order across all reports.
+        // Improved sorting: uses COALESCE to ensure children inherit parent's
+        // display_order for sorting.
+        // This keeps the profession columns in the correct logical order across all
+        // reports.
         String sql = """
-            SELECT s.*, COALESCE(p.display_order, s.display_order) as effective_order
-            FROM subjects s
-            LEFT JOIN subjects p ON s.parent_subject_id = p.id
-            WHERE TRIM(s.profession) = TRIM(?)
-            ORDER BY effective_order ASC, s.parent_subject_id ASC NULLS FIRST, s.display_order ASC
-            """;
+                SELECT s.*, COALESCE(p.display_order, s.display_order) as effective_order
+                FROM subjects s
+                LEFT JOIN subjects p ON s.parent_subject_id = p.id
+                WHERE TRIM(s.profession) = TRIM(?)
+                ORDER BY effective_order ASC, s.parent_subject_id ASC NULLS FIRST, s.display_order ASC
+                """;
         String normalizedProfession = profession != null ? profession.trim() : "";
 
         ensureStandardSubjectsExist(normalizedProfession);
@@ -184,8 +186,8 @@ public class SubjectService {
 
     public static void autoGenerateStandardSubjects(String profession) {
         // New order: 2 dynamic (user-editable) → 2 fixed theory → practical → applied
-        addSubject(profession, "تكنولوجيا (اضغط للتعديل)", "نظري", 50, 100, 1);
-        addSubject(profession, "رسم (اضغط للتعديل)", "نظري", 50, 100, 2);
+        addSubject(profession, "تكنولوجيا", "نظري", 50, 100, 1);
+        addSubject(profession, "رسم", "نظري", 50, 100, 2);
         addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 3);
         addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 4);
 
@@ -236,7 +238,7 @@ public class SubjectService {
         disableComposite(parentId);
 
         // Fetch parent subject to get actual name, max/pass marks
-        int parentMax = 100, parentPass = 50; 
+        int parentMax = 100, parentPass = 50;
         String parentName = profession; // default fallback
         String sql = "SELECT name, max_mark, pass_mark FROM subjects WHERE id = ?";
         try (java.sql.Connection conn = DatabaseConnection.getConnection();
@@ -255,9 +257,9 @@ public class SubjectService {
 
         // Split: 30% portion and 70% portion (proportional to parent)
         int max30 = Math.round(parentMax * 0.30f);
-        int max70 = parentMax - max30; 
+        int max70 = parentMax - max30;
         int pass30 = Math.round(parentPass * 0.30f);
-        int pass70 = parentPass - pass30; 
+        int pass70 = parentPass - pass30;
 
         // Use parentName for the children to preserve subject identity
         boolean ok1 = addSubject(profession, parentName, type, pass30, max30, 1, parentId, name30);
