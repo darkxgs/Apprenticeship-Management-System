@@ -61,26 +61,30 @@ public class gradReportTasoeda extends JFrame {
     private String centerCode = "  ";
     private int dynamicRowHeight = 140; // auto-calculated to fill A3 page
 
-    public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070, String examMonth, String examYear) {
+    public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070,
+            String examMonth, String examYear) {
         this.profession = profession;
         this.center = center;
         this.region = region;
         this.students = students;
         this.examMonth = (examMonth != null) ? examMonth : "........";
-        this.examYear  = (examYear  != null) ? examYear  : "........";
-        
+        this.examYear = (examYear != null) ? examYear : "........";
+
         // Fetch center code from database
         try (Connection conn = com.pvtd.students.db.DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT code FROM centers WHERE name = ?")) {
+                PreparedStatement stmt = conn.prepareStatement("SELECT code FROM centers WHERE name = ?")) {
             stmt.setString(1, center);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) this.centerCode = rs.getString("code");
+                if (rs.next())
+                    this.centerCode = rs.getString("code");
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         this.allSubjects = com.pvtd.students.services.SubjectService.getSubjectsByProfession(profession);
         this.displayColumns = calculateDisplayColumns();
-        
+
         setTitle("تسويدة رصد الدرجات - " + profession);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setExtendedState(MAXIMIZED_BOTH);
@@ -95,8 +99,8 @@ public class gradReportTasoeda extends JFrame {
         for (Subject s : allSubjects) {
             if (s.getParentSubjectId() == null) {
                 List<Subject> children = allSubjects.stream()
-                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
-                    .collect(java.util.stream.Collectors.toList());
+                        .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                        .collect(java.util.stream.Collectors.toList());
                 if (children.isEmpty()) {
                     cols.add(s);
                 } else {
@@ -114,8 +118,9 @@ public class gradReportTasoeda extends JFrame {
         uiRootPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         int totalPages = (int) Math.ceil(students.size() / 10.0);
-        if (totalPages == 0) totalPages = 1;
-        
+        if (totalPages == 0)
+            totalPages = 1;
+
         uiRootPanel.add(buildHeader(1, totalPages));
         uiRootPanel.add(buildTable(students.subList(0, Math.min(10, students.size()))));
         uiRootPanel.add(buildFooter());
@@ -129,11 +134,11 @@ public class gradReportTasoeda extends JFrame {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(10, 30, 20, 30));
-        p.setPreferredSize(new Dimension(2800, 380)); 
-        
+        p.setPreferredSize(new Dimension(2800, 380));
+
         Font fontBold = new Font("Arial", Font.BOLD, 32);
         Font fontTitle = new Font("Arial", Font.BOLD, 42);
-        
+
         // --- RIGHT PANEL (Page Box & Special Table) ---
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
@@ -147,43 +152,49 @@ public class gradReportTasoeda extends JFrame {
         pageBox.setLayout(new BoxLayout(pageBox, BoxLayout.Y_AXIS));
         pageBox.setPreferredSize(new Dimension(120, 100));
         pageBox.setMaximumSize(new Dimension(120, 100));
-        
-        JLabel pTot = new JLabel("كود المركز", SwingConstants.CENTER);
+
+        JLabel pTot = new JLabel("رقم المركز", SwingConstants.CENTER);
         JLabel pLine = new JLabel("-------", SwingConstants.CENTER);
         JLabel pCur = new JLabel(centerCode, SwingConstants.CENTER);
-        pTot.setFont(new Font("Arial", Font.BOLD, 22)); 
-        pLine.setFont(new Font("Arial", Font.BOLD, 15)); 
+        pTot.setFont(new Font("Arial", Font.BOLD, 22));
+        pLine.setFont(new Font("Arial", Font.BOLD, 15));
         pCur.setFont(new Font("Arial", Font.BOLD, 30));
         pTot.setAlignmentX(Component.CENTER_ALIGNMENT);
         pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
         pCur.setAlignmentX(Component.CENTER_ALIGNMENT);
-        pageBox.add(pTot); pageBox.add(pLine); pageBox.add(pCur);
+        pageBox.add(Box.createVerticalGlue());
+        pageBox.add(pTot);
+        pageBox.add(pLine);
+        pageBox.add(pCur);
+        pageBox.add(Box.createVerticalGlue());
         pageBox.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        
+
         rightPanel.add(pageBox);
         rightPanel.add(Box.createVerticalStrut(15));
-        
+
         // Small 6-row table on the right
         JPanel smallTable = new JPanel(new GridBagLayout());
         smallTable.setOpaque(false);
         smallTable.setAlignmentX(Component.RIGHT_ALIGNMENT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
-        
-        String[] labels = {"ناجحون", "راسبون", "دور ثاني", "محرومون", "غائبون", "توقيع"};
+
+        String[] labels = { "ناجحون", "راسبون", "دور ثاني", "محرومون", "غائبون", "توقيع" };
         for (int i = 0; i < labels.length; i++) {
             gbc.gridy = i;
-            
+
             // Value cell (Empty box with border)
-            gbc.gridx = 0; gbc.weightx = 0.6;
+            gbc.gridx = 0;
+            gbc.weightx = 0.6;
             JPanel valCell = new JPanel();
             valCell.setBackground(Color.WHITE);
             valCell.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
             valCell.setPreferredSize(new Dimension(280, 40));
             smallTable.add(valCell, gbc);
-            
+
             // Label cell
-            gbc.gridx = 1; gbc.weightx = 0.4;
+            gbc.gridx = 1;
+            gbc.weightx = 0.4;
             JLabel label = new JLabel(labels[i] + "  ", SwingConstants.RIGHT);
             label.setFont(new Font("Arial", Font.BOLD, 24));
             label.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
@@ -197,14 +208,14 @@ public class gradReportTasoeda extends JFrame {
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setOpaque(false);
         centerPanel.add(Box.createVerticalStrut(20));
-        
+
         String[] centerLines = {
-            " مسودة نتائج الصف الثالث ",
-            " دبلوم التلمذة الصناعية ",
-            " دفعة قبول " + examYear + " ",
-            " دور " + examMonth + " المنعقد في " + examYear + " "
+                " مسودة نتائج الصف الثالث ",
+                " دبلوم التلمذة الصناعية ",
+                " دفعة قبول " + examYear + " ",
+                " دور " + examMonth + " المنعقد في " + examYear + " "
         };
-        
+
         for (String line : centerLines) {
             JLabel lbl = new JLabel(line, SwingConstants.CENTER);
             lbl.setFont(fontTitle);
@@ -219,8 +230,8 @@ public class gradReportTasoeda extends JFrame {
         leftPanel.setOpaque(false);
         leftPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         leftPanel.add(Box.createVerticalStrut(100)); // Push down slightly
-        
-        JLabel centerLbl = new JLabel("لجنة مركز : " + ((center != null && !center.trim().isEmpty()) ? center : "........................"));
+
+        JLabel centerLbl = new JLabel(" ");
         centerLbl.setFont(fontBold);
         centerLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
         leftPanel.add(centerLbl);
@@ -228,7 +239,7 @@ public class gradReportTasoeda extends JFrame {
         p.add(rightPanel, BorderLayout.EAST);
         p.add(centerPanel, BorderLayout.CENTER);
         p.add(leftPanel, BorderLayout.WEST);
-        
+
         return p;
     }
 
@@ -240,161 +251,132 @@ public class gradReportTasoeda extends JFrame {
     }
 
     private JPanel buildTable(List<Student> chunk) {
-        int subCount = displayColumns.size();
-        // 11 base columns (including empty) + subCount + 4 summary columns
-        String[] cols = new String[10 + subCount + 4];
+        List<Subject> theoryCols = displayColumns.stream()
+                .filter(s -> "نظري".equals(s.getType()))
+                .collect(Collectors.toList());
+        int theoryCount = theoryCols.size();
+
+        // New Column Order:
+        // م, الاسم, الحرفة, رقم التسجيل, الرقم السري 1, " ", الرقم السري 2, [Theory
+        // Subjects], مجموع النظري, العملي, تطبيقي, مجموع عملي وتطبيقي, المجموع الكلي,
+        // ملاحظات, التقدير
+        int totalCols = 7 + theoryCount + 7;
+        String[] cols = new String[totalCols];
         int i = 0;
-        cols[i++] = "م"; cols[i++] = "الاسم"; 
-        cols[i++] = "الحرفة"; cols[i++] = "الرقم القومي";
-        cols[i++] = "رقم الجلوس"; 
-        cols[i++] = "الرقم السري 1"; 
-        cols[i++] = " "; // Empty column between secret numbers
-        cols[i++] = "الرقم السري 2";
+        cols[i++] = "م";
+        cols[i++] = "الاسم";
+        cols[i++] = "الحرفة";
         cols[i++] = "رقم التسجيل";
-        cols[i++] = "كود التنسيق";
-        
-        boolean theoryColAdded = false;
-        for (Subject s : displayColumns) {
+        cols[i++] = "الرقم السري 1";
+        cols[i++] = " ";
+        cols[i++] = "الرقم السري 2";
+
+        for (Subject s : theoryCols) {
             String displayName = s.getName();
-            if ("عملي".equals(displayName) || "تطبيقي".equals(displayName)) {
-                cols[i++] = " ";
-            } else if (displayName != null && displayName.length() > 10) {
+            if (displayName != null && displayName.length() > 10) {
                 cols[i++] = "<html><center>" + displayName.replace(" ", "<br/>") + "</center></html>";
             } else {
                 cols[i++] = (displayName != null ? displayName : "");
             }
-            if (displayName != null && displayName.contains("لغة انجليزية")) {
-                cols[i++] = "<html><center>مجموع<br/>النظري</center></html>";
-                theoryColAdded = true;
-            }
         }
-        if (!theoryColAdded) cols[i++] = "<html><center>مجموع<br/>النظري</center></html>";
-        cols[i++] = "<html><center>مجموع عملي<br/>وتطبيقي</center></html>"; 
-        cols[i++] = "<html><center>المجموع<br/>الكلي</center></html>"; 
-        cols[i] = "التقدير";
+
+        cols[i++] = "<html><center>مجموع<br/>النظري</center></html>";
+        cols[i++] = "";
+        cols[i++] = "";
+        cols[i++] = "<html><center>مجموع عملي<br/>وتطبيقي</center></html>";
+        cols[i++] = "<html><center>المجموع<br/>الكلي</center></html>";
+        cols[i++] = "ملاحظات";
+        cols[i++] = "التقدير";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
-            public boolean isCellEditable(int r, int c) { return false; }
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
 
         // Pre-calculate total Max
-        int totalMax = 0, theoryMaxSum = 0, practicalMax = 0, appliedMax = 0;
-        for (Subject s : displayColumns) {
+        int theoryMaxSum = 0;
+        for (Subject s : theoryCols) {
             List<Subject> children = allSubjects.stream()
                     .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
                     .collect(Collectors.toList());
-            int curMax = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getMaxMark).sum() : s.getMaxMark();
-            
-            totalMax += curMax;
-            if ("نظري".equals(s.getType())) theoryMaxSum += curMax;
-            else if ("تطبيقي".equals(s.getType())) appliedMax += curMax;
-            else practicalMax += curMax;
+            theoryMaxSum += (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getMaxMark).sum()
+                    : s.getMaxMark();
         }
 
-        Object[] maxRow = new Object[cols.length];
+        Object[] maxRow = new Object[totalCols];
         maxRow[1] = "النهاية العظمى";
-        int subIdx = 10;
-        boolean theoryMaxAdded = false;
-        for (Subject s : displayColumns) {
+        int subIdx = 7;
+        for (Subject s : theoryCols) {
             List<Subject> children = allSubjects.stream()
                     .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
                     .collect(Collectors.toList());
-            int curMax = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getMaxMark).sum() : s.getMaxMark();
-            
-            String sName = s.getName() != null ? s.getName().trim() : "";
-            if (sName.equals("عملي") || sName.equals("تطبيقي")) {
-                maxRow[subIdx++] = " ";
-            } else {
-                maxRow[subIdx++] = curMax;
-            }
-
-            if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                maxRow[subIdx++] = theoryMaxSum;
-                theoryMaxAdded = true;
-            }
+            maxRow[subIdx++] = (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getMaxMark).sum()
+                    : s.getMaxMark();
         }
-        if (!theoryMaxAdded) maxRow[subIdx++] = theoryMaxSum;
-        maxRow[subIdx++] = (practicalMax + appliedMax);
-        maxRow[subIdx++] = totalMax; maxRow[subIdx] = " ";
+        maxRow[subIdx++] = theoryMaxSum;
+        maxRow[subIdx++] = " "; // العملي
+        maxRow[subIdx++] = " "; // تطبيقي
+        maxRow[subIdx++] = "300"; // مجموع عملي وتطبيقي
+        maxRow[subIdx++] = "600"; // المجموع الكلي
+        maxRow[subIdx++] = " "; // ملاحظات
+        maxRow[subIdx] = " "; // التقدير
         model.addRow(maxRow);
 
-        // Pre-calculate total Pass
-        int theoryPassSum = 0, practicalPass = 0, appliedPass = 0;
-        for (Subject s : displayColumns) {
-            List<Subject> children = allSubjects.stream()
-                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
-                    .collect(Collectors.toList());
-            int curPass = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getPassMark).sum() : s.getPassMark();
-            if ("نظري".equals(s.getType())) theoryPassSum += curPass;
-            else if ("تطبيقي".equals(s.getType())) appliedPass += curPass;
-            else practicalPass += curPass;
-        }
-
-        Object[] minRow = new Object[cols.length];
+        Object[] minRow = new Object[totalCols];
         minRow[1] = "النهاية الصغرى";
-        subIdx = 10;
-        boolean theoryPassAdded = false;
-        for (Subject s : displayColumns) {
+        subIdx = 7;
+        int theoryPassSum = 0;
+        for (Subject s : theoryCols) {
             List<Subject> children = allSubjects.stream()
                     .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
                     .collect(Collectors.toList());
-            int curPass = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getPassMark).sum() : s.getPassMark();
-            
-            String sName = s.getName() != null ? s.getName().trim() : "";
-            if (sName.equals("عملي") || sName.equals("تطبيقي")) {
-                minRow[subIdx++] = " ";
-            } else {
-                minRow[subIdx++] = curPass;
-            }
-
-            if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                minRow[subIdx++] = theoryPassSum;
-                theoryPassAdded = true;
-            }
+            int curPass = (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getPassMark).sum()
+                    : s.getPassMark();
+            minRow[subIdx++] = curPass;
+            theoryPassSum += curPass;
         }
-        if (!theoryPassAdded) minRow[subIdx++] = theoryPassSum;
-        minRow[subIdx++] = (practicalPass + appliedPass);
-        int totalPass = theoryPassSum + practicalPass + appliedPass;
-        minRow[subIdx++] = totalPass > 0 ? totalPass : 150; 
-        minRow[subIdx] = " ";
+        minRow[subIdx++] = theoryPassSum;
+        minRow[subIdx++] = " "; // العملي
+        minRow[subIdx++] = " "; // تطبيقي
+        minRow[subIdx++] = "180 "; // مجموع عملي وتطبيقي
+        minRow[subIdx++] = "330"; // المجموع الكلي
+        minRow[subIdx++] = " "; // ملاحظات
+        minRow[subIdx] = " "; // التقدير
         model.addRow(minRow);
 
         for (int i_chunk = 0; i_chunk < 10; i_chunk++) {
             if (i_chunk < chunk.size()) {
                 Student st = chunk.get(i_chunk);
-                Object[] row = new Object[cols.length];
+                Object[] row = new Object[totalCols];
                 int colIdx = 0;
                 row[colIdx++] = students.indexOf(st) + 1;
-                row[colIdx++] = st.getName(); 
-                row[colIdx++] = "<html><center>" + (st.getProfession() != null ? st.getProfession() : "") + "</center></html>";
-                row[colIdx++] = st.getNationalId(); 
-                row[colIdx++] = st.getSeatNo();
+                row[colIdx++] = st.getName();
+                row[colIdx++] = "<html><center>" + (st.getProfession() != null ? st.getProfession() : "")
+                        + "</center></html>";
+                row[colIdx++] = st.getRegistrationNo();
                 row[colIdx++] = st.getSecretNo();
                 row[colIdx++] = " "; // Empty column
                 row[colIdx++] = st.getSecretNo();
-                row[colIdx++] = st.getRegistrationNo();
-                row[colIdx++] = st.getCoordinationNo();
-                
 
-
-                boolean theoryRowAdded = false;
-                for (Subject s : displayColumns) {
-                    row[colIdx++] = " "; // Individual marks cleared
-                    if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                        row[colIdx++] = " "; // Theory sum cleared
-                        theoryRowAdded = true;
-                    }
+                for (int j = 0; j < theoryCount; j++) {
+                    row[colIdx++] = " ";
                 }
-                
-                if (!theoryRowAdded) row[colIdx++] = " "; // Theory sum cleared
-                row[colIdx++] = " "; // Practical/Applied sum cleared
-                row[colIdx++] = " "; // Total cleared
-                row[colIdx] = " ";   // Status cleared
+                row[colIdx++] = " "; // مجموع النظري
+                row[colIdx++] = " "; // العملي
+                row[colIdx++] = " "; // تطبيقي
+                row[colIdx++] = " "; // مجموع عملي وتطبيقي
+                row[colIdx++] = " "; // المجموع الكلي
+                row[colIdx++] = " "; // ملاحظات
+                row[colIdx] = " "; // التقدير
                 model.addRow(row);
             } else {
-                Object[] row = new Object[cols.length];
-                for (int c = 0; c < cols.length; c++) {
+                Object[] row = new Object[totalCols];
+                for (int c = 0; c < totalCols; c++) {
                     row[c] = " ";
                 }
                 model.addRow(row);
@@ -405,19 +387,20 @@ public class gradReportTasoeda extends JFrame {
         styleTable(table);
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row,
+                    int col) {
                 String text = val == null ? "" : val.toString();
                 // Use HTML for right alignment and consistent padding
                 String htmlVal = text.toLowerCase().startsWith("<html>")
-                    ? text
-                    : "<html><div align='right' style='padding-right:10px;'>" + text + "</div></html>";
+                        ? text
+                        : "<html><div align='right' style='padding-right:10px;'>" + text + "</div></html>";
                 Component c = super.getTableCellRendererComponent(t, htmlVal, sel, foc, row, col);
                 c.setBackground(Color.WHITE);
                 c.setForeground(Color.BLACK);
                 c.setFont(new Font("Arial", Font.PLAIN, 24));
                 setHorizontalAlignment(SwingConstants.RIGHT);
                 setVerticalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent)c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
                 return c;
             }
         });
@@ -438,21 +421,59 @@ public class gradReportTasoeda extends JFrame {
         table.getTableHeader().setForeground(Color.BLACK);
         table.getTableHeader().setPreferredSize(new Dimension(0, 220));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        
+
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(300);
         }
-        table.getColumn("م").setPreferredWidth(80);
-        table.getColumn("الاسم").setPreferredWidth(1000);
-        table.getColumn("الحرفة").setPreferredWidth(900);
-        try { table.getColumn("الرقم القومي").setPreferredWidth(800); } catch (Exception e) {}
-        try { table.getColumn("رقم الجلوس").setPreferredWidth(350); } catch (Exception e) {}
-        try { table.getColumn("الرقم السري 1").setPreferredWidth(300); } catch (Exception e) {}
-        try { table.getColumnModel().getColumn(6).setPreferredWidth(100); } catch (Exception e) {} // The empty column
-        try { table.getColumn("الرقم السري 2").setPreferredWidth(300); } catch (Exception e) {}
-        try { table.getColumn("رقم التسجيل").setPreferredWidth(350); } catch (Exception e) {}
-        try { table.getColumn("كود التنسيق").setPreferredWidth(350); } catch (Exception e) {}
-        try { table.getColumn("مجموع عملي وتطبيقي").setPreferredWidth(380); } catch (Exception e) {}
+
+        try {
+            table.getColumn("م").setPreferredWidth(80);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("الاسم").setPreferredWidth(1000);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("الحرفة").setPreferredWidth(900);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("رقم التسجيل").setPreferredWidth(350);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("الرقم السري 1").setPreferredWidth(300);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumnModel().getColumn(5).setPreferredWidth(100);
+        } catch (Exception e) {
+        } // The empty column
+        try {
+            table.getColumn("الرقم السري 2").setPreferredWidth(300);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("العملي").setPreferredWidth(300);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("تطبيقي").setPreferredWidth(300);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("<html><center>مجموع عملي<br/>وتطبيقي</center></html>").setPreferredWidth(380);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("<html><center>المجموع<br/>الكلي</center></html>").setPreferredWidth(350);
+        } catch (Exception e) {
+        }
+        try {
+            table.getColumn("ملاحظات").setPreferredWidth(400);
+        } catch (Exception e) {
+        }
     }
 
     private JPanel buildFooter() {
@@ -461,10 +482,13 @@ public class gradReportTasoeda extends JFrame {
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, Color.BLACK));
         p.setPreferredSize(new Dimension(2000, 220));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.weightx = 1.0; gbc.fill = GridBagConstraints.BOTH;
-        String[] sigs = {"رئيس لجنة النظام والمراقبة", "راجع المراجعة", "راجع الدوائر الحمراء والرصد", "رصد ووضع الدوائر الحمراء", "راجع الاملاء", "راجعه", "كتبه"};
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        String[] sigs = { "رئيس لجنة النظام والمراقبة", "راجع المراجعة", "راجع الدوائر الحمراء والرصد",
+                "رصد ووضع الدوائر الحمراء", "راجع الاملاء", "راجعه", "كتبه" };
         for (int c = 0; c < sigs.length; c++) {
-            gbc.gridx = c; p.add(sigBlock(sigs[c]), gbc);
+            gbc.gridx = c;
+            p.add(sigBlock(sigs[c]), gbc);
         }
         return p;
     }
@@ -480,61 +504,80 @@ public class gradReportTasoeda extends JFrame {
         line.setFont(new Font("Arial", Font.PLAIN, 26));
         line.setAlignmentX(Component.CENTER_ALIGNMENT);
         p.add(Box.createVerticalStrut(20));
-        p.add(t); p.add(line);
+        p.add(t);
+        p.add(line);
         return p;
     }
 
-    public void createPDF() {
+    public void createPDF(com.itextpdf.text.Document combinedDoc) {
         try {
-            String suffix = is3070 ? "_30_70" : "";
-            String fn = "Tasoeda_Report_" + profession.replace("/", "_").replace("\\", "_") + suffix + ".pdf";
-            Document doc = new Document(); 
-            PdfWriter.getInstance(doc, new FileOutputStream(fn));
-            doc.open();
-            appendToDocument(doc);
-            doc.close();
-            Desktop.getDesktop().open(new File(fn));
-        } catch (Exception e) { e.printStackTrace(); }
-    }
+            // إنشاء الفولدرات
+            File mainFolder = new File("التقارير");
+            if (!mainFolder.exists()) mainFolder.mkdirs();
 
-    public void appendToDocument(Document doc) {
-        try {
-            int pageSizeCount = 10; 
+            File tasoedaFolder = new File(mainFolder, "التسويدة");
+            if (!tasoedaFolder.exists()) tasoedaFolder.mkdirs();
+
+            int pageSizeCount = 10;
             int totalCount = students.size();
             int totalPages = (int) Math.ceil(totalCount / (double) pageSizeCount);
             if (totalPages == 0) totalPages = 1;
+
+            String sanitizedProfession = profession.replace("/", "_").replace("\\", "_").replace(":", "_");
+            String typeSuffix = is3070 ? "_30_70" : "";
 
             for (int pIdx = 0; pIdx < totalPages; pIdx++) {
                 int start = pIdx * pageSizeCount;
                 int end = Math.min(start + pageSizeCount, totalCount);
                 List<Student> chunk = students.subList(start, end);
 
-                JPanel pagePanel = buildPagePanel(chunk, pIdx + 1, totalPages);
-                doc.setPageSize(PageSize.A3.rotate());
-                doc.newPage(); 
+                String pageSuffix = (totalPages > 1) ? "_صفحة_" + (pIdx + 1) : "";
+                String fn = tasoedaFolder.getAbsolutePath() + "/" + sanitizedProfession + typeSuffix + pageSuffix + ".pdf";
 
-                int scale = 2; // Increase resolution for clearer text
+                // 1. Create individual page file
+                Document doc = new Document(PageSize.A3.rotate());
+                PdfWriter.getInstance(doc, new FileOutputStream(fn));
+                doc.open();
+
+                JPanel pagePanel = buildPagePanel(chunk, pIdx + 1, totalPages);
+                
+                int scale = 2; // High resolution
                 BufferedImage img = new BufferedImage(pagePanel.getWidth() * scale, pagePanel.getHeight() * scale, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g2 = img.createGraphics();
                 g2.scale(scale, scale);
-                // Enable anti-aliasing and high quality rendering hints
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_NORMALIZE);
                 g2.setPaint(Color.WHITE);
                 g2.fillRect(0, 0, pagePanel.getWidth(), pagePanel.getHeight());
                 pagePanel.printAll(g2);
                 g2.dispose();
 
                 Image pImg = Image.getInstance(img, null);
-                // Fill the entire A3 page
                 pImg.scaleAbsolute(doc.getPageSize().getWidth(), doc.getPageSize().getHeight());
                 pImg.setAbsolutePosition(0, 0);
                 doc.add(pImg);
+                doc.close();
+
+                // 2. Add to combined document if provided
+                if (combinedDoc != null) {
+                    combinedDoc.setPageSize(PageSize.A3.rotate());
+                    combinedDoc.newPage();
+                    Image combinedImg = Image.getInstance(img, null);
+                    combinedImg.scaleAbsolute(combinedDoc.getPageSize().getWidth(), combinedDoc.getPageSize().getHeight());
+                    combinedImg.setAbsolutePosition(0, 0);
+                    combinedDoc.add(combinedImg);
+                }
+                
                 pagePanel.removeNotify();
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void createPDF() {
+        createPDF(null);
     }
 
     private JPanel buildPagePanel(List<Student> chunk, int pageNum, int totalPages) {
@@ -542,22 +585,22 @@ public class gradReportTasoeda extends JFrame {
         page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
         page.setBackground(Color.WHITE);
         page.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        
+
         // Fixed A3 landscape dimensions at high resolution
         int panelWidth = 2800;
-        int panelHeight = (int)(panelWidth / 1.4142); // ~1980px
-        
+        int panelHeight = (int) (panelWidth / 1.4142); // ~1980px
+
         // Calculate row height to fill available space dynamically
         int headerH = 380, footerH = 220, tableHeaderH = 220;
         int available = panelHeight - headerH - footerH - tableHeaderH - 50; // 50px safety margin for borders
         int totalRows = 10 + 2; // +2 for النهاية العظمى / الصغرى rows
         dynamicRowHeight = Math.max(50, available / totalRows);
-        
+
         page.add(buildHeader(pageNum, totalPages));
         JPanel tablePanel = buildTable(chunk);
         page.add(tablePanel);
         page.add(buildFooter());
-        
+
         page.setSize(new Dimension(panelWidth, panelHeight));
         page.addNotify();
         page.validate();

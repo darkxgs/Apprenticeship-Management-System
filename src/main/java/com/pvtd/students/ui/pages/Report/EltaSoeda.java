@@ -283,9 +283,13 @@ public class EltaSoeda extends javax.swing.JFrame {
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 
-        String[] months = {"يناير", "مايو", "أغسطس", "أكتوبر"};
+        String[] months = {
+            "يناير", "فبراير", "مارس", "أبريل",
+            "مايو", "يونيو", "يوليو", "أغسطس",
+            "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        };
         String selectedMonth = (String) javax.swing.JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
-                javax.swing.JOptionPane.QUESTION_MESSAGE, null, months, months[1]);
+                javax.swing.JOptionPane.QUESTION_MESSAGE, null, months, months[4]);
         if (selectedMonth == null) return;
 
         String currentYear = String.valueOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR));
@@ -295,10 +299,12 @@ public class EltaSoeda extends javax.swing.JFrame {
             protected Void doInBackground() throws Exception {
                 String centerName = "";
                 String regionName = "";
-                com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-                String fn = "Tasoeda_Combined_Report.pdf";
-                com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
-                document.open();
+                
+                // COMBINED DOCUMENT
+                com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A3.rotate());
+                String combinedFn = "التقارير/التسويدة/تقرير_التسويدة_المجمع.pdf";
+                com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                combinedDoc.open();
 
                 try (Connection con = DatabaseConnection.getConnection()) {
                     String getStudentSql = "SELECT id, name, registration_no, coordination_no, seat_no, status, national_id, professional_group, secret_no, region, center_name FROM students WHERE seat_no = ?";
@@ -384,12 +390,13 @@ public class EltaSoeda extends javax.swing.JFrame {
                         });
                         
                         gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, false, selectedMonth, currentYear);
-                        report.appendToDocument(document);
+                        report.createPDF(combinedDoc);
                     }
                 }
+                
+                combinedDoc.close();
+                java.awt.Desktop.getDesktop().open(new java.io.File(combinedFn));
 
-                document.close();
-                java.awt.Desktop.getDesktop().open(new java.io.File(fn));
                 return null;
             }
         };

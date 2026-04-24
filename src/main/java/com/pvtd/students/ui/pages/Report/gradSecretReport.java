@@ -529,6 +529,8 @@ public class gradSecretReport extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
     private JLabel label(String text, int size, boolean bold) {
         JLabel l = new JLabel(text);
         l.setFont(new java.awt.Font("Arial", bold ? java.awt.Font.BOLD : java.awt.Font.PLAIN, size));

@@ -243,11 +243,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
     try {
 
         // إنشاء الفولدرات
-        File mainFolder = new File("تقارير");
-        if (!mainFolder.exists()) mainFolder.mkdir();
+        File mainFolder = new File("التقارير");
+        if (!mainFolder.exists()) mainFolder.mkdirs();
 
-        File certFolder = new File(mainFolder, "شهادة نجاح");
-        if (!certFolder.exists()) certFolder.mkdir();
+        File certFolder = new File(mainFolder, "الشهادة");
+        if (!certFolder.exists()) certFolder.mkdirs();
 
         String allFilePath = certFolder.getAbsolutePath() + "/all_certificates.pdf";
 

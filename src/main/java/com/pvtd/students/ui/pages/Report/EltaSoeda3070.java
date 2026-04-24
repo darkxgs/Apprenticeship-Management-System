@@ -262,9 +262,13 @@ public class EltaSoeda3070 extends JFrame {
         }
 
         // Add Month selection
-        String[] months = {"يناير", "مايو", "أغسطس", "أكتوبر"};
+        String[] months = {
+            "يناير", "فبراير", "مارس", "أبريل",
+            "مايو", "يونيو", "يوليو", "أغسطس",
+            "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        };
         String selectedMonth = (String) JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
-                JOptionPane.QUESTION_MESSAGE, null, months, months[1]);
+                JOptionPane.QUESTION_MESSAGE, null, months, months[4]);
         if (selectedMonth == null) return;
         
         String currentYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
@@ -281,10 +285,11 @@ public class EltaSoeda3070 extends JFrame {
         String regionName = "";
 
         try {
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-            String fn = "Tasoeda_30_70_Report.pdf";
-            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
-            document.open();
+            // COMBINED DOCUMENT
+            com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A3.rotate());
+            String combinedFn = "التقارير/التسويدة/تقرير_التسويدة_المجمع_30_70.pdf";
+            com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+            combinedDoc.open();
 
             try (Connection con = DatabaseConnection.getConnection()) {
                 String getStudentSql =
@@ -374,13 +379,13 @@ public class EltaSoeda3070 extends JFrame {
 
                         // is3070 = true → gradReportTasoeda يعرض مواد الابن (30/70)
                         gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, true, selectedMonth, currentYear);
-                        report.appendToDocument(document);
+                        report.createPDF(combinedDoc);
                     }
                 }
             }
 
-            document.close();
-            Desktop.getDesktop().open(new java.io.File(fn));
+            combinedDoc.close();
+            Desktop.getDesktop().open(new java.io.File(combinedFn));
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -24,6 +24,7 @@ import com.pvtd.students.db.DatabaseConnection;
 
 public class sucsseccFromPage extends javax.swing.JFrame {
     private String currentImagePath;
+    private String currentNationalId;
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(sucsseccFromPage.class.getName());
 
     
@@ -269,6 +270,7 @@ public void loadStudentImage(String imagePath) {
             gradeLbl.setText(rs.getString("grade"));
 
             currentImagePath = rs.getString("image_path");
+            currentNationalId = rs.getString("national_id");
 
             String round = rs.getString("exam_round");
         }
@@ -452,10 +454,10 @@ public void printSuccessForms(List<String[]> studentsData, java.util.function.Bi
 
         con = DatabaseConnection.getConnection();
 
-        File mainFolder = new File("تقارير");
-        if (!mainFolder.exists()) mainFolder.mkdir();
+        File mainFolder = new File("التقارير");
+        if (!mainFolder.exists()) mainFolder.mkdirs();
 
-        File formFolder = new File(mainFolder, "استمارة نجاح");
+        File formFolder = new File(mainFolder, "الاستمارة");
         if (!formFolder.exists()) formFolder.mkdir();
 
         String allPath = formFolder.getAbsolutePath() + "/all_success_forms.pdf";
@@ -506,7 +508,20 @@ int height = 1300;
             img.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
             img.setAbsolutePosition(0, 0);
 
+            // 1️⃣ ملف مجمع
             allDoc.add(img);
+            
+            // 2️⃣ ملف لكل طالب
+            String singlePath = formFolder.getAbsolutePath() + "/" + (currentNationalId != null ? currentNationalId : "student_" + seatNo) + ".pdf";
+            Document singleDoc = new Document(PageSize.A4);
+            PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
+            singleDoc.open();
+            
+            Image imgForSingle = Image.getInstance(image, null);
+            imgForSingle.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+            imgForSingle.setAbsolutePosition(0, 0);
+            singleDoc.add(imgForSingle);
+            singleDoc.close();
 
             if (i < total - 1) {
                 allDoc.newPage();
