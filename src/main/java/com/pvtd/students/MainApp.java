@@ -13,6 +13,7 @@ public class MainApp {
         System.out.println("Starting Industrial Apprenticeship Diploma System...");
 
         try {
+
             UIManager.setLookAndFeel(new FlatLightLaf());
             UIManager.put("Component.accentColor", UITheme.PRIMARY);
             UIManager.put("Component.focusColor", UITheme.HOVER_PRIMARY);

@@ -12,13 +12,14 @@ import javax.swing.table.DefaultTableModel;
 import com.pvtd.students.ui.utils.ReportWorker;
 
 public class EltaSoeda extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(EltaSoeda.class.getName());
+
+    private static final java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger(EltaSoeda.class.getName());
 
     public EltaSoeda() {
         initComponents();
         setupTableUi();
-        loadGroups();
+        loadFilters();
         setTitle("تصفية الطلاب - التسويدة");
         this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
@@ -36,8 +37,10 @@ public class EltaSoeda extends javax.swing.JFrame {
         jTable1.setSelectionForeground(java.awt.Color.BLACK);
         jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
             @Override
-            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                        column);
                 if (!isSelected) {
                     c.setBackground(java.awt.Color.WHITE);
                 }
@@ -47,43 +50,68 @@ public class EltaSoeda extends javax.swing.JFrame {
         });
     }
 
-    private void loadGroups() {
-        comboGroup.removeAllItems();
-        comboGroup.addItem("الكل");
-        List<String> groups = DictionaryService.getCombinedItems(DictionaryService.CAT_PROF_GROUP);
-        for (String g : groups) {
-            comboGroup.addItem(g);
+    private void loadFilters() {
+        comboRegion.removeAllItems();
+        comboRegion.addItem("الكل");
+        List<String> regions = DictionaryService.getCombinedItems(DictionaryService.CAT_REGION);
+        for (String r : regions) {
+            comboRegion.addItem(r);
         }
-    }
 
-    private void loadProfessions(String group) {
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+
         comboProf.removeAllItems();
         comboProf.addItem("الكل");
-        List<String> professions = DictionaryService.getProfessionsByGroup(group);
+        List<String> professions = DictionaryService.getCombinedItems(DictionaryService.CAT_PROFESSION);
         for (String p : professions) {
             comboProf.addItem(p);
         }
     }
 
-    private void loadStudents(String group, String profession) {
+    private void loadCenters(String region) {
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+        if (region.equals("الكل")) {
+            List<String> centers = DictionaryService.getCombinedItems(DictionaryService.CAT_CENTER);
+            for (String c : centers) {
+                comboCenter.addItem(c);
+            }
+        } else {
+            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
+            for (String c : centers.keySet()) {
+                comboCenter.addItem(c);
+            }
+        }
+    }
+
+    private void loadStudents(String region, String center, String profession) {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
 
-        StringBuilder sql = new StringBuilder("SELECT name, seat_no, registration_no, coordination_no, professional_group, profession, status FROM students WHERE 1=1 ");
-        if (group != null && !group.equals("الكل")) {
-            sql.append("AND TRIM(professional_group) = TRIM(?) ");
+        StringBuilder sql = new StringBuilder(
+                "SELECT name, seat_no, registration_no, coordination_no, professional_group, profession, status FROM students WHERE 1=1 ");
+        if (region != null && !region.equals("الكل")) {
+            sql.append("AND TRIM(region) = TRIM(?) ");
+        }
+        if (center != null && !center.equals("الكل")) {
+            sql.append("AND TRIM(center_name) = TRIM(?) ");
         }
         if (profession != null && !profession.equals("الكل")) {
             sql.append("AND TRIM(profession) = TRIM(?) ");
         }
-        sql.append("ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
+        sql.append(
+                "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
 
         try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql.toString())) {
-            
+                PreparedStatement ps = con.prepareStatement(sql.toString())) {
+
             int paramIdx = 1;
-            if (group != null && !group.equals("الكل")) {
-                ps.setString(paramIdx++, group);
+            if (region != null && !region.equals("الكل")) {
+                ps.setString(paramIdx++, region);
+            }
+            if (center != null && !center.equals("الكل")) {
+                ps.setString(paramIdx++, center);
             }
             if (profession != null && !profession.equals("الكل")) {
                 ps.setString(paramIdx++, profession);
@@ -91,13 +119,13 @@ public class EltaSoeda extends javax.swing.JFrame {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    model.addRow(new Object[]{
-                        rs.getString("status"),
-                        rs.getString("profession"),
-                        rs.getString("registration_no"),
-                        rs.getString("coordination_no"),
-                        rs.getString("seat_no"),
-                        rs.getString("name")
+                    model.addRow(new Object[] {
+                            rs.getString("status"),
+                            rs.getString("profession"),
+                            rs.getString("registration_no"),
+                            rs.getString("coordination_no"),
+                            rs.getString("seat_no"),
+                            rs.getString("name")
                     });
                 }
             }
@@ -108,15 +136,59 @@ public class EltaSoeda extends javax.swing.JFrame {
     }
 
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
 
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
-        comboGroup = new com.pvtd.students.ui.components.Combobox();
+        comboRegion = new com.pvtd.students.ui.components.Combobox();
+        comboCenter = new com.pvtd.students.ui.components.Combobox();
         comboProf = new com.pvtd.students.ui.components.Combobox();
+
+        comboRegion.setLabeText("المنطقة");
+        comboRegion.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                if (comboRegion.getSelectedItem() != null) {
+                    loadCenters(comboRegion.getSelectedItem().toString());
+                }
+                refreshTable();
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 150;
+        gridBagConstraints.insets = new java.awt.Insets(0, 20, 0, 20);
+        jPanel2.add(comboRegion, gridBagConstraints);
+
+        comboCenter.setLabeText("المركز");
+        comboCenter.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refreshTable();
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 150;
+        gridBagConstraints.insets = new java.awt.Insets(0, 20, 0, 20);
+        jPanel2.add(comboCenter, gridBagConstraints);
+
+        comboProf.setLabeText("المهنة");
+        comboProf.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refreshTable();
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 150;
+        gridBagConstraints.insets = new java.awt.Insets(0, 20, 0, 20);
+        jPanel2.add(comboProf, gridBagConstraints);
+
         btnSelectAll = new javax.swing.JButton();
         btnTasoeda = new com.pvtd.students.ui.components.ButtonGradient();
         jPanel3 = new javax.swing.JPanel();
@@ -128,46 +200,6 @@ public class EltaSoeda extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(new java.awt.BorderLayout());
 
-        jPanel2.setBackground(new java.awt.Color(0, 102, 51));
-        jPanel2.setPreferredSize(new java.awt.Dimension(1000, 100));
-        jPanel2.setLayout(new java.awt.GridBagLayout());
-
-        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel1.setText("تصفية الطلاب - التسويدة");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
-        gridBagConstraints.insets = new java.awt.Insets(0, 50, 0, 20);
-        jPanel2.add(jLabel1, gridBagConstraints);
-
-        comboGroup.setLabeText("المجموعة المهنية");
-        comboGroup.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                comboGroupActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipadx = 200;
-        gridBagConstraints.insets = new java.awt.Insets(0, 20, 0, 20);
-        jPanel2.add(comboGroup, gridBagConstraints);
-
-        comboProf.setLabeText("المهنة");
-        comboProf.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                comboProfActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipadx = 200;
-        gridBagConstraints.insets = new java.awt.Insets(0, 20, 0, 20);
-        jPanel2.add(comboProf, gridBagConstraints);
-
         btnSelectAll.setBackground(new java.awt.Color(51, 102, 255));
         btnSelectAll.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         btnSelectAll.setForeground(new java.awt.Color(255, 255, 255));
@@ -178,7 +210,7 @@ public class EltaSoeda extends javax.swing.JFrame {
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridx = 3;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 20;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
@@ -189,28 +221,37 @@ public class EltaSoeda extends javax.swing.JFrame {
         btnTasoeda.setColor2(new java.awt.Color(0, 102, 51));
         btnTasoeda.addActionListener(this::btnTasoedaActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridx = 4;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 60;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel2.add(btnTasoeda, gridBagConstraints);
+
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel1.setText("تصفية الطلاب - التسويدة");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
+        gridBagConstraints.insets = new java.awt.Insets(0, 50, 0, 20);
+        jPanel2.add(jLabel1, gridBagConstraints);
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
 
         jPanel3.setLayout(new java.awt.BorderLayout());
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {},
-            new String [] {
-                "الحالة", "المهنة", "رقم التسجيل", "كود التنسيق", "رقم الجلوس", "الاسم"
-            }
-        ) {
-            boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false
+                new Object[][] {},
+                new String[] {
+                        "الحالة", "المهنة", "رقم التسجيل", "كود التنسيق", "رقم الجلوس", "الاسم"
+                }) {
+            boolean[] canEdit = new boolean[] {
+                    false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
+                return canEdit[columnIndex];
             }
         });
         jScrollPane1.setViewportView(jTable1);
@@ -224,26 +265,15 @@ public class EltaSoeda extends javax.swing.JFrame {
         pack();
     }
 
-    private void comboGroupActionPerformed(java.awt.event.ActionEvent evt) {                                           
-        if (comboGroup.getSelectedItem() != null) {
-            String group = comboGroup.getSelectedItem().toString();
-            loadProfessions(group);
-            refreshTable();
-        }
-    }                                          
-
-    private void comboProfActionPerformed(java.awt.event.ActionEvent evt) {                                          
-        refreshTable();
-    }
-
     private void btnSelectAllActionPerformed(java.awt.event.ActionEvent evt) {
         jTable1.selectAll();
     }
 
     private void refreshTable() {
-        String group = comboGroup.getSelectedItem() != null ? comboGroup.getSelectedItem().toString() : "الكل";
+        String region = comboRegion.getSelectedItem() != null ? comboRegion.getSelectedItem().toString() : "الكل";
+        String center = comboCenter.getSelectedItem() != null ? comboCenter.getSelectedItem().toString() : "الكل";
         String profession = comboProf.getSelectedItem() != null ? comboProf.getSelectedItem().toString() : "الكل";
-        loadStudents(group, profession);
+        loadStudents(region, center, profession);
     }
 
     private void btnTasoedaActionPerformed(java.awt.event.ActionEvent evt) {
@@ -253,7 +283,7 @@ public class EltaSoeda extends javax.swing.JFrame {
     private boolean checkIfProfessionIs3070(String profession) {
         String sql = "SELECT 1 FROM subjects WHERE TRIM(profession) = TRIM(?) AND parent_subject_id IS NOT NULL FETCH FIRST 1 ROW ONLY";
         try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+                PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, profession);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -267,9 +297,10 @@ public class EltaSoeda extends javax.swing.JFrame {
     private void generateReport() {
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
         int[] selectedRows = jTable1.getSelectedRows();
-        
+
         if (selectedRows.length == 0) {
-            javax.swing.JOptionPane.showMessageDialog(this, "برجاء اختيار طلاب أولاً", "تحذير", javax.swing.JOptionPane.WARNING_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this, "برجاء اختيار طلاب أولاً", "تحذير",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -277,20 +308,22 @@ public class EltaSoeda extends javax.swing.JFrame {
         int totalSelected = selectedRows.length;
         for (int i : selectedRows) {
             String seatNoCol = String.valueOf(model1.getValueAt(i, 4)); // col 4 = رقم الجلوس
-            String profCol   = String.valueOf(model1.getValueAt(i, 1)); // col 1 = المهنة
+            String profCol = String.valueOf(model1.getValueAt(i, 1)); // col 1 = المهنة
             String seatNo = seatNoCol != null ? seatNoCol.trim() : "";
-            String prof   = profCol != null ? profCol.trim() : "";
+            String prof = profCol != null ? profCol.trim() : "";
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 
         String[] months = {
-            "يناير", "فبراير", "مارس", "أبريل",
-            "مايو", "يونيو", "يوليو", "أغسطس",
-            "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+                "يناير", "فبراير", "مارس", "أبريل",
+                "مايو", "يونيو", "يوليو", "أغسطس",
+                "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
         };
-        String selectedMonth = (String) javax.swing.JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
+        String selectedMonth = (String) javax.swing.JOptionPane.showInputDialog(this, "اختر شهر الامتحان:",
+                "تحديد الموعد",
                 javax.swing.JOptionPane.QUESTION_MESSAGE, null, months, months[4]);
-        if (selectedMonth == null) return;
+        if (selectedMonth == null)
+            return;
 
         String currentYear = String.valueOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR));
 
@@ -299,12 +332,8 @@ public class EltaSoeda extends javax.swing.JFrame {
             protected Void doInBackground() throws Exception {
                 String centerName = "";
                 String regionName = "";
-                
-                // COMBINED DOCUMENT
-                com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A3.rotate());
-                String combinedFn = "التقارير/التسويدة/تقرير_التسويدة_المجمع.pdf";
-                com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
-                combinedDoc.open();
+
+
 
                 try (Connection con = DatabaseConnection.getConnection()) {
                     String getStudentSql = "SELECT id, name, registration_no, coordination_no, seat_no, status, national_id, professional_group, secret_no, region, center_name FROM students WHERE seat_no = ?";
@@ -333,9 +362,11 @@ public class EltaSoeda extends javax.swing.JFrame {
                                     st.setProfessionalGroup(rsStudent.getString("professional_group"));
                                     st.setSecretNo(rsStudent.getString("secret_no"));
                                     st.setProfession(professionName);
-                                    
-                                    if (centerName.isEmpty()) centerName = rsStudent.getString("center_name");
-                                    if (regionName.isEmpty()) regionName = rsStudent.getString("region");
+
+                                    if (centerName.isEmpty())
+                                        centerName = rsStudent.getString("center_name");
+                                    if (regionName.isEmpty())
+                                        regionName = rsStudent.getString("region");
 
                                     java.util.Map<Integer, Integer> grades = new java.util.HashMap<>();
                                     getGradesPs.setInt(1, st.getId());
@@ -351,36 +382,55 @@ public class EltaSoeda extends javax.swing.JFrame {
                         }
                     }
 
-                    // Group and Sort Professions by their minimum Secret Number (Numerical)
-                    java.util.Map<String, java.util.List<Student>> grouped = allSelectedStudents.stream()
-                        .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+                // Group and Sort by Region First
+                java.util.Map<String, java.util.List<Student>> groupedByRegion = allSelectedStudents.stream()
+                        .collect(java.util.stream.Collectors.groupingBy(s -> s.getRegion() != null && !s.getRegion().isEmpty() ? s.getRegion() : "غير محدد"));
+
+                java.io.File folder = new java.io.File("التقارير/تسويدة");
+                if (!folder.exists())
+                    folder.mkdirs();
+
+                for (java.util.Map.Entry<String, java.util.List<Student>> regionEntry : groupedByRegion.entrySet()) {
+                    String currentRegionName = regionEntry.getKey();
+                    java.util.List<Student> regionStudents = regionEntry.getValue();
+
+                    com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(
+                            com.itextpdf.text.PageSize.A3.rotate());
+                    String sanitizedRegion = currentRegionName.replace("/", "_").replace("\\", "_").replace(":", "_");
+                    String combinedFn = "التقارير/تسويدة/" + sanitizedRegion + ".pdf";
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                    combinedDoc.open();
+
+                    // Group and Sort Professions by their minimum Secret Number (Numerical) within this region
+                    java.util.Map<String, java.util.List<Student>> grouped = regionStudents.stream()
+                            .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
 
                     java.util.List<String> sortedProfessions = grouped.keySet().stream()
-                        .sorted((p1, p2) -> {
-                            Integer min1 = grouped.get(p1).stream()
-                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                .filter(s -> !s.isEmpty())
-                                .map(Integer::parseInt)
-                                .min(Integer::compare).orElse(99999999);
-                            Integer min2 = grouped.get(p2).stream()
-                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                .filter(s -> !s.isEmpty())
-                                .map(Integer::parseInt)
-                                .min(Integer::compare).orElse(99999999);
-                            return min1.compareTo(min2);
-                        })
-                        .collect(java.util.stream.Collectors.toList());
+                            .sorted((p1, p2) -> {
+                                Integer min1 = grouped.get(p1).stream()
+                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                        .filter(s -> !s.isEmpty())
+                                        .map(Integer::parseInt)
+                                        .min(Integer::compare).orElse(99999999);
+                                Integer min2 = grouped.get(p2).stream()
+                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                        .filter(s -> !s.isEmpty())
+                                        .map(Integer::parseInt)
+                                        .min(Integer::compare).orElse(99999999);
+                                return min1.compareTo(min2);
+                            })
+                            .collect(java.util.stream.Collectors.toList());
 
                     for (String prof : sortedProfessions) {
                         java.util.List<Student> list = grouped.get(prof);
                         processed += list.size();
-                        updateStatus(processed, totalSelected, "جاري معالجة بيانات التسويدة مهنة: " + prof);
-                        
+                        updateStatus(processed, totalSelected, "جاري معالجة بيانات التسويدة منطقة: " + currentRegionName + " - مهنة: " + prof);
+
                         // Sort within profession by secret number (Numerical)
                         list.sort((s1, s2) -> {
                             String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
                             String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
-                            
+
                             try {
                                 if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
                                     return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
@@ -388,14 +438,17 @@ public class EltaSoeda extends javax.swing.JFrame {
                             } catch (Exception ex) {}
                             return sn1Str.compareTo(sn2Str);
                         });
-                        
-                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, false, selectedMonth, currentYear);
+
+                        String rName = currentRegionName.equals("غير محدد") ? regionName : currentRegionName;
+                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, rName, list, false,
+                                selectedMonth, currentYear);
                         report.createPDF(combinedDoc);
                     }
+
+                    combinedDoc.close();
                 }
-                
-                combinedDoc.close();
-                java.awt.Desktop.getDesktop().open(new java.io.File(combinedFn));
+
+                java.awt.Desktop.getDesktop().open(folder);
 
                 return null;
             }
@@ -407,10 +460,11 @@ public class EltaSoeda extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(() -> new EltaSoeda().setVisible(true));
     }
 
-    // Variables declaration - do not modify                     
+    // Variables declaration - do not modify
     private javax.swing.JButton btnSelectAll;
     private com.pvtd.students.ui.components.ButtonGradient btnTasoeda;
-    private com.pvtd.students.ui.components.Combobox comboGroup;
+    private com.pvtd.students.ui.components.Combobox comboRegion;
+    private com.pvtd.students.ui.components.Combobox comboCenter;
     private com.pvtd.students.ui.components.Combobox comboProf;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
@@ -418,5 +472,5 @@ public class EltaSoeda extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
-    // End of variables declaration                   
+    // End of variables declaration
 }

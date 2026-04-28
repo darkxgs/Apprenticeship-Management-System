@@ -403,11 +403,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblNationalId.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblNationalId);
-        lblNationalId.setBounds(530, 210, 177, 20);
+        lblNationalId.setBounds(447, 210, 260, 20);
 
         lblProfession.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblProfession);
-        lblProfession.setBounds(530, 250, 200, 30);
+        lblProfession.setBounds(420, 250, 310, 30);
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel10.setText("المجموعة المهنية :");
@@ -416,7 +416,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblGroup.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblGroup);
-        lblGroup.setBounds(90, 270, 171, 20);
+        lblGroup.setBounds(11, 270, 250, 20);
 
         jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel12.setText("دور  :");
@@ -450,7 +450,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblcenter.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblcenter);
-        lblcenter.setBounds(580, 360, 130, 30);
+        lblcenter.setBounds(490, 360, 220, 30);
 
         jLabel20.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel20.setText("منطقة :");
@@ -459,7 +459,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblRegion.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblRegion);
-        lblRegion.setBounds(110, 380, 143, 20);
+        lblRegion.setBounds(43, 380, 210, 20);
 
         jLabel22.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel22.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");

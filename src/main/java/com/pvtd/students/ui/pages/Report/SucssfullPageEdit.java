@@ -25,6 +25,9 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SucssfullPageEdit.class.getName());
 
+    /** Caches the exam_system fetched from loadStudents — used by both reports */
+    private String loadedSystemName = "نظامي";
+
     private void buttonSecretReportActionPerformed(java.awt.event.ActionEvent evt) {
         int[] selectedRows = jTable1.getSelectedRows();
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
@@ -44,68 +47,112 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = combobox1.getSelectedItem() != null ? combobox1.getSelectedItem().toString() : "";
-        String systemName = "نظامي";
+        final String systemName = loadedSystemName;
 
         ReportWorker worker = new ReportWorker(this, "كشف الناجحين بالدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
-                com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-                String fn = "Detailed_Success_Report_All.pdf";
-                com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
-                document.open();
+                // Group all selected students by region first
+                java.util.LinkedHashMap<String, java.util.LinkedHashMap<String, java.util.List<String>>> byRegion = new java.util.LinkedHashMap<>();
 
                 try (Connection con = DatabaseConnection.getConnection()) {
-                    String getStudentSql = "SELECT id, name, registration_no, seat_no, status, national_id, professional_group, secret_no, coordination_no FROM students WHERE seat_no = ?";
-                    PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
+                    String getRegionSql = "SELECT region FROM students WHERE seat_no = ?";
+                    PreparedStatement getRegionPs = con.prepareStatement(getRegionSql);
 
-                    String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
-                    PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
-
-                    int processed = 0;
                     for (java.util.Map.Entry<String, java.util.List<String>> entry : byProfession.entrySet()) {
                         String prof = entry.getKey();
-                        java.util.List<Student> list = new java.util.ArrayList<>();
-
                         for (String seatNo : entry.getValue()) {
-                            processed++;
-                            updateStatus(processed, totalSelected, "جاري جلب بيانات الطالب: " + seatNo);
-
-                            getStudentPs.setString(1, seatNo);
-                            try (ResultSet rsStudent = getStudentPs.executeQuery()) {
-                                if (rsStudent.next()) {
-                                    Student st = new Student();
-                                    st.setId(rsStudent.getInt("id"));
-                                    st.setName(rsStudent.getString("name"));
-                                    st.setRegistrationNo(rsStudent.getString("registration_no"));
-                                    st.setSeatNo(rsStudent.getString("seat_no"));
-                                    st.setStatus(rsStudent.getString("status"));
-                                    st.setNationalId(rsStudent.getString("national_id"));
-                                    st.setProfessionalGroup(rsStudent.getString("professional_group"));
-                                    st.setCoordinationNo(rsStudent.getString("coordination_no"));
-                                    st.setSecretNo(rsStudent.getString("secret_no"));
-                                    st.setProfession(prof);
-
-                                    java.util.Map<Integer, Integer> grades = new java.util.HashMap<>();
-                                    getGradesPs.setInt(1, st.getId());
-                                    try (ResultSet rsGrades = getGradesPs.executeQuery()) {
-                                        while (rsGrades.next()) {
-                                            grades.put(rsGrades.getInt("subject_id"), rsGrades.getInt("obtained_mark"));
-                                        }
-                                    }
-                                    st.setGrades(grades);
-                                    list.add(st);
+                            String region = regionName; // fallback
+                            getRegionPs.setString(1, seatNo);
+                            try (ResultSet rsR = getRegionPs.executeQuery()) {
+                                if (rsR.next() && rsR.getString("region") != null && !rsR.getString("region").isEmpty()) {
+                                    region = rsR.getString("region");
                                 }
                             }
+                            byRegion
+                                .computeIfAbsent(region, k -> new java.util.LinkedHashMap<>())
+                                .computeIfAbsent(prof, k -> new java.util.ArrayList<>())
+                                .add(seatNo);
+                        }
+                    }
+
+                    java.io.File folder = new java.io.File("التقارير/تبييضة/ناجحين");
+                    if (!folder.exists()) folder.mkdirs();
+
+                    for (java.util.Map.Entry<String, java.util.LinkedHashMap<String, java.util.List<String>>> regionEntry : byRegion.entrySet()) {
+                        String currentRegion = regionEntry.getKey();
+                        java.util.LinkedHashMap<String, java.util.List<String>> profMap = regionEntry.getValue();
+
+                        String sanitizedRegion = currentRegion.replace("/", "_").replace("\\", "_").replace(":", "_");
+                        String fn = "التقارير/تبييضة/ناجحين/" + sanitizedRegion + ".pdf";
+
+                        com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+                        com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
+                        document.open();
+
+                        String getStudentSql = "SELECT id, name, registration_no, seat_no, status, national_id, professional_group, secret_no, coordination_no FROM students WHERE seat_no = ?";
+                        PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
+                        String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
+                        PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
+
+                        int processed = 0;
+                        for (java.util.Map.Entry<String, java.util.List<String>> entry : profMap.entrySet()) {
+                            String prof = entry.getKey();
+                            java.util.List<Student> list = new java.util.ArrayList<>();
+
+                            for (String seatNo : entry.getValue()) {
+                                processed++;
+                                updateStatus(processed, totalSelected, "جاري جلب بيانات الطالب: " + seatNo);
+                                getStudentPs.setString(1, seatNo);
+                                try (ResultSet rsStudent = getStudentPs.executeQuery()) {
+                                    if (rsStudent.next()) {
+                                        Student st = new Student();
+                                        st.setId(rsStudent.getInt("id"));
+                                        st.setName(rsStudent.getString("name"));
+                                        st.setRegistrationNo(rsStudent.getString("registration_no"));
+                                        st.setSeatNo(rsStudent.getString("seat_no"));
+                                        st.setStatus(rsStudent.getString("status"));
+                                        st.setNationalId(rsStudent.getString("national_id"));
+                                        st.setProfessionalGroup(rsStudent.getString("professional_group"));
+                                        st.setCoordinationNo(rsStudent.getString("coordination_no"));
+                                        st.setSecretNo(rsStudent.getString("secret_no"));
+                                        st.setProfession(prof);
+
+                                        java.util.Map<Integer, Integer> grades = new java.util.HashMap<>();
+                                        getGradesPs.setInt(1, st.getId());
+                                        try (ResultSet rsGrades = getGradesPs.executeQuery()) {
+                                            while (rsGrades.next()) {
+                                                grades.put(rsGrades.getInt("subject_id"), rsGrades.getInt("obtained_mark"));
+                                            }
+                                        }
+                                        st.setGrades(grades);
+                                        list.add(st);
+                                    }
+                                }
+                            }
+
+                            updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
+                            String profSystem = systemName;
+                            try (PreparedStatement psSys2 = con.prepareStatement(
+                                    "SELECT exam_system FROM professions WHERE TRIM(name) = TRIM(?)")) {
+                                psSys2.setString(1, prof);
+                                try (ResultSet rsSys2 = psSys2.executeQuery()) {
+                                    if (rsSys2.next() && rsSys2.getString(1) != null && !rsSys2.getString(1).trim().isEmpty()) {
+                                        profSystem = rsSys2.getString(1).trim();
+                                    }
+                                }
+                            } catch (Exception ex) { ex.printStackTrace(); }
+
+                            gradReportSucc report = new gradReportSucc(prof, centerName, currentRegion, profSystem, list);
+                            report.appendToDocument(document);
                         }
 
-                        updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                        gradReportSucc report = new gradReportSucc(prof, centerName, regionName, systemName, list);
-                        report.appendToDocument(document);
+                        document.close();
                     }
                 }
 
-                document.close();
-                java.awt.Desktop.getDesktop().open(new java.io.File(fn));
+                java.io.File folder = new java.io.File("التقارير/تبييضة/ناجحين");
+                java.awt.Desktop.getDesktop().open(folder);
                 return null;
             }
         };
@@ -232,7 +279,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
 
         try (Connection con = DatabaseConnection.getConnection()) {
 
-            String sql = "SELECT name, profession, registration_no, seat_no, status, national_id, coordination_no "
+            String sql = "SELECT name, profession, registration_no, seat_no, status, national_id, coordination_no, exam_system "
                     + "FROM students "
                     + "WHERE center_name = ? "
                     + "AND region = ? "
@@ -247,9 +294,16 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             ResultSet rs = ps.executeQuery();
 
             int i = 1;
-
+            boolean systemCaptured = false;
             while (rs.next()) {
-
+                // capture exam_system from first row
+                if (!systemCaptured) {
+                    String sys = rs.getString("exam_system");
+                    if (sys != null && !sys.trim().isEmpty()) {
+                        loadedSystemName = sys.trim();
+                        systemCaptured = true;
+                    }
+                }
                 model.addRow(new Object[]{
                     rs.getString("status"),
                     rs.getString("seat_no"),
@@ -260,7 +314,6 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                     rs.getString("name"),
                     i++
                 });
-
             }
 
         }
@@ -434,43 +487,61 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             return;
         }
 
+        String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
+        String regionName = combobox1.getSelectedItem() != null ? combobox1.getSelectedItem().toString() : "";
+
         successful report = new successful();
         if (report.isCancelled) return;
+
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
-        DefaultTableModel model2 = (DefaultTableModel) report.jTable2.getModel();
-        model2.setRowCount(0);
 
-        // SucssfullPageEdit columns (8): 0:حالة التلميذ, 1:رقم الجلوس, 2:كود التنسيق, 3:الرقم القومي, 4:رقم التسجيل, 5:المهنة, 6:الاسم, 7:م
-        // successful.java columns (6):   0:حاله التلميذ, 1:رقم الجلوس, 2:رقم التسجيل, 3:المهنة, 4:الاسم, 5:م
-        for (int i = 0; i < selectedRows.length; i++) {
-            int r = selectedRows[i];
-            String name = String.valueOf(model1.getValueAt(r, 6) != null ? model1.getValueAt(r, 6) : "");
-            String prof = String.valueOf(model1.getValueAt(r, 5) != null ? model1.getValueAt(r, 5) : "");
-            String htmlName = "<html><center>" + name.trim() + "</center></html>";
-            String htmlProf = "<html><center>" + prof.trim() + "</center></html>";
-
-            Object[] row = new Object[]{
-                model1.getValueAt(r, 0),  // 0: حالة التلميذ
-                model1.getValueAt(r, 1),  // 1: رقم الجلوس
-                model1.getValueAt(r, 4),  // 2: رقم التسجيل
-                htmlProf,                 // 3: المهنة
-                htmlName,                 // 4: الاسم
-                i + 1                     // 5: م
-            };
-            model2.addRow(row);
-        }
-
-        if (cmdcenter.getSelectedItem() != null) {
-            String centerName = cmdcenter.getSelectedItem().toString();
-            report.loadCenterData(centerName);
-            report.cent.setText(centerName);
-        }
-        
         ReportWorker worker = new ReportWorker(this, "كشف الطلاب الناجحين", null) {
             @Override
             protected Void doInBackground() throws Exception {
+                updateStatus(10, 100, "جاري جلب أنظمة المهن...");
+
+                java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem = new java.util.LinkedHashMap<>();
+                java.util.Map<String, String> profToSystem = new java.util.HashMap<>();
+
+                try (java.sql.Connection con = com.pvtd.students.db.DatabaseConnection.getConnection()) {
+                    String sql = "SELECT name, exam_system FROM professions";
+                    try (java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                         java.sql.ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            String pName = rs.getString("name");
+                            String pSys = rs.getString("exam_system");
+                            if (pName != null) {
+                                profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < selectedRows.length; i++) {
+                        int r = selectedRows[i];
+                        String name = String.valueOf(model1.getValueAt(r, 6) != null ? model1.getValueAt(r, 6) : "");
+                        String prof = String.valueOf(model1.getValueAt(r, 5) != null ? model1.getValueAt(r, 5) : "");
+                        
+                        // Strip HTML for lookup
+                        String cleanProf = prof.replaceAll("<[^>]*>", "").trim();
+                        String systemName = profToSystem.getOrDefault(cleanProf, "نظامي");
+
+                        String htmlName = "<html><center>" + name.trim() + "</center></html>";
+                        String htmlProf = "<html><center>" + prof.trim() + "</center></html>";
+
+                        java.util.Vector rowData = new java.util.Vector();
+                        rowData.add(model1.getValueAt(r, 0)); // 0: حالة التلميذ
+                        rowData.add(model1.getValueAt(r, 1)); // 1: رقم الجلوس
+                        rowData.add(model1.getValueAt(r, 4)); // 2: رقم التسجيل
+                        rowData.add(htmlProf);                // 3: المهنة
+                        rowData.add(htmlName);                // 4: الاسم
+                        rowData.add(i + 1);                   // 5: م
+
+                        bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
+                    }
+                }
+
                 updateStatus(50, 100, "جاري إنشاء ملف PDF...");
-                report.createPDF();
+                report.createPDFGroupedBySystem(bySystem, centerName, regionName, true);
                 return null;
             }
         };

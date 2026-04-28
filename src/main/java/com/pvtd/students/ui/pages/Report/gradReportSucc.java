@@ -157,12 +157,12 @@ public class gradReportSucc extends JFrame {
 
         centerPanel.add(Box.createVerticalStrut(15));
 
-        JLabel batchInfo = label("دفعة قبول : أكتوبر لسنة ٢٠١٩ وما قبلها", 38, true);
+        JLabel batchInfo = label("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها", 38, true);
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : أغسطس لسنة ٢٠٢٢", 38, true);
+        JLabel examDate = label("المنعقد في : يوليو لسنة ٢٠٢٦", 38, true);
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(examDate);
@@ -249,7 +249,7 @@ public class gradReportSucc extends JFrame {
             cols[i++] = "مجموع النظري";
         cols[i++] = "مجموع عملي وتطبيقي";
         cols[i++] = "المجموع الكلي";
-        cols[i] = "التقدير";
+        cols[i] = "حالة";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) {
@@ -496,6 +496,7 @@ public class gradReportSucc extends JFrame {
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(255, 102, 0))); // Thicker orange line
         p.setPreferredSize(new Dimension(1450, 110));
+        p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
@@ -520,7 +521,11 @@ public class gradReportSucc extends JFrame {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel t = new JLabel(title, SwingConstants.CENTER);
-        t.setFont(new Font("Arial", Font.PLAIN, 18));
+        if ("كتبه".equals(title)) {
+            t.setFont(new Font("Arial", Font.BOLD, 26));
+        } else {
+            t.setFont(new Font("Arial", Font.PLAIN, 18));
+        }
         t.setAlignmentX(Component.CENTER_ALIGNMENT);
         JLabel line = new JLabel("..........................................", SwingConstants.CENTER);
         line.setAlignmentX(Component.CENTER_ALIGNMENT);

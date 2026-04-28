@@ -16,7 +16,8 @@ import javax.swing.table.DefaultTableModel;
  */
 public class EltaSoeda3070 extends JFrame {
 
-    private JComboBox<String> comboGroup;
+    private JComboBox<String> comboRegion;
+    private JComboBox<String> comboCenter;
     private JComboBox<String> comboProf;
     private JTable jTable1;
     private JScrollPane jScrollPane1;
@@ -29,8 +30,8 @@ public class EltaSoeda3070 extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         initComponents();
         setupTableUi();
-        loadGroups();
-        loadStudents(null, null);
+        loadFilters();
+        loadStudents("الكل", "الكل", "الكل");
     }
 
     private void initComponents() {
@@ -55,21 +56,29 @@ public class EltaSoeda3070 extends JFrame {
         gbc.insets = new Insets(0, 50, 0, 20);
         toolbar.add(title, gbc);
 
-        // Combo المجموعة
-        comboGroup = new JComboBox<>();
-        comboGroup.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        comboGroup.setPreferredSize(new Dimension(220, 40));
-        comboGroup.addActionListener(e -> onGroupChanged());
-        gbc.gridx = 1;
-        gbc.ipadx = 180;
+        // Combo المنطقة
+        comboRegion = new JComboBox<>();
+        comboRegion.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        comboRegion.setPreferredSize(new Dimension(180, 40));
+        comboRegion.addActionListener(e -> onRegionChanged());
+        gbc.gridx = 2;
+        gbc.ipadx = 100;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(0, 15, 0, 15);
-        toolbar.add(comboGroup, gbc);
+        toolbar.add(comboRegion, gbc);
+
+        // Combo المركز
+        comboCenter = new JComboBox<>();
+        comboCenter.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        comboCenter.setPreferredSize(new Dimension(180, 40));
+        comboCenter.addActionListener(e -> refreshTable());
+        gbc.gridx = 1;
+        toolbar.add(comboCenter, gbc);
 
         // Combo المهنة
         comboProf = new JComboBox<>();
         comboProf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        comboProf.setPreferredSize(new Dimension(220, 40));
+        comboProf.setPreferredSize(new Dimension(180, 40));
         comboProf.addActionListener(e -> refreshTable());
         gbc.gridx = 0;
         toolbar.add(comboProf, gbc);
@@ -80,7 +89,7 @@ public class EltaSoeda3070 extends JFrame {
         btnSelectAll.setForeground(Color.WHITE);
         btnSelectAll.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSelectAll.addActionListener(e -> jTable1.selectAll());
-        gbc.gridx = 2;
+        gbc.gridx = 3;
         gbc.ipadx = 10;
         toolbar.add(btnSelectAll, gbc);
 
@@ -90,7 +99,7 @@ public class EltaSoeda3070 extends JFrame {
         btnGenerate.setColor1(new Color(0, 153, 102));
         btnGenerate.setColor2(new Color(0, 102, 51));
         btnGenerate.addActionListener(e -> generateReport());
-        gbc.gridx = 3;
+        gbc.gridx = 4;
         gbc.ipadx = 30;
         toolbar.add(btnGenerate, gbc);
 
@@ -133,63 +142,45 @@ public class EltaSoeda3070 extends JFrame {
 
     // ── Data loading ──────────────────────────────────────────────────
 
-    /**
-     * يحمّل المجموعات المهنية التي تحتوي على مواد بنظام 30/70 فقط.
-     */
-    private void loadGroups() {
-        comboGroup.removeAllItems();
-        comboGroup.addItem("الكل");
-        String sql = "SELECT DISTINCT s.professional_group FROM students s " +
-                     "WHERE s.professional_group IS NOT NULL " +
-                     "AND EXISTS (" +
-                     "  SELECT 1 FROM subjects sub " +
-                     "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
-                     "  AND sub.parent_subject_id IS NOT NULL" +
-                     ") ORDER BY s.professional_group";
-        try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String g = rs.getString(1);
-                if (g != null && !g.isBlank()) comboGroup.addItem(g.trim());
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-    }
+    private void loadFilters() {
+        comboRegion.removeAllItems();
+        comboRegion.addItem("الكل");
+        java.util.List<String> regions = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION);
+        for (String r : regions) {
+            comboRegion.addItem(r);
+        }
 
-    /**
-     * يحمّل المهن التي تستخدم نظام 30/70 للمجموعة المختارة.
-     */
-    private void loadProfessions(String group) {
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+
         comboProf.removeAllItems();
         comboProf.addItem("الكل");
-        StringBuilder sql = new StringBuilder(
-            "SELECT DISTINCT s.profession FROM students s " +
-            "WHERE s.profession IS NOT NULL " +
-            "AND EXISTS (" +
-            "  SELECT 1 FROM subjects sub " +
-            "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
-            "  AND sub.parent_subject_id IS NOT NULL" +
-            ")");
-        if (group != null && !group.equals("الكل")) {
-            sql.append(" AND TRIM(s.professional_group) = TRIM(?)");
+        java.util.List<String> professions = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROFESSION);
+        for (String p : professions) {
+            comboProf.addItem(p);
         }
-        sql.append(" ORDER BY s.profession");
-        try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql.toString())) {
-            if (group != null && !group.equals("الكل")) ps.setString(1, group);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String p = rs.getString(1);
-                    if (p != null && !p.isBlank()) comboProf.addItem(p.trim());
-                }
+    }
+
+    private void loadCenters(String region) {
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+        if (region.equals("الكل")) {
+            java.util.List<String> centers = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_CENTER);
+            for (String c : centers) {
+                comboCenter.addItem(c);
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } else {
+            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
+            for (String c : centers.keySet()) {
+                comboCenter.addItem(c);
+            }
+        }
     }
 
     /**
      * يحمّل الطلاب الذين حرفتهم تستخدم نظام 30/70.
      */
-    private void loadStudents(String group, String profession) {
+    private void loadStudents(String region, String center, String profession) {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
 
@@ -200,8 +191,10 @@ public class EltaSoeda3070 extends JFrame {
             "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
             "  AND sub.parent_subject_id IS NOT NULL" +
             ")");
-        if (group != null && !group.equals("الكل"))
-            sql.append(" AND TRIM(s.professional_group) = TRIM(?)");
+        if (region != null && !region.equals("الكل"))
+            sql.append(" AND TRIM(s.region) = TRIM(?)");
+        if (center != null && !center.equals("الكل"))
+            sql.append(" AND TRIM(s.center_name) = TRIM(?)");
         if (profession != null && !profession.equals("الكل"))
             sql.append(" AND TRIM(s.profession) = TRIM(?)");
         sql.append(" ORDER BY s.name ASC");
@@ -209,7 +202,8 @@ public class EltaSoeda3070 extends JFrame {
         try (Connection con = DatabaseConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql.toString())) {
             int idx = 1;
-            if (group != null && !group.equals("الكل"))     ps.setString(idx++, group);
+            if (region != null && !region.equals("الكل"))     ps.setString(idx++, region);
+            if (center != null && !center.equals("الكل"))     ps.setString(idx++, center);
             if (profession != null && !profession.equals("الكل")) ps.setString(idx++, profession);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -236,18 +230,18 @@ public class EltaSoeda3070 extends JFrame {
 
     // ── Events ────────────────────────────────────────────────────────
 
-    private void onGroupChanged() {
-        String group = (String) comboGroup.getSelectedItem();
-        if (group != null) {
-            loadProfessions(group);
-            refreshTable();
+    private void onRegionChanged() {
+        if (comboRegion.getSelectedItem() != null) {
+            loadCenters((String) comboRegion.getSelectedItem());
         }
+        refreshTable();
     }
 
     private void refreshTable() {
-        String group = (String) comboGroup.getSelectedItem();
+        String region = (String) comboRegion.getSelectedItem();
+        String center = (String) comboCenter.getSelectedItem();
         String prof  = (String) comboProf.getSelectedItem();
-        loadStudents(group == null ? "الكل" : group, prof == null ? "الكل" : prof);
+        loadStudents(region == null ? "الكل" : region, center == null ? "الكل" : center, prof == null ? "الكل" : prof);
     }
 
     // ── Report generation ─────────────────────────────────────────────
@@ -285,11 +279,7 @@ public class EltaSoeda3070 extends JFrame {
         String regionName = "";
 
         try {
-            // COMBINED DOCUMENT
-            com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A3.rotate());
-            String combinedFn = "التقارير/التسويدة/تقرير_التسويدة_المجمع_30_70.pdf";
-            com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
-            combinedDoc.open();
+
 
             try (Connection con = DatabaseConnection.getConnection()) {
                 String getStudentSql =
@@ -341,51 +331,72 @@ public class EltaSoeda3070 extends JFrame {
                     }
                 }
 
-                // Group and Sort Professions by their minimum Secret Number (Numerical)
-                java.util.Map<String, java.util.List<Student>> grouped = allSelectedStudents.stream()
-                    .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+                // Group and Sort by Region First
+                java.util.Map<String, java.util.List<Student>> groupedByRegion = allSelectedStudents.stream()
+                        .collect(java.util.stream.Collectors.groupingBy(s -> s.getRegion() != null && !s.getRegion().isEmpty() ? s.getRegion() : "غير محدد"));
 
-                java.util.List<String> sortedProfessions = grouped.keySet().stream()
-                    .sorted((p1, p2) -> {
-                        Integer min1 = grouped.get(p1).stream()
-                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                            .filter(s -> !s.isEmpty())
-                            .map(Integer::parseInt)
-                            .min(Integer::compare).orElse(99999999);
-                        Integer min2 = grouped.get(p2).stream()
-                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                            .filter(s -> !s.isEmpty())
-                            .map(Integer::parseInt)
-                            .min(Integer::compare).orElse(99999999);
-                        return min1.compareTo(min2);
-                    })
-                    .collect(java.util.stream.Collectors.toList());
+                java.io.File folder = new java.io.File("التقارير/تسويدة");
+                if (!folder.exists())
+                    folder.mkdirs();
 
-                for (String prof : sortedProfessions) {
-                    java.util.List<Student> list = grouped.get(prof);
-                    if (!list.isEmpty()) {
-                        // Sort by secret number (Numerical)
-                        list.sort((s1, s2) -> {
-                            String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
-                            String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
-                            
-                            try {
-                                if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
-                                    return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
-                                }
-                            } catch (Exception ex) {}
-                            return sn1Str.compareTo(sn2Str);
-                        });
+                for (java.util.Map.Entry<String, java.util.List<Student>> regionEntry : groupedByRegion.entrySet()) {
+                    String currentRegionName = regionEntry.getKey();
+                    java.util.List<Student> regionStudents = regionEntry.getValue();
 
-                        // is3070 = true → gradReportTasoeda يعرض مواد الابن (30/70)
-                        gradReportTasoeda report = new gradReportTasoeda(prof, centerName, regionName, list, true, selectedMonth, currentYear);
-                        report.createPDF(combinedDoc);
+                    com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(
+                            com.itextpdf.text.PageSize.A3.rotate());
+                    String sanitizedRegion = currentRegionName.replace("/", "_").replace("\\", "_").replace(":", "_");
+                    String combinedFn = "التقارير/تسويدة/" + sanitizedRegion + ".pdf";
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                    combinedDoc.open();
+
+                    // Group and Sort Professions by their minimum Secret Number (Numerical) within this region
+                    java.util.Map<String, java.util.List<Student>> grouped = regionStudents.stream()
+                        .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+
+                    java.util.List<String> sortedProfessions = grouped.keySet().stream()
+                        .sorted((p1, p2) -> {
+                            Integer min1 = grouped.get(p1).stream()
+                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                .filter(s -> !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .min(Integer::compare).orElse(99999999);
+                            Integer min2 = grouped.get(p2).stream()
+                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
+                                .filter(s -> !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .min(Integer::compare).orElse(99999999);
+                            return min1.compareTo(min2);
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+
+                    for (String prof : sortedProfessions) {
+                        java.util.List<Student> list = grouped.get(prof);
+                        if (!list.isEmpty()) {
+                            // Sort by secret number (Numerical)
+                            list.sort((s1, s2) -> {
+                                String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
+                                String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
+                                
+                                try {
+                                    if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
+                                        return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
+                                    }
+                                } catch (Exception ex) {}
+                                return sn1Str.compareTo(sn2Str);
+                            });
+
+                            // is3070 = true → gradReportTasoeda يعرض مواد الابن (30/70)
+                            String rName = currentRegionName.equals("غير محدد") ? regionName : currentRegionName;
+                            gradReportTasoeda report = new gradReportTasoeda(prof, centerName, rName, list, true, selectedMonth, currentYear);
+                            report.createPDF(combinedDoc);
+                        }
                     }
-                }
-            }
 
-            combinedDoc.close();
-            Desktop.getDesktop().open(new java.io.File(combinedFn));
+                    combinedDoc.close();
+                }
+
+                Desktop.getDesktop().open(folder);
 
         } catch (Exception e) {
             e.printStackTrace();

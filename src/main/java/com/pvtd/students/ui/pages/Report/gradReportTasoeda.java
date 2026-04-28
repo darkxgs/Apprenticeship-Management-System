@@ -212,8 +212,8 @@ public class gradReportTasoeda extends JFrame {
         String[] centerLines = {
                 " مسودة نتائج الصف الثالث ",
                 " دبلوم التلمذة الصناعية ",
-                " دفعة قبول " + examYear + " ",
-                " دور " + examMonth + " المنعقد في " + examYear + " "
+                " دفعة قبول أكتوبر لسنة ٢٠٢٣ وما قبلها ",
+                " المنعقد في يوليو لسنة ٢٠٢٦ "
         };
 
         for (String line : centerLines) {
@@ -286,7 +286,7 @@ public class gradReportTasoeda extends JFrame {
         cols[i++] = "<html><center>مجموع عملي<br/>وتطبيقي</center></html>";
         cols[i++] = "<html><center>المجموع<br/>الكلي</center></html>";
         cols[i++] = "ملاحظات";
-        cols[i++] = "التقدير";
+        cols[i++] = "حالة";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override

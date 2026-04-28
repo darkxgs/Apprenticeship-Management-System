@@ -65,7 +65,7 @@ javax.swing.table.DefaultTableCellRenderer centerCellRenderer = new javax.swing.
                                                    int row, int column) {
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
         c.setBackground(java.awt.Color.WHITE); // Make all rows white
-        setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         c.setFont(new Font("Tahoma", Font.PLAIN, 22));
         return c;
     }
@@ -80,13 +80,12 @@ if (jTable2.getColumnCount() >= 6) {
     jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
     jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
     jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
-    
-    jTable2.getColumnModel().getColumn(0).setPreferredWidth(90); // حالة التلميذ
-    jTable2.getColumnModel().getColumn(1).setPreferredWidth(100); // رقم الجلوس
-    jTable2.getColumnModel().getColumn(2).setPreferredWidth(100); // رقم التسجيل
-    jTable2.getColumnModel().getColumn(3).setPreferredWidth(460); // المهنة
-    jTable2.getColumnModel().getColumn(4).setPreferredWidth(340); // الاسم
-    jTable2.getColumnModel().getColumn(5).setPreferredWidth(60);  // م
+            jTable2.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة التلميذ
+            jTable2.getColumnModel().getColumn(1).setPreferredWidth(140); // رقم الجلوس
+            jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم التسجيل
+            jTable2.getColumnModel().getColumn(3).setPreferredWidth(520); // المهنة
+            jTable2.getColumnModel().getColumn(4).setPreferredWidth(430); // الاسم
+            jTable2.getColumnModel().getColumn(5).setPreferredWidth(50); // م
 }
          
                  JTableHeader header = jTable2.getTableHeader();
@@ -120,8 +119,8 @@ int year = java.time.Year.now().getValue();
 
 String arabicYear = toArabicNumbers(String.valueOf(year));
 
-        jLabel10.setText("دفعة قبول : " + month + " " + "لسنة " + arabicYear + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + month + " " + "لسنة " + arabicYear);
+        jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + "يوليو" + " " + "لسنة " + toArabicNumbers("2026"));
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -296,12 +295,12 @@ String arabicYear = toArabicNumbers(String.valueOf(year));
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel10.setText("دفعة قبول : أكتوبر لسنة 2019 وما قبلها");
+        jLabel10.setText("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها");
         jPanel1.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 102, 250, -1));
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel11.setText("المنعقد فى : أغسطس لسنة 2022");
+        jLabel11.setText("المنعقد فى : يوليو لسنة ٢٠٢٦");
         jPanel1.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 122, 210, -1));
 
         jLabel8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N
@@ -377,15 +376,14 @@ private void resizeTable() {
 
 public void buildPagePanel(int rowCount) {
     jPanel1.setLayout(null); // Force absolute layout to prevent GroupLayout clipping
-    jPanel1.setPreferredSize(new java.awt.Dimension(1200, 1700));
-    jPanel1.setSize(1200, 1700);
+        jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
+        jPanel1.setSize(1400, 1980);
     jPanel1.setBackground(java.awt.Color.WHITE);
     
     // Logo (Top Left)
     jLabel8.setBounds(30, 20, 100, 100);
-    
-    // Ministry Info (Right Top)
-    int rAlign = 780; 
+        // Ministry Info (Right Top)
+        int rAlign = 1000;
     jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
     jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
     jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -396,7 +394,7 @@ public void buildPagePanel(int rowCount) {
     jLabel4.setBounds(rAlign, 85, 390, 25);
     
     // School Head Data (Right)
-    int dataX = 850;
+        int dataX = 1050;
     jLabel7.setBounds(dataX + 220, 120, 100, 30); regoin.setBounds(dataX - 80, 120, 300, 30);
     jLabel9.setBounds(dataX + 220, 150, 100, 30); cent.setBounds(dataX - 80, 150, 300, 30);
     jLabel12.setBounds(dataX + 220, 180, 100, 30); system.setBounds(dataX - 80, 180, 300, 30);
@@ -416,19 +414,18 @@ public void buildPagePanel(int rowCount) {
     jTable2.setRowHeight(rowH);
     
     // Fixed full-page height for 30 rows + header (42*30 + 60 = 1320)
-    int tableHeight = 1320;
-    jScrollPane2.setBounds(20, tableY, 1160, tableHeight); 
+        int tableHeight = 1320;
+        jScrollPane2.setBounds(15, tableY, 1370, tableHeight);
+
+        // Footer
+        int separatorY = tableY + tableHeight + 20;
+        int labelsY = separatorY + 20;
+        jSeparator1.setBounds(15, separatorY, 1370, 10);
     
-    // Footer positioned safely at bottom
-    int separatorY = tableY + tableHeight + 20;
-    int labelsY = separatorY + 20;
-    
-    jSeparator1.setBounds(20, separatorY, 1160, 10);
-    
-    jLabel16.setBounds(20, labelsY, 280, 40);  // رئيس اللجنة
-    jLabel17.setBounds(350, labelsY, 200, 40); // راجعه
-    jLabel18.setBounds(650, labelsY, 200, 40); // املاه
-    jLabel14.setBounds(950, labelsY, 240, 40); // كتبه
+        jLabel14.setBounds(1150, labelsY, 200, 40); // كتبه (right)
+        jLabel18.setBounds(850, labelsY, 200, 40); // املاه
+        jLabel17.setBounds(550, labelsY, 200, 40); // راجعه
+        jLabel16.setBounds(50, labelsY, 300, 40);  // رئيس اللجنة (left)
 
     jPanel1.doLayout();
     jPanel1.revalidate();
@@ -475,8 +472,8 @@ public void createPDF() {
             jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1)) + " من " + toArabicNumbers(String.valueOf(pageCount)));
             buildPagePanel(model.getRowCount());
 
-            int width = 1200;
-            int height = 1700;
+                                int width = 1400;
+                                int height = 1980;
             
             jPanel1.setSize(width, height);
             jTable2.setSize(jTable2.getPreferredSize());
@@ -527,9 +524,11 @@ public void createPDF() {
     try {
 
         String sql = """
-        SELECT DISTINCT region, exam_system
-        FROM students
-        WHERE center_name = ?
+        SELECT s.region, NVL(p.exam_system, s.exam_system) as exam_system
+        FROM students s
+        LEFT JOIN professions p ON TRIM(p.name) = TRIM(s.profession)
+        WHERE s.center_name = ?
+        AND ROWNUM = 1
         """;
 
         Connection con = DatabaseConnection.getConnection();
@@ -610,5 +609,84 @@ public void createPDF() {
     public javax.swing.JTable jTable2;
     private javax.swing.JLabel regoin;
     private javax.swing.JLabel system;
-    // End of variables declaration//GEN-END:variables
+    public void createPDFGroupedBySystem(
+                    java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem,
+                    String centerName, String regionName, boolean isFirstCall) {
+        try {
+            int rowsPerPage = 30;
+
+            String folderStr = "التقارير/بدون درجات/مفصولين";
+            java.io.File folder = new java.io.File(folderStr);
+            if (!folder.exists()) folder.mkdirs();
+            String sanitizedRegion = (regionName != null && !regionName.trim().isEmpty())
+                    ? regionName.replace("/", "_").replace("\\", "_").replace(":", "_")
+                    : "غير_محدد";
+            String filePath = folderStr + "/" + sanitizedRegion + ".pdf";
+
+            Document document = new Document(PageSize.A4, 0, 0, 0, 0);
+            PdfWriter.getInstance(document, new FileOutputStream(filePath));
+            document.open();
+
+            boolean firstSystem = true;
+            DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+
+            for (java.util.Map.Entry<String, java.util.List<java.util.Vector>> sysEntry : bySystem.entrySet()) {
+                String sysName = sysEntry.getKey();
+                java.util.List<java.util.Vector> rows = sysEntry.getValue();
+
+                system.setText(sysName);
+                cent.setText(centerName);
+                regoin.setText(regionName);
+
+                int totalRows = rows.size();
+                int pageCount = (int) Math.ceil((double) totalRows / rowsPerPage);
+                if (pageCount == 0) pageCount = 1;
+
+                int globalIndex = 1;
+                for (int page = 0; page < pageCount; page++) {
+                    if (!firstSystem || page > 0) document.newPage();
+                    firstSystem = false;
+
+                    model.setRowCount(0);
+                    int start = page * rowsPerPage;
+                    int end = Math.min(start + rowsPerPage, totalRows);
+
+                    for (int i = start; i < end; i++) {
+                        java.util.Vector row = new java.util.Vector(rows.get(i));
+                        row.set(0, "مفصول");
+                        row.set(5, globalIndex++);
+                        model.addRow(row);
+                    }
+                    while (model.getRowCount() < 30) {
+                        model.addRow(new Object[] { "", "", "", "", "", "" });
+                    }
+
+                    jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1))
+                                    + " من " + toArabicNumbers(String.valueOf(pageCount)));
+                    buildPagePanel(model.getRowCount());
+
+                                        int width = 1400, height = 1980;
+                    jPanel1.setSize(width, height);
+                    jPanel1.validate();
+                    jPanel1.doLayout();
+
+                    BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g2d = img.createGraphics();
+                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                    jPanel1.printAll(g2d);
+                    g2d.dispose();
+
+                    Image pdfImg = Image.getInstance(img, null);
+                    pdfImg.scaleAbsolute(document.getPageSize().getWidth(), document.getPageSize().getHeight());
+                    pdfImg.setAbsolutePosition(0, 0);
+                    document.add(pdfImg);
+                }
+            }
+            document.close();
+            Desktop.getDesktop().open(new java.io.File(folderStr));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -156,7 +156,7 @@ protected void paintComponent(Graphics g){
     drawHeader(g2,x,y,100,h,"تطبيقي"); x+=100;
     drawHeader(g2,x,y,150,h,"مجموع عملي وتطبيقي"); x+=150;
     drawHeader(g2,x,y,120,h,"المجموع الكلي"); x+=120;
-    drawHeader(g2,x,y,100,h,"التقدير");
+    drawHeader(g2,x,y,100,h,"حالة");
 
     int rowY = y + h;
     int index = 1;

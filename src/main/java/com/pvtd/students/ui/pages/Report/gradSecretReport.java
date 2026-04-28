@@ -201,7 +201,7 @@ public class gradSecretReport extends JFrame {
             cols[i++] = "مجموع النظري";
         cols[i++] = "مجموع عملي وتطبيقي";
         cols[i++] = "المجموع الكلي";
-        cols[i] = "التقدير";
+        cols[i] = "حالة";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
@@ -403,6 +403,7 @@ public class gradSecretReport extends JFrame {
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, Color.BLACK));
         p.setPreferredSize(new Dimension(2000, 220));
+        p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
@@ -420,7 +421,11 @@ public class gradSecretReport extends JFrame {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel t = new JLabel(title, SwingConstants.CENTER);
-        t.setFont(new Font("Arial", Font.BOLD, 30));
+        if ("كتبه".equals(title)) {
+            t.setFont(new Font("Arial", Font.BOLD, 40));
+        } else {
+            t.setFont(new Font("Arial", Font.BOLD, 30));
+        }
         t.setAlignmentX(Component.CENTER_ALIGNMENT);
         JLabel line = new JLabel(".............................................", SwingConstants.CENTER);
         line.setFont(new Font("Arial", Font.PLAIN, 26));

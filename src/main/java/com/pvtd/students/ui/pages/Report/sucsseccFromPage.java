@@ -31,7 +31,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     public sucsseccFromPage() {
         initComponents();
         nameLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        
+        nameLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -657,24 +657,24 @@ private void clearLabels() {
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(null);
         jPanel1.add(studentImageLbl);
-        studentImageLbl.setBounds(40, 10, 190, 230);
+        studentImageLbl.setBounds(50, 20, 170, 230);
 
         seatNoLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(seatNoLbl);
-        seatNoLbl.setBounds(477, 290, 190, 20);
+        seatNoLbl.setBounds(480, 290, 190, 10);
 
         coordinationLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(coordinationLbl);
-        coordinationLbl.setBounds(477, 320, 190, 20);
+        coordinationLbl.setBounds(477, 320, 190, 10);
 
         nationalIdLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(nationalIdLbl);
-        nationalIdLbl.setBounds(477, 350, 190, 20);
+        nationalIdLbl.setBounds(477, 350, 200, 10);
 
         groupLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         groupLbl.setForeground(new java.awt.Color(61, 59, 110));
         jPanel1.add(groupLbl);
-        groupLbl.setBounds(67, 300, 190, 30);
+        groupLbl.setBounds(7, 300, 250, 30);
 
         roundLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         roundLbl.setForeground(new java.awt.Color(61, 59, 110));
@@ -685,7 +685,7 @@ private void clearLabels() {
         centerLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         centerLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(centerLbl);
-        centerLbl.setBounds(500, 440, 180, 20);
+        centerLbl.setBounds(460, 440, 220, 20);
 
         govLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(govLbl);
@@ -823,15 +823,14 @@ private void clearLabels() {
         eed.setBounds(100, 666, 60, 70);
 
         nameLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        nameLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        nameLbl.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
+        nameLbl.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         jPanel1.add(nameLbl);
-        nameLbl.setBounds(280, 380, 340, 20);
+        nameLbl.setBounds(80, 380, 540, 20);
 
         specLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         specLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(specLbl);
-        specLbl.setBounds(523, 410, 150, 20);
+        specLbl.setBounds(83, 410, 590, 20);
 
         jLabel41.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(jLabel41);
