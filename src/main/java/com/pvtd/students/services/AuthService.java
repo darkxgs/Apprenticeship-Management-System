@@ -2,6 +2,7 @@ package com.pvtd.students.services;
 
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.models.User;
+import com.pvtd.students.utils.PasswordUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,21 +12,23 @@ import java.sql.SQLException;
 public class AuthService {
 
     public static User login(String username, String password) {
-        String query = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String query = "SELECT * FROM users WHERE username = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, username);
-            stmt.setString(2, password);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return new User(
-                            rs.getInt("id"),
-                            rs.getString("username"),
-                            rs.getString("password"),
-                            rs.getString("role"),
-                            rs.getString("full_name"));
+                    String storedHash = rs.getString("password");
+                    if (PasswordUtils.checkPassword(password, storedHash)) {
+                        return new User(
+                                rs.getInt("id"),
+                                rs.getString("username"),
+                                storedHash,
+                                rs.getString("role"),
+                                rs.getString("full_name"));
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -59,7 +62,7 @@ public class AuthService {
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, username);
-            stmt.setString(2, password);
+            stmt.setString(2, PasswordUtils.hashPassword(password));
             stmt.setString(3, role);
             stmt.setString(4, fullName);
             return stmt.executeUpdate() > 0;

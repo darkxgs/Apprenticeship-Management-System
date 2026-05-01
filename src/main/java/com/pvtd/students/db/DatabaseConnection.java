@@ -1,15 +1,13 @@
 package com.pvtd.students.db;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import com.pvtd.students.utils.PasswordUtils;
 
 public class DatabaseConnection {
-    private static final String URL = ConfigManager.get("db.url", "jdbc:oracle:thin:@localhost:1521:xe");
-    private static final String USER = ConfigManager.get("db.user", "system");
+    private static final String URL = ConfigManager.get("db.url", "jdbc:oracle:thin:@192.168.1.100:1521:XE");
+    private static final String USER = ConfigManager.get("db.user", "pvtd");
     private static final String PASSWORD = ConfigManager.get("db.password", "123");
     private static final int MAX_POOL_SIZE = 20;
 
@@ -54,28 +52,29 @@ public class DatabaseConnection {
 
         final Connection targetConn = rawConn;
 
-        // Return a proxy that intercepts close() so try-with-resources returns to pool instead of destroying
+        // Return a proxy that intercepts close() so try-with-resources returns to pool
+        // instead of destroying
         return (Connection) java.lang.reflect.Proxy.newProxyInstance(
-            Connection.class.getClassLoader(),
-            new Class<?>[]{Connection.class},
-            new java.lang.reflect.InvocationHandler() {
-                @Override
-                public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args) throws Throwable {
-                    if ("close".equals(method.getName())) {
-                        returnConnection(targetConn);
-                        return null;
+                Connection.class.getClassLoader(),
+                new Class<?>[] { Connection.class },
+                new java.lang.reflect.InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args)
+                            throws Throwable {
+                        if ("close".equals(method.getName())) {
+                            returnConnection(targetConn);
+                            return null;
+                        }
+                        if ("isClosed".equals(method.getName())) {
+                            return targetConn.isClosed();
+                        }
+                        try {
+                            return method.invoke(targetConn, args);
+                        } catch (java.lang.reflect.InvocationTargetException e) {
+                            throw e.getTargetException();
+                        }
                     }
-                    if ("isClosed".equals(method.getName())) {
-                        return targetConn.isClosed();
-                    }
-                    try {
-                        return method.invoke(targetConn, args);
-                    } catch (java.lang.reflect.InvocationTargetException e) {
-                        throw e.getTargetException();
-                    }
-                }
-            }
-        );
+                });
     }
 
     /**
@@ -83,11 +82,15 @@ public class DatabaseConnection {
      * If pool is full, the connection is closed normally.
      */
     public static synchronized void returnConnection(Connection conn) {
-        if (conn == null) return;
+        if (conn == null)
+            return;
         try {
             if (!conn.isClosed()) {
                 if (conn.getAutoCommit() == false) {
-                    try { conn.rollback(); } catch (Exception ignored) {}
+                    try {
+                        conn.rollback();
+                    } catch (Exception ignored) {
+                    }
                     conn.setAutoCommit(true);
                 }
                 if (pool.size() < MAX_POOL_SIZE) {
@@ -97,13 +100,16 @@ public class DatabaseConnection {
                 }
             }
         } catch (Exception e) {
-            try { conn.close(); } catch (Exception ignored) {}
+            try {
+                conn.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
     public static void initializeDatabase() {
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             String createUsersSeq = "BEGIN\n" +
                     "  EXECUTE IMMEDIATE 'CREATE SEQUENCE users_seq START WITH 1 INCREMENT BY 1';\n" +
@@ -141,7 +147,8 @@ public class DatabaseConnection {
                         "INSERT INTO departments (name, description) " +
                                 "SELECT 'القسم الرئيسي', 'القسم الافتراضي للنظام' FROM DUAL " +
                                 "WHERE NOT EXISTS (SELECT 1 FROM departments WHERE ROWNUM = 1)");
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+            }
 
             createSequence(stmt, "specializations_seq");
             String createSpecsTable = "BEGIN\n" +
@@ -204,7 +211,8 @@ public class DatabaseConnection {
                     "other_notes VARCHAR2(255)," +
                     "image_path VARCHAR2(255)," +
                     "status VARCHAR2(50)," +
-                    "CONSTRAINT fk_student_spec FOREIGN KEY (specialization_id) REFERENCES specializations(id) ON DELETE SET NULL)';\n" +
+                    "CONSTRAINT fk_student_spec FOREIGN KEY (specialization_id) REFERENCES specializations(id) ON DELETE SET NULL)';\n"
+                    +
                     "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                     "END;";
             stmt.execute(createStudentsTable);
@@ -244,13 +252,33 @@ public class DatabaseConnection {
                     "END;";
             stmt.execute(createStatusesTable);
             createTrigger(stmt, "student_statuses");
+            addColumnIfMissing(stmt, "student_statuses", "status_code", "NUMBER");
 
-            String[] defaultStatuses = { "غائب", "محروم", "مفصول", "معتذر", "مؤجل" };
-            for (String s : defaultStatuses) {
+            // Seed default statuses with their negative grade marker codes
+            String[][] defaultStatuses = {
+                    { "غائب", "-1" },
+                    { "محروم", "-2" },
+                    { "مفصول", "-3" },
+                    { "معتذر", "-4" },
+                    { "مؤجل", "-5" },
+                    { "ناجح", "NULL" },
+                    { "راسب", "NULL" },
+                    { "دور ثاني", "NULL" }
+            };
+            for (String[] s : defaultStatuses) {
                 try {
-                    stmt.execute("INSERT INTO student_statuses (status_name) SELECT '" + s +
-                            "' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM student_statuses WHERE status_name = '" + s + "')");
-                } catch (SQLException e) {}
+                    stmt.execute("INSERT INTO student_statuses (status_name, status_code) SELECT '" + s[0] +
+                            "', " + s[1]
+                            + " FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM student_statuses WHERE status_name = '" + s[0]
+                            + "')");
+                } catch (SQLException e) {
+                }
+                // Also backfill the code for existing rows that may have NULL status_code
+                try {
+                    stmt.execute("UPDATE student_statuses SET status_code = " + s[1] +
+                            " WHERE status_name = '" + s[0] + "' AND status_code IS NULL");
+                } catch (SQLException e) {
+                }
             }
 
             createSequence(stmt, "system_dictionaries_seq");
@@ -294,11 +322,15 @@ public class DatabaseConnection {
             addColumnIfMissing(stmt, "subjects", "parent_subject_id", "NUMBER");
             addColumnIfMissing(stmt, "subjects", "sub_name", "VARCHAR2(100)");
 
-            try { stmt.execute("ALTER TABLE professions MODIFY (name VARCHAR2(300))"); } catch (SQLException ignore) {}
-            try { stmt.execute("ALTER TABLE subjects MODIFY (name VARCHAR2(300))"); } catch (SQLException ignore) {}
+            try {
+                stmt.execute("ALTER TABLE professions MODIFY (name VARCHAR2(300))");
+            } catch (SQLException ignore) {
+            }
+            try {
+                stmt.execute("ALTER TABLE subjects MODIFY (name VARCHAR2(300))");
+            } catch (SQLException ignore) {
+            }
 
-           
-            
             // Make national_id unique to prevent duplicates
             try {
                 stmt.execute("ALTER TABLE students ADD CONSTRAINT uq_national_id UNIQUE (national_id)");
@@ -326,7 +358,8 @@ public class DatabaseConnection {
                     "name VARCHAR2(150) UNIQUE NOT NULL," +
                     "code VARCHAR2(20)," +
                     "region_id NUMBER," +
-                    "CONSTRAINT fk_center_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL)';\n" +
+                    "CONSTRAINT fk_center_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL)';\n"
+                    +
                     "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                     "END;";
             stmt.execute(createCentersTable);
@@ -351,7 +384,8 @@ public class DatabaseConnection {
                     "name VARCHAR2(150) UNIQUE NOT NULL," +
                     "exam_system VARCHAR2(100)," +
                     "professional_group_id NUMBER," +
-                    "CONSTRAINT fk_prof_group FOREIGN KEY (professional_group_id) REFERENCES professional_groups(id) ON DELETE SET NULL)';\n" +
+                    "CONSTRAINT fk_prof_group FOREIGN KEY (professional_group_id) REFERENCES professional_groups(id) ON DELETE SET NULL)';\n"
+                    +
                     "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                     "END;";
             stmt.execute(createProfessionsTable);
@@ -371,23 +405,41 @@ public class DatabaseConnection {
                 stmt.execute("INSERT INTO system_settings (setting_key, setting_value) " +
                         "SELECT 'secret_number_increment', '10' FROM DUAL " +
                         "WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE setting_key = 'secret_number_increment')");
-            } catch (SQLException ignore) {}
-            
+            } catch (SQLException ignore) {
+            }
+
             // Set schema version for tracking
             try {
                 stmt.execute("MERGE INTO system_settings USING (SELECT 'schema_version' k, '2.0' v FROM DUAL) src " +
                         "ON (setting_key = src.k) " +
                         "WHEN MATCHED THEN UPDATE SET setting_value = src.v " +
                         "WHEN NOT MATCHED THEN INSERT (setting_key, setting_value) VALUES (src.k, src.v)");
-            } catch (SQLException ignore) {}
+            } catch (SQLException ignore) {
+            }
 
-            try {
-                stmt.execute("INSERT INTO users (username, password, role, full_name) " +
-                        "SELECT 'admin', 'admin123', 'admin', 'مدير النظام' FROM DUAL " +
-                        "WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin')");
-            } catch (SQLException e) {}
+            // Seed default admin user with hashed password
+            try (PreparedStatement checkStmt = conn.prepareStatement("SELECT 1 FROM users WHERE username = ?")) {
 
-            // Aggressive database sanitization for old Excel imports containing Non-Breaking Spaces (NBSP / CHR(160))
+                // Add a test user for verification
+                checkStmt.setString(1, "test");
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (!rs.next()) {
+                        try (PreparedStatement insertStmt = conn.prepareStatement(
+                                "INSERT INTO users (username, password, role, full_name) VALUES (?, ?, ?, ?)")) {
+                            insertStmt.setString(1, "test");
+                            insertStmt.setString(2, PasswordUtils.hashPassword("test1234"));
+                            insertStmt.setString(3, "admin");
+                            insertStmt.setString(4, "مدير النظام");
+                            insertStmt.executeUpdate();
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            // Aggressive database sanitization for old Excel imports containing
+            // Non-Breaking Spaces (NBSP / CHR(160))
             try {
                 String[] scrubQueries = {
                         "UPDATE students SET center_name = TRIM(REPLACE(center_name, CHR(160), ' ')) WHERE center_name LIKE '%' || CHR(160) || '%'",
@@ -401,7 +453,8 @@ public class DatabaseConnection {
                 for (String q : scrubQueries) {
                     stmt.execute(q);
                 }
-            } catch (SQLException ignore) {}
+            } catch (SQLException ignore) {
+            }
 
             System.out.println("Oracle Database initialized successfully. Schema version: 2.0");
             System.out.println("✓ All tables created/verified");
@@ -422,13 +475,19 @@ public class DatabaseConnection {
                 "  EXECUTE IMMEDIATE 'CREATE SEQUENCE " + seqName + " START WITH 1 INCREMENT BY 1';\n" +
                 "EXCEPTION WHEN OTHERS THEN IF SQLCODE != -955 THEN RAISE; END IF;\n" +
                 "END;";
-        try { stmt.execute(query); } catch (Exception e) {}
+        try {
+            stmt.execute(query);
+        } catch (Exception e) {
+        }
     }
 
     private static void createTrigger(Statement stmt, String tableName) {
         String trigger = "CREATE OR REPLACE TRIGGER trg_" + tableName + "_seq BEFORE INSERT ON " + tableName +
                 " FOR EACH ROW BEGIN :new.id := " + tableName + "_seq.nextval; END;";
-        try { stmt.execute(trigger); } catch (Exception e) {}
+        try {
+            stmt.execute(trigger);
+        } catch (Exception e) {
+        }
     }
 
     private static void addColumnIfMissing(Statement stmt, String table, String column, String type) {
@@ -437,7 +496,8 @@ public class DatabaseConnection {
             System.out.println("Success column added: " + column + " to table " + table);
         } catch (SQLException e) {
             if (e.getErrorCode() != 1430) {
-                System.err.println("Warning: could not add column '" + column + "' to '" + table + "'. Error: " + e.getMessage());
+                System.err.println(
+                        "Warning: could not add column '" + column + "' to '" + table + "'. Error: " + e.getMessage());
             } else {
                 System.out.println("Column " + column + " already exists in " + table);
             }

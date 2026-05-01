@@ -243,20 +243,15 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
     try {
 
         // إنشاء الفولدرات
-        File mainFolder = new File("تقارير");
-        if (!mainFolder.exists()) mainFolder.mkdir();
+        File mainFolder = new File("التقارير");
+        if (!mainFolder.exists()) mainFolder.mkdirs();
 
-        File certFolder = new File(mainFolder, "شهادة نجاح");
-        if (!certFolder.exists()) certFolder.mkdir();
-
-        String allFilePath = certFolder.getAbsolutePath() + "/all_certificates.pdf";
+        File certFolder = new File(mainFolder, "الشهادة");
+        if (!certFolder.exists()) certFolder.mkdirs();
 
         // 🔥 نخلي الصفحة نفس مقاس الشهادة
         com.itextpdf.text.Rectangle pageSize = new com.itextpdf.text.Rectangle(934, 686);
 
-        Document allDoc = new Document(pageSize);
-        PdfWriter.getInstance(allDoc, new FileOutputStream(allFilePath));
-        allDoc.open();
 
         int total = students.size();
         for (int i = 0; i < total; i++) {
@@ -292,16 +287,19 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
             img.scaleAbsolute(934, 686);
             img.setAbsolutePosition(0, 0);
 
-            // -----------------------
-            // 1️⃣ ملف مجمع
-            // -----------------------
-            allDoc.add(img);
-            allDoc.newPage();
+
 
             // -----------------------
-            // 2️⃣ ملف لكل طالب
+            // 2️⃣ ملف لكل طالب (منظم داخل مجلد باسم المركز)
             // -----------------------
-            String singlePath = certFolder.getAbsolutePath() + "/" + (nationalId != null ? nationalId : "student_" + s.getSeatNo()) + ".pdf";
+            String centerName = lblcenter.getText() != null ? lblcenter.getText().trim() : "بدون مركز";
+            // تنظيف اسم المجلد من الأحرف غير المسموح بها
+            centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
+            File centerFolder = new File(certFolder, centerName);
+            if (!centerFolder.exists()) centerFolder.mkdirs();
+
+            String fileName = (nationalId != null && !nationalId.trim().isEmpty()) ? nationalId : "student_" + s.getSeatNo();
+            String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
 
             Document singleDoc = new Document(pageSize);
             PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
@@ -315,11 +313,9 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
             singleDoc.close();
         }
 
-        allDoc.close();
-
         SwingUtilities.invokeLater(() -> {
             try {
-                Desktop.getDesktop().open(new File(allFilePath));
+                Desktop.getDesktop().open(certFolder);
                 JOptionPane.showMessageDialog(null, "تم إنشاء الشهادات بنجاح");
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -385,11 +381,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel3.setText("تشهد وزارة التجارة والصناعة بأن السيد :");
         jPanel2.add(jLabel3);
-        jLabel3.setBounds(560, 170, 310, 25);
+        jLabel3.setBounds(520, 160, 310, 25);
 
         lblName.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblName);
-        lblName.setBounds(340, 170, 220, 20);
+        lblName.setBounds(210, 160, 310, 20);
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel5.setText("قد نجـح فى إمتحــــان دبلوم التـلـمذة الصنـاعـيـة");
@@ -399,15 +395,15 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel6.setText("التخصص :");
         jPanel2.add(jLabel6);
-        jLabel6.setBounds(780, 260, 90, 25);
+        jLabel6.setBounds(740, 250, 90, 25);
 
         lblNationalId.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblNationalId);
-        lblNationalId.setBounds(570, 220, 177, 20);
+        lblNationalId.setBounds(447, 210, 260, 20);
 
         lblProfession.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblProfession);
-        lblProfession.setBounds(570, 260, 200, 30);
+        lblProfession.setBounds(420, 250, 310, 30);
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel10.setText("المجموعة المهنية :");
@@ -416,22 +412,22 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblGroup.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblGroup);
-        lblGroup.setBounds(90, 270, 171, 20);
+        lblGroup.setBounds(11, 270, 250, 20);
 
         jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel12.setText("دور  :");
         jPanel2.add(jLabel12);
-        jLabel12.setBounds(810, 300, 60, 25);
+        jLabel12.setBounds(770, 290, 60, 25);
 
         jLabel13.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel13.setText("أغسطس ٢٠٢٢ م");
         jPanel2.add(jLabel13);
-        jLabel13.setBounds(720, 290, 101, 50);
+        jLabel13.setBounds(680, 280, 101, 50);
 
         jLabel15.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel15.setText("سنه الفان واثنان وعشرون");
         jPanel2.add(jLabel15);
-        jLabel15.setBounds(540, 290, 160, 40);
+        jLabel15.setBounds(500, 280, 160, 40);
 
         jLabel16.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel16.setText("بتقديـر:");
@@ -446,11 +442,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel18.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel18.setText("مركز / محطة :");
         jPanel2.add(jLabel18);
-        jLabel18.setBounds(760, 370, 110, 25);
+        jLabel18.setBounds(720, 360, 110, 25);
 
         lblcenter.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblcenter);
-        lblcenter.setBounds(620, 370, 130, 30);
+        lblcenter.setBounds(490, 360, 220, 30);
 
         jLabel20.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel20.setText("منطقة :");
@@ -459,20 +455,20 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblRegion.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblRegion);
-        lblRegion.setBounds(110, 380, 143, 20);
+        lblRegion.setBounds(43, 380, 210, 20);
 
         jLabel22.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel22.setText("وهى معادلة لشهادة دبلوم المدارس الصناعية ومناظرة لها بجمهورية مصر العربية وذلك طبقا للقرار الوزارى");
+        jLabel22.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");
         jPanel2.add(jLabel22);
-        jLabel22.setBounds(170, 430, 637, 20);
+        jLabel22.setBounds(60, 430, 820, 20);
 
         jLabel23.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel23.setText("لوزارة التربية والتعليم رقم ٩٢ الصادر فى ١٧ / ٦ / ١٩٦٨ م وتم تعديله بالقرار رقم ٥٧ لسنة ١٩٦٩ م.");
+        jLabel23.setText(" رقم ٩٢ الصادر في ١٧ / ٦ /١٩٦٨ وتم تعديل بالقرار رقم ٥٧ لسنة ١٩٦٩");
         jPanel2.add(jLabel23);
-        jLabel23.setBounds(180, 450, 590, 20);
+        jLabel23.setBounds(260, 450, 590, 20);
 
         jLabel24.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel24.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة على نظام إدارة الجودة ٩٠٠١ ISO");
+        jLabel24.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة علي نظام إدارة الجودة 9001 ISO");
         jPanel2.add(jLabel24);
         jLabel24.setBounds(240, 470, 480, 20);
 
@@ -494,7 +490,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel7.setText("الرقم القومى :");
         jPanel2.add(jLabel7);
-        jLabel7.setBounds(750, 220, 110, 25);
+        jLabel7.setBounds(710, 210, 110, 25);
 
         jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N
         jPanel2.add(jLabel4);
@@ -510,7 +506,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jPanel2.add(jLabel9);
         jLabel9.setBounds(60, 320, 90, 20);
         jPanel2.add(qRCodeComponent2);
-        qRCodeComponent2.setBounds(30, 10, 200, 180);
+        qRCodeComponent2.setBounds(30, 10, 230, 190);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);

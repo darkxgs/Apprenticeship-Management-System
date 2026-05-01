@@ -92,19 +92,20 @@ public class ExcelService {
                 String serial = getCellValue(row.getCell(0));
                 String name = getCellValue(row.getCell(1));
                 String registrationNo = getCellValue(row.getCell(2));
-                String nationalId = getCellValue(row.getCell(3)).trim();
-                String region = getCellValue(row.getCell(4));
-                String centerName = getCellValue(row.getCell(5));
-                String examSystem = getCellValue(row.getCell(7));
-                String seatNo = getCellValue(row.getCell(8)).trim();
-                
-                String profGroup = getCellValue(row.getCell(10));
-                String profession = getCellValue(row.getCell(6));
+                String nationalId = normalizeImportedText(getCellValue(row.getCell(3)));
+                String region = normalizeImportedText(getCellValue(row.getCell(4)));
+                String centerName = normalizeImportedText(getCellValue(row.getCell(5)));
+                String examSystem = normalizeImportedText(getCellValue(row.getCell(7)));
+                String seatNo = normalizeImportedText(getCellValue(row.getCell(8)));
+
+                String profGroup = normalizeImportedText(getCellValue(row.getCell(10)));
+                String profession = normalizeImportedText(getCellValue(row.getCell(6)));
                 
                 // Cached DB Sync
                 String syncKey = profession + "@@" + profGroup;
                 if (!syncedProfGroups.contains(syncKey)) {
                     StudentService.syncProfessionAndGroup(conn, profession, profGroup);
+                    SubjectService.ensureStandardSubjectsExist(profession);
                     syncedProfGroups.add(syncKey);
                 }
                 
@@ -122,19 +123,19 @@ public class ExcelService {
                 // Secret Number Generation (Requirement: always auto-generate during import)
                 String secretNo = SecretNumberService.generateSecretNumber(region, centerName, seatNo);
                 
-                String coordNo = getCellValue(row.getCell(11));
-                String dobDay = getCellValue(row.getCell(12));
-                String dobMonth = getCellValue(row.getCell(13));
-                String dobYear = getCellValue(row.getCell(14));
-                String gender = getCellValue(row.getCell(15));
-                String neighborhood = getCellValue(row.getCell(16));
-                String governorate = getCellValue(row.getCell(17));
-                String religion = getCellValue(row.getCell(18));
-                String nationality = getCellValue(row.getCell(19));
-                String address = getCellValue(row.getCell(20));
-                String picRef = getCellValue(row.getCell(23)).trim();
-                String phoneNumber = getCellValue(row.getCell(24)).trim();
-                String otherNotes = getCellValue(row.getCell(22));
+                String coordNo = normalizeImportedText(getCellValue(row.getCell(11)));
+                String dobDay = normalizeImportedText(getCellValue(row.getCell(12)));
+                String dobMonth = normalizeImportedText(getCellValue(row.getCell(13)));
+                String dobYear = normalizeImportedText(getCellValue(row.getCell(14)));
+                String gender = normalizeImportedText(getCellValue(row.getCell(15)));
+                String neighborhood = normalizeImportedText(getCellValue(row.getCell(16)));
+                String governorate = normalizeImportedText(getCellValue(row.getCell(17)));
+                String religion = normalizeImportedText(getCellValue(row.getCell(18)));
+                String nationality = normalizeImportedText(getCellValue(row.getCell(19)));
+                String address = normalizeImportedText(getCellValue(row.getCell(20)));
+                String picRef = normalizeImportedText(getCellValue(row.getCell(23)));
+                String phoneNumber = normalizeImportedText(getCellValue(row.getCell(24)));
+                String otherNotes = normalizeImportedText(getCellValue(row.getCell(22)));
 
                 // Basic Validation (Phase 4)
                 if (nationalId != null && !nationalId.isEmpty()) {
@@ -332,6 +333,13 @@ public class ExcelService {
                 }
             }
         } catch (Exception e) { /* Ignore duplicates / errors */ }
+    }
+
+    private static String normalizeImportedText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
     }
 
     private static boolean isRowEmpty(Row row) {

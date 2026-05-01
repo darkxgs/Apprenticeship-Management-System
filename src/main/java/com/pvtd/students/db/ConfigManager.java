@@ -14,17 +14,21 @@ public class ConfigManager {
     }
 
     private static void loadConfig() {
-        try {
-            // First try to load from an external file in the current working directory
-            File extFile = new File(EXTERNAL_CONFIG);
+        String[] paths = { EXTERNAL_CONFIG, "app/" + EXTERNAL_CONFIG };
+        for (String path : paths) {
+            File extFile = new File(path);
             if (extFile.exists() && extFile.isFile()) {
                 try (FileInputStream fis = new FileInputStream(extFile)) {
                     properties.load(fis);
-                    System.out.println("Loaded external " + EXTERNAL_CONFIG);
+                    System.out.println("Loaded external config from: " + path);
                     return;
+                } catch (Exception e) {
+                    System.err.println("Failed to load " + path + ": " + e.getMessage());
                 }
             }
+        }
 
+        try {
             // Fallback to internal classpath resource
             try (InputStream in = ConfigManager.class.getClassLoader().getResourceAsStream("application.properties")) {
                 if (in != null) {

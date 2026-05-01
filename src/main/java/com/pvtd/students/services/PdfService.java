@@ -127,16 +127,41 @@ public class PdfService {
         content.add(createRightAlignedLabel(" ", f));
         content.add(createRightAlignedLabel("--- بيان الدرجات ---", new Font("Tahoma", Font.BOLD, 18)));
 
-        List<Subject> subjects = SubjectService.getSubjectsByProfession(student.getProfession());
+        java.util.List<Subject> subjects = SubjectService.getSubjectsByProfession(student.getProfession());
         Map<Integer, Integer> grades = student.getGrades();
+        
+        // --- Group subjects by parent to merge 30/70 split ---
+        java.util.List<Subject> parentSubjects = new java.util.ArrayList<>();
+        java.util.Map<Integer, java.util.List<Subject>> childrenMap = new java.util.HashMap<>();
+        for (Subject s : subjects) {
+            if (s.getParentSubjectId() == null) {
+                parentSubjects.add(s);
+            } else {
+                childrenMap.computeIfAbsent(s.getParentSubjectId(), k -> new java.util.ArrayList<>()).add(s);
+            }
+        }
+
         int totalMax = 0;
         int totalAttained = 0;
 
-        for (Subject sub : subjects) {
-            int score = (grades != null && grades.containsKey(sub.getId())) ? grades.get(sub.getId()) : 0;
-            totalMax += sub.getMaxMark();
+        for (Subject sub : parentSubjects) {
+            int score = 0;
+            int subMax = 0;
+            
+            if (childrenMap.containsKey(sub.getId())) {
+                // Composite: sum grades and max marks of all children
+                for (Subject child : childrenMap.get(sub.getId())) {
+                    score += (grades != null && grades.containsKey(child.getId())) ? grades.get(child.getId()) : 0;
+                    subMax += child.getMaxMark();
+                }
+            } else {
+                score = (grades != null && grades.containsKey(sub.getId())) ? grades.get(sub.getId()) : 0;
+                subMax = sub.getMaxMark();
+            }
+            
+            totalMax += subMax;
             totalAttained += score;
-            content.add(createRightAlignedLabel(sub.getName() + " : " + score + " / " + sub.getMaxMark(), f));
+            content.add(createRightAlignedLabel(sub.getName() + " : " + score + " / " + subMax, f));
         }
 
         content.add(createRightAlignedLabel("-------------------", f));

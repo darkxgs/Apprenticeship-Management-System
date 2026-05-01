@@ -25,15 +25,37 @@ public class SubjectService {
         return 0;
     }
 
+    public static void ensureStandardSubjectsExist(String profession) {
+        String normalizedProfession = profession != null ? profession.trim() : "";
+        if (normalizedProfession.isEmpty()) {
+            return;
+        }
+        if (countSubjectsByProfession(normalizedProfession) == 0) {
+            autoGenerateStandardSubjects(normalizedProfession);
+        }
+    }
+
     public static List<Subject> getSubjectsByProfession(String profession) {
         List<Subject> list = new ArrayList<>();
-        // Using TRIM for robust matching between UI and DB
-        String sql = "SELECT * FROM subjects WHERE TRIM(profession) = TRIM(?) ORDER BY display_order ASC, id ASC";
+        // Improved sorting: uses COALESCE to ensure children inherit parent's
+        // display_order for sorting.
+        // This keeps the profession columns in the correct logical order across all
+        // reports.
+        String sql = """
+                SELECT s.*, COALESCE(p.display_order, s.display_order) as effective_order
+                FROM subjects s
+                LEFT JOIN subjects p ON s.parent_subject_id = p.id
+                WHERE TRIM(s.profession) = TRIM(?)
+                ORDER BY effective_order ASC, s.parent_subject_id ASC NULLS FIRST, s.display_order ASC
+                """;
+        String normalizedProfession = profession != null ? profession.trim() : "";
+
+        ensureStandardSubjectsExist(normalizedProfession);
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, profession != null ? profession.trim() : "");
+            ps.setString(1, normalizedProfession);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -48,6 +70,7 @@ public class SubjectService {
                         rs.getObject("parent_subject_id") != null ? rs.getInt("parent_subject_id") : null,
                         rs.getString("sub_name")));
             }
+            System.out.println("[SubjectService] profession='" + normalizedProfession + "' -> subjects=" + list.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -163,8 +186,8 @@ public class SubjectService {
 
     public static void autoGenerateStandardSubjects(String profession) {
         // New order: 2 dynamic (user-editable) → 2 fixed theory → practical → applied
-        addSubject(profession, "تكنولوجيا (اضغط للتعديل)", "نظري", 50, 100, 1);
-        addSubject(profession, "رسم (اضغط للتعديل)", "نظري", 50, 100, 2);
+        addSubject(profession, "تكنولوجيا", "نظري", 50, 100, 1);
+        addSubject(profession, "رسم", "نظري", 50, 100, 2);
         addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 3);
         addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 4);
 
@@ -214,14 +237,16 @@ public class SubjectService {
         // First remove existing children
         disableComposite(parentId);
 
-        // Fetch parent subject to get actual max/pass marks
-        int parentMax = 100, parentPass = 50; // defaults
-        String sql = "SELECT max_mark, pass_mark FROM subjects WHERE id = ?";
+        // Fetch parent subject to get actual name, max/pass marks
+        int parentMax = 100, parentPass = 50;
+        String parentName = profession; // default fallback
+        String sql = "SELECT name, max_mark, pass_mark FROM subjects WHERE id = ?";
         try (java.sql.Connection conn = DatabaseConnection.getConnection();
                 java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, parentId);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
+                    parentName = rs.getString("name");
                     parentMax = rs.getInt("max_mark");
                     parentPass = rs.getInt("pass_mark");
                 }
@@ -232,12 +257,13 @@ public class SubjectService {
 
         // Split: 30% portion and 70% portion (proportional to parent)
         int max30 = Math.round(parentMax * 0.30f);
-        int max70 = parentMax - max30; // so max30 + max70 == parentMax
+        int max70 = parentMax - max30;
         int pass30 = Math.round(parentPass * 0.30f);
-        int pass70 = parentPass - pass30; // so pass30 + pass70 == parentPass
+        int pass70 = parentPass - pass30;
 
-        boolean ok1 = addSubject(profession, profession, type, pass30, max30, 1, parentId, name30);
-        boolean ok2 = addSubject(profession, profession, type, pass70, max70, 2, parentId, name70);
+        // Use parentName for the children to preserve subject identity
+        boolean ok1 = addSubject(profession, parentName, type, pass30, max30, 1, parentId, name30);
+        boolean ok2 = addSubject(profession, parentName, type, pass70, max70, 2, parentId, name70);
         if (ok1 && ok2) {
             LogService.logAction("SYSTEM", "ENABLE_COMPOSITE", "تم تفعيل التقسيم 30/70 للمادة رقم: " + parentId);
         }

@@ -26,6 +26,12 @@ public class SplashScreenFrame extends JFrame {
         setLocationRelativeTo(null);
         setBackground(new Color(0, 0, 0, 0)); // Transparent background
 
+        // Set window icon from logo.jpg
+        java.net.URL iconUrl = getClass().getClassLoader().getResource("logo.jpg");
+        if (iconUrl != null) {
+            setIconImage(new ImageIcon(iconUrl).getImage());
+        }
+
         // Force the splash screen to the front and keep it on top
         setAlwaysOnTop(true);
         toFront();

@@ -549,8 +549,10 @@ public class StudentFormPage extends JPanel {
     private void renderDynamicSubjects(String profession) {
         gradesPanel.removeAll();
         dynamicGradeFields.clear();
+        System.out.println("[StudentFormPage] renderDynamicSubjects profession='" + cleanString(profession) + "'");
 
         currentSubjectsList = SubjectService.getSubjectsByProfession(profession);
+        System.out.println("[StudentFormPage] subjects count=" + (currentSubjectsList != null ? currentSubjectsList.size() : -1));
         if (currentSubjectsList == null || currentSubjectsList.isEmpty()) {
             JLabel noSubjLabel = new JLabel("لا توجد مواد مسجلة لهذا التخصص.", SwingConstants.CENTER);
             noSubjLabel.setForeground(UITheme.DANGER);
@@ -568,22 +570,14 @@ public class StudentFormPage extends JPanel {
             JLabel h4 = new JLabel("درجة الطالب", SwingConstants.CENTER);
 
             Font hFont = new Font("Segoe UI", Font.BOLD, 14);
-            h1.setFont(hFont);
-            h2.setFont(hFont);
-            h3.setFont(hFont);
-            h4.setFont(hFont);
-            h1.setForeground(Color.WHITE);
-            h2.setForeground(Color.WHITE);
-            h3.setForeground(Color.WHITE);
-            h4.setForeground(Color.WHITE);
+            h1.setFont(hFont); h2.setFont(hFont); h3.setFont(hFont); h4.setFont(hFont);
+            h1.setForeground(Color.WHITE); h2.setForeground(Color.WHITE);
+            h3.setForeground(Color.WHITE); h4.setForeground(Color.WHITE);
 
-            headerRow.add(h4);
-            headerRow.add(h3);
-            headerRow.add(h2);
-            headerRow.add(h1);
+            headerRow.add(h4); headerRow.add(h3); headerRow.add(h2); headerRow.add(h1);
             gradesPanel.add(headerRow);
 
-            // Data Rows
+            // Data Rows — show ALL subjects (including 30/70 children) for individual entry
             int i = 0;
             for (Subject sub : currentSubjectsList) {
                 JPanel row = new JPanel(new GridLayout(1, 4, 10, 0));
@@ -592,13 +586,11 @@ public class StudentFormPage extends JPanel {
 
                 String typeStr = sub.getType() != null ? sub.getType() : "نظري";
                 JLabel nameL = new JLabel(sub.getName() + " (" + typeStr + ")", SwingConstants.CENTER);
-                JLabel maxL = new JLabel(String.valueOf(sub.getMaxMark()), SwingConstants.CENTER);
+                JLabel maxL  = new JLabel(String.valueOf(sub.getMaxMark()),  SwingConstants.CENTER);
                 JLabel passL = new JLabel(String.valueOf(sub.getPassMark()), SwingConstants.CENTER);
 
                 Font vFont = new Font("Segoe UI", Font.BOLD, 14);
-                nameL.setFont(vFont);
-                maxL.setFont(vFont);
-                passL.setFont(vFont);
+                nameL.setFont(vFont); maxL.setFont(vFont); passL.setFont(vFont);
 
                 JTextField field = new JTextField("0");
                 field.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -609,10 +601,7 @@ public class StudentFormPage extends JPanel {
                     field.setText(String.valueOf(student.getGrades().get(sub.getId())));
                 }
 
-                row.add(field);
-                row.add(passL);
-                row.add(maxL);
-                row.add(nameL);
+                row.add(field); row.add(passL); row.add(maxL); row.add(nameL);
                 dynamicGradeFields.put(sub.getId(), field);
                 gradesPanel.add(row);
                 i++;
@@ -621,6 +610,7 @@ public class StudentFormPage extends JPanel {
         gradesPanel.revalidate();
         gradesPanel.repaint();
     }
+
 
     private void evaluateDetailedGrades() {
         if (currentSubjectsList == null || currentSubjectsList.isEmpty()) {
@@ -637,24 +627,51 @@ public class StudentFormPage extends JPanel {
 
             Map<Integer, Integer> currentGrades = collectGrades();
 
-            for (Subject sub : currentSubjectsList) {
-                int mark = currentGrades.getOrDefault(sub.getId(), 0);
-                totalMax += sub.getMaxMark();
+            // --- Group subjects by parent to treat composite (30/70) as one ---
+            java.util.List<Subject> parentSubjects = new java.util.ArrayList<>();
+            java.util.Map<Integer, java.util.List<Subject>> childrenMap = new java.util.HashMap<>();
+            for (Subject s : currentSubjectsList) {
+                if (s.getParentSubjectId() == null) {
+                    parentSubjects.add(s);
+                } else {
+                    childrenMap.computeIfAbsent(s.getParentSubjectId(), k -> new java.util.ArrayList<>()).add(s);
+                }
+            }
+
+            for (Subject sub : parentSubjects) {
+                int mark = 0;
+                int subMax = 0;
+                int subPass = 0;
+
+                if (childrenMap.containsKey(sub.getId())) {
+                    // Composite: sum children
+                    for (Subject child : childrenMap.get(sub.getId())) {
+                        mark += currentGrades.getOrDefault(child.getId(), 0);
+                        subMax += child.getMaxMark();
+                        subPass += child.getPassMark();
+                    }
+                } else {
+                    mark = currentGrades.getOrDefault(sub.getId(), 0);
+                    subMax = sub.getMaxMark();
+                    subPass = sub.getPassMark();
+                }
+
+                totalMax += subMax;
                 totalAttained += mark;
 
                 boolean isPractical = sub.getType() != null && sub.getType().contains("عمل");
                 if (isPractical) {
-                    practicalMax += sub.getMaxMark();
+                    practicalMax += subMax;
                     practicalAttained += mark;
                 } else {
-                    theoreticalMax += sub.getMaxMark();
+                    theoreticalMax += subMax;
                     theoreticalAttained += mark;
                 }
 
-                if (mark < sub.getPassMark()) {
+                if (mark < subPass) {
                     failedCount++;
                     failedSubjects.append(" - ").append(sub.getName()).append(" ( جاب ").append(mark)
-                            .append(" من ").append(sub.getPassMark()).append(" )<br>");
+                            .append(" من ").append(subPass).append(" )<br>");
                 }
             }
 
@@ -739,6 +756,13 @@ public class StudentFormPage extends JPanel {
         if (student.getGovernorate() != null)
             govCombo.setSelectedItem(cleanString(student.getGovernorate()));
 
+        // Force subject rendering after form population instead of relying only on combo events.
+        if (student.getProfession() != null && !cleanString(student.getProfession()).isEmpty()) {
+            renderDynamicSubjects(cleanString(student.getProfession()));
+            gradesPanel.revalidate();
+            gradesPanel.repaint();
+        }
+
         // Status combo removed
 
         currentPicPath = student.getImagePath();
@@ -790,6 +814,8 @@ public class StudentFormPage extends JPanel {
         }
         return map;
     }
+
+
 
     private String copyToStudentFolder(String sourcePath, String nationalId, String targetFileName) {
         if (sourcePath == null || sourcePath.isEmpty())

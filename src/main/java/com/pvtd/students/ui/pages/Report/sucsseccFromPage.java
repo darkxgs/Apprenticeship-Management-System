@@ -24,23 +24,27 @@ import com.pvtd.students.db.DatabaseConnection;
 
 public class sucsseccFromPage extends javax.swing.JFrame {
     private String currentImagePath;
+    private String currentNationalId;
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(sucsseccFromPage.class.getName());
 
     
     public sucsseccFromPage() {
         initComponents();
         nameLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-groupLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-centerLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-govLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-specLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-percentLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-gradeLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-jLabel41.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        sub1Lbl.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
-sub2Lbl.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
-sub3Lbl.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
-sub4Lbl.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+        nameLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        percentLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel41.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        gradeLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        groupLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        seatNoLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        coordinationLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        nationalIdLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        govLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        specLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        centerLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         int year = LocalDate.now().getYear();
         DateL.setText(toArabicNumbers(String.valueOf(year)));
         roundLbl.setText(getArabicMonth());
@@ -266,6 +270,7 @@ public void loadStudentImage(String imagePath) {
             gradeLbl.setText(rs.getString("grade"));
 
             currentImagePath = rs.getString("image_path");
+            currentNationalId = rs.getString("national_id");
 
             String round = rs.getString("exam_round");
         }
@@ -277,134 +282,153 @@ public void loadStudentImage(String imagePath) {
         try { if (ps != null) ps.close(); } catch (Exception e) {}
     }
 }
-    
- public void loadStudentSubjects(String seatNo, Connection con) {
+    public void loadStudentSubjects(String seatNo, Connection con) {
+        try {
+            // Improved query: Select subjects for the student's profession and join with grades.
+            // Using COALESCE(p.display_order, sub.display_order) ensures children (30/70)
+            // stay in the same position as their parent, respecting the specialized theory (1 & 2) order.
+            String sql = """
+            SELECT sub.id, sub.name subject_name, sub.type, sub.max_mark, sub.pass_mark, 
+                   sg.obtained_mark, sub.parent_subject_id, 
+                   COALESCE(p.display_order, sub.display_order) as sort_key
+            FROM subjects sub
+            LEFT JOIN subjects p ON sub.parent_subject_id = p.id
+            CROSS JOIN students s
+            LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id
+            WHERE s.seat_no = ? AND TRIM(sub.profession) = TRIM(s.profession)
+            ORDER BY sort_key ASC, sub.parent_subject_id ASC NULLS FIRST, sub.display_order ASC
+            """;
+            
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, seatNo);
+            ResultSet rs = ps.executeQuery();
 
-    try {
-String sql = """
-SELECT
-sub.name subject_name,
-sub.type,
-sub.max_mark,
-sub.pass_mark,
-sg.obtained_mark
-FROM students s
-LEFT JOIN student_grades sg ON s.id = sg.student_id
-LEFT JOIN subjects sub ON sub.id = sg.subject_id
-WHERE s.seat_no = ? AND sub.id IS NOT NULL
-""";
+            class SubData {
+                String name;
+                int max, pass, mark;
+                String type;
+                Integer parentId;
+                int id;
 
-        PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1, seatNo);
-        ResultSet rs = ps.executeQuery();
-
-        List<Object[]> theorySubjects = new ArrayList<>();
-        List<Object[]> practicalSubjects = new ArrayList<>();
-        List<Object[]> appliedSubjects = new ArrayList<>();
-
-        int theoryTotal = 0;
-        int practicalTotal = 0;
-        int appliedTotal = 0;
-
-        while (rs.next()) {
-
-            String subject = rs.getString("subject_name");
-            String type = rs.getString("type");
-
-            int max = rs.getInt("max_mark");
-            int pass = rs.getInt("pass_mark");
-
-            // 🔥 أهم تعديل (منع الكسور)
-            int mark = (int) rs.getDouble("obtained_mark");
-
-            if (type == null) continue;
-
-            type = type.trim().toLowerCase();
-
-            Object[] data = {subject, max, pass, mark};
-
-            if (type.contains("نظري")) {
-                theorySubjects.add(data);
-                theoryTotal += mark;
-
-            } else if (type.contains("عملي")) {
-                practicalSubjects.add(data);
-                practicalTotal += mark;
-
-            } else if (type.contains("تطبيقي")) {
-                appliedSubjects.add(data);
-                appliedTotal += mark;
+                SubData(String n, int m, int p, int mk, String t, Integer pid, int id) {
+                    this.name = n; this.max = m; this.pass = p; this.mark = mk; this.type = t; this.parentId = pid; this.id = id;
+                }
             }
+            List<SubData> allDetails = new ArrayList<>();
+            while (rs.next()) {
+                allDetails.add(new SubData(
+                    rs.getString("subject_name"),
+                    rs.getInt("max_mark"),
+                    rs.getInt("pass_mark"),
+                    rs.getInt("obtained_mark"),
+                    rs.getString("type"),
+                    rs.getObject("parent_subject_id") != null ? rs.getInt("parent_subject_id") : null,
+                    rs.getInt("id")
+                ));
+            }
+
+            // Grouping logic: Map subjects to their parent ID (or own ID if orphan)
+            java.util.Map<Integer, SubData> groupedMap = new java.util.LinkedHashMap<>();
+            // First pass to detect parents that have children in the list
+            java.util.Set<Integer> parentsWithChildren = new java.util.HashSet<>();
+            for (SubData sd : allDetails) {
+                if (sd.parentId != null) parentsWithChildren.add(sd.parentId);
+            }
+
+            for (SubData sd : allDetails) {
+                int key = (sd.parentId != null) ? sd.parentId : sd.id;
+                boolean isParentOfComponents = (sd.parentId == null && parentsWithChildren.contains(sd.id));
+                
+                if (groupedMap.containsKey(key)) {
+                    SubData existing = groupedMap.get(key);
+                    // Add values only if NOT the parent record of a 30/70 group
+                    // (prevents double-counting 100 + 30 + 70)
+                    if (!isParentOfComponents) {
+                        existing.max += sd.max;
+                        existing.pass += sd.pass;
+                        existing.mark += (sd.mark > 0 ? sd.mark : 0);
+                    }
+                    
+                    // Priority: if this is a parent record, prefer its name as the subject label
+                    if (sd.parentId == null) {
+                        existing.name = sd.name;
+                    }
+                } else {
+                    // Create new entry. If it's a parent of components, start with 0 values
+                    // so that only children's values are summed.
+                    if (isParentOfComponents) {
+                        groupedMap.put(key, new SubData(sd.name, 0, 0, 0, sd.type, sd.parentId, sd.id));
+                    } else {
+                        groupedMap.put(key, new SubData(sd.name, sd.max, sd.pass, sd.mark, sd.type, sd.parentId, sd.id));
+                    }
+                }
+            }
+
+            List<SubData> theory = new ArrayList<>();
+            List<SubData> practical = new ArrayList<>();
+            List<SubData> applied = new ArrayList<>();
+
+            int theoryTotal = 0, practicalTotal = 0, appliedTotal = 0;
+
+            for (SubData sd : groupedMap.values()) {
+                String ty = sd.type != null ? sd.type.trim().toLowerCase() : "";
+                if (ty.contains("نظري")) {
+                    theory.add(sd);
+                    theoryTotal += sd.mark;
+                } else if (ty.contains("عملي")) {
+                    practical.add(sd);
+                    practicalTotal += sd.mark;
+                } else if (ty.contains("تطبيقي")) {
+                    applied.add(sd);
+                    appliedTotal += sd.mark;
+                }
+            }
+
+            // Populate Labels (Theory - 4 slots)
+            javax.swing.JLabel[] subLbls = {sub1Lbl, sub2Lbl, sub3Lbl, sub4Lbl};
+            javax.swing.JLabel[] maxLbls = {max1Lbl, max2Lbl, max3Lbl, max4Lbl};
+            javax.swing.JLabel[] passLbls = {pass1Lbl, pass2Lbl, pass3Lbl, pass4Lbl};
+            javax.swing.JLabel[] markLbls = {mark1Lbl, mark2Lbl, mark3Lbl, mark4Lbl};
+
+            for (int i = 0; i < 4; i++) {
+                if (i < theory.size()) {
+                    SubData s = theory.get(i);
+                    subLbls[i].setText(wrapText(s.name, i==0 ? 40 : 30));
+                    maxLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.max)));
+                    passLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.pass)));
+                    markLbls[i].setText((i==0 || i==3 ? "       " : "      ") + toArabicNumbers(String.valueOf(s.mark)));
+                } else {
+                    subLbls[i].setText(""); maxLbls[i].setText(""); passLbls[i].setText(""); markLbls[i].setText("");
+                }
+            }
+
+            // Practical / Applied
+            if (!practical.isEmpty()) {
+                SubData p = practical.get(0);
+                amalymax.setText("     " + toArabicNumbers(String.valueOf(p.max)));
+                amalyPass.setText("     " + toArabicNumbers(String.valueOf(p.pass)));
+                studgra.setText("     " + toArabicNumbers(String.valueOf(p.mark)));
+            }
+            if (!applied.isEmpty()) {
+                SubData a = applied.get(0);
+                tatbecMax.setText("     " + toArabicNumbers(String.valueOf(a.max)));
+                tatbecPass.setText("     " + toArabicNumbers(String.valueOf(a.pass)));
+                studeTa.setText("     " + toArabicNumbers(String.valueOf(a.mark)));
+            }
+
+            int finalTa = practicalTotal + appliedTotal;
+            int finalTotal = theoryTotal + finalTa;
+
+            jLabel41.setText("     " + numberToArabicWords(finalTotal) + " درجة فقط لا غير");
+            ee.setText("     " + toArabicNumbers(String.valueOf(theoryTotal)));
+            practicalTotalLbl.setText("     " + toArabicNumbers(String.valueOf(finalTa)));
+            eed.setText("       " + toArabicNumbers(String.valueOf(finalTotal)));
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        // ================= المواد =================
-
-        if (theorySubjects.size() > 0) {
-            Object[] s = theorySubjects.get(0);
-            sub1Lbl.setText(wrapText(s[0].toString(), 40));
-            max1Lbl.setText("      "+toArabicNumbers(s[1].toString()));
-            pass1Lbl.setText("      "+toArabicNumbers(s[2].toString()));
-            mark1Lbl.setText("       "+toArabicNumbers(String.valueOf((int) s[3])));
-        }
-
-        if (theorySubjects.size() > 1) {
-            Object[] s = theorySubjects.get(1);
-            sub2Lbl.setText(wrapText(s[0].toString(), 30));
-            max2Lbl.setText("     "+toArabicNumbers(s[1].toString()));
-            pass2Lbl.setText("     "+toArabicNumbers(s[2].toString()));
-            mark2Lbl.setText("      "+toArabicNumbers(String.valueOf((int) s[3])));
-        }
-
-        if (theorySubjects.size() > 2) {
-            Object[] s = theorySubjects.get(2);
-            sub3Lbl.setText(wrapText(s[0].toString(), 30));
-            max3Lbl.setText("     "+toArabicNumbers(s[1].toString()));
-            pass3Lbl.setText("     "+toArabicNumbers(s[2].toString()));
-            mark3Lbl.setText("     "+toArabicNumbers(String.valueOf((int) s[3])));
-        }
-
-        if (theorySubjects.size() > 3) {
-            Object[] s = theorySubjects.get(3);
-            sub4Lbl.setText(wrapText(s[0].toString(), 30));
-            max4Lbl.setText("      "+toArabicNumbers(s[1].toString()));
-            pass4Lbl.setText("      "+toArabicNumbers(s[2].toString()));
-            mark4Lbl.setText("       "+toArabicNumbers(String.valueOf((int) s[3])));
-        }
-
-        // ================= العملي =================
-
-        if (practicalSubjects.size() > 0) {
-            Object[] p = practicalSubjects.get(0);
-            amalymax.setText("     "+toArabicNumbers(p[1].toString()));
-            amalyPass.setText("     "+toArabicNumbers(p[2].toString()));
-            studgra.setText("     "+toArabicNumbers(String.valueOf((int) p[3])));
-        }
-
-        // ================= التطبيقي =================
-
-        if (appliedSubjects.size() > 0) {
-            Object[] p = appliedSubjects.get(0);
-            tatbecMax.setText("     "+toArabicNumbers(p[1].toString()));
-            tatbecPass.setText("     "+toArabicNumbers(p[2].toString()));
-            studeTa.setText("     "+toArabicNumbers(String.valueOf((int) p[3])));
-        }
-
-        // ================= المجاميع =================
-
-        int finalTotal = theoryTotal + practicalTotal + appliedTotal;
-        int finalTa = practicalTotal + appliedTotal;
-
-        String finalTotalArabic = numberToArabicWords(finalTotal) + " درجة فقط لا غير";
-        jLabel41.setText("     "+finalTotalArabic);
-
-        ee.setText("     "+toArabicNumbers(String.valueOf(theoryTotal)));
-        practicalTotalLbl.setText("     "+toArabicNumbers(String.valueOf(finalTa)));
-        eed.setText("       "+toArabicNumbers(String.valueOf(finalTotal)));
-
-    } catch (Exception e) {
-        e.printStackTrace();
     }
-}
+
  
  
  
@@ -430,18 +454,14 @@ public void printSuccessForms(List<String[]> studentsData, java.util.function.Bi
 
         con = DatabaseConnection.getConnection();
 
-        File mainFolder = new File("تقارير");
-        if (!mainFolder.exists()) mainFolder.mkdir();
+        File mainFolder = new File("التقارير");
+        if (!mainFolder.exists()) mainFolder.mkdirs();
 
-        File formFolder = new File(mainFolder, "استمارة نجاح");
+        File formFolder = new File(mainFolder, "الاستمارة");
         if (!formFolder.exists()) formFolder.mkdir();
 
-        String allPath = formFolder.getAbsolutePath() + "/all_success_forms.pdf";
-
-        Document allDoc = new Document(PageSize.A4);
-        PdfWriter.getInstance(allDoc, new FileOutputStream(allPath));
-
-        allDoc.open();
+        // 🌟 تجهيز هيكل لتخزين الملفات المجمعة لكل مركز
+        java.util.Map<String, Document> combinedDocs = new java.util.HashMap<>();
 
         int width = jPanel1.getWidth();
 int height = 1300;
@@ -484,20 +504,65 @@ int height = 1300;
             img.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
             img.setAbsolutePosition(0, 0);
 
-            allDoc.add(img);
+            
+            // 2️⃣ ملف لكل طالب (منظم داخل مجلد باسم المركز)
+            String centerName = centerLbl.getText() != null ? centerLbl.getText().trim() : "بدون مركز";
+            // تنظيف اسم المجلد من الأحرف غير المسموح بها
+            centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
+            File centerFolder = new File(formFolder, centerName);
+            if (!centerFolder.exists()) centerFolder.mkdirs();
 
-            if (i < total - 1) {
-                allDoc.newPage();
+            String fileName = (currentNationalId != null && !currentNationalId.isEmpty()) ? currentNationalId : "student_" + seatNo;
+            String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
+            
+            Document singleDoc = new Document(PageSize.A4);
+            PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
+            singleDoc.open();
+            
+            Image imgForSingle = Image.getInstance(image, null);
+            imgForSingle.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+            imgForSingle.setAbsolutePosition(0, 0);
+            singleDoc.add(imgForSingle);
+            singleDoc.close();
+            
+            // 3️⃣ إضافة الاستمارة إلى الملف المجمع الخاص بالمركز
+            Document combinedDoc = combinedDocs.get(centerName);
+            if (combinedDoc == null) {
+                combinedDoc = new Document(PageSize.A4);
+                String combinedFileName = "استمارة طلاب مركز " + centerName + ".pdf";
+                String combinedPath = formFolder.getAbsolutePath() + File.separator + combinedFileName;
+                PdfWriter.getInstance(combinedDoc, new FileOutputStream(combinedPath));
+                combinedDoc.open();
+                combinedDocs.put(centerName, combinedDoc);
+            } else {
+                combinedDoc.newPage();
+            }
+            
+            Image imgForCombined = Image.getInstance(image, null);
+            imgForCombined.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+            imgForCombined.setAbsolutePosition(0, 0);
+            combinedDoc.add(imgForCombined);
+
+        }
+        
+        // إغلاق جميع الملفات المجمعة بعد انتهاء كل الطلاب
+        for (Document doc : combinedDocs.values()) {
+            if (doc.isOpen()) {
+                doc.close();
             }
         }
 
         g2.dispose();
-        allDoc.close();
 
-        Desktop.getDesktop().open(new File(allPath));
+        // Desktop.getDesktop().open(new File(allPath));
 
         javax.swing.SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(this, "تم إنشاء كل الاستمارات");
+            try {
+                Desktop.getDesktop().open(formFolder);
+                JOptionPane.showMessageDialog(this, "تم إنشاء كل الاستمارات");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
     } catch (Exception e) {
@@ -609,6 +674,10 @@ private void clearLabels() {
         jLabel1 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        jLabel7 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -616,34 +685,35 @@ private void clearLabels() {
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(null);
         jPanel1.add(studentImageLbl);
-        studentImageLbl.setBounds(0, 0, 250, 270);
+        studentImageLbl.setBounds(50, 20, 170, 230);
 
         seatNoLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(seatNoLbl);
-        seatNoLbl.setBounds(537, 290, 130, 20);
+        seatNoLbl.setBounds(480, 290, 190, 10);
 
         coordinationLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(coordinationLbl);
-        coordinationLbl.setBounds(537, 320, 130, 20);
+        coordinationLbl.setBounds(477, 320, 190, 10);
 
         nationalIdLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(nationalIdLbl);
-        nationalIdLbl.setBounds(527, 350, 140, 20);
+        nationalIdLbl.setBounds(477, 350, 200, 10);
 
         groupLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         groupLbl.setForeground(new java.awt.Color(61, 59, 110));
         jPanel1.add(groupLbl);
-        groupLbl.setBounds(67, 300, 190, 30);
+        groupLbl.setBounds(7, 300, 250, 30);
 
         roundLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         roundLbl.setForeground(new java.awt.Color(61, 59, 110));
+        roundLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(roundLbl);
-        roundLbl.setBounds(250, 330, 70, 20);
+        roundLbl.setBounds(250, 330, 70, 30);
 
         centerLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         centerLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(centerLbl);
-        centerLbl.setBounds(560, 440, 120, 20);
+        centerLbl.setBounds(460, 440, 220, 20);
 
         govLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(govLbl);
@@ -666,22 +736,18 @@ private void clearLabels() {
         sub4Lbl.setBounds(380, 530, 40, 50);
 
         max1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        max1Lbl.setText("     100");
         jPanel1.add(max1Lbl);
         max1Lbl.setBounds(530, 580, 50, 40);
 
         max2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        max2Lbl.setText("100");
         jPanel1.add(max2Lbl);
         max2Lbl.setBounds(480, 580, 50, 40);
 
         max3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        max3Lbl.setText("100");
         jPanel1.add(max3Lbl);
         max3Lbl.setBounds(430, 580, 50, 40);
 
         max4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        max4Lbl.setText("100");
         max4Lbl.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         jPanel1.add(max4Lbl);
         max4Lbl.setBounds(370, 580, 60, 40);
@@ -710,22 +776,18 @@ private void clearLabels() {
         jLabel22.setBounds(100, 580, 60, 40);
 
         pass1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        pass1Lbl.setText("     100");
         jPanel1.add(pass1Lbl);
         pass1Lbl.setBounds(530, 620, 50, 40);
 
         pass2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        pass2Lbl.setText("100");
         jPanel1.add(pass2Lbl);
         pass2Lbl.setBounds(480, 620, 50, 40);
 
         pass3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        pass3Lbl.setText("100");
         jPanel1.add(pass3Lbl);
         pass3Lbl.setBounds(430, 620, 50, 40);
 
         pass4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        pass4Lbl.setText("100");
         jPanel1.add(pass4Lbl);
         pass4Lbl.setBounds(373, 620, 50, 40);
 
@@ -753,27 +815,22 @@ private void clearLabels() {
         jLabel31.setBounds(100, 620, 60, 40);
 
         mark1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        mark1Lbl.setText("      100");
         jPanel1.add(mark1Lbl);
         mark1Lbl.setBounds(530, 660, 60, 80);
 
         mark2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        mark2Lbl.setText("100");
         jPanel1.add(mark2Lbl);
         mark2Lbl.setBounds(480, 660, 50, 80);
 
         mark3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        mark3Lbl.setText("100");
         jPanel1.add(mark3Lbl);
         mark3Lbl.setBounds(430, 660, 50, 80);
 
         mark4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        mark4Lbl.setText("100");
         jPanel1.add(mark4Lbl);
         mark4Lbl.setBounds(370, 660, 60, 80);
 
         ee.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        ee.setText("100");
         jPanel1.add(ee);
         ee.setBounds(325, 660, 50, 80);
 
@@ -786,22 +843,22 @@ private void clearLabels() {
         studeTa.setBounds(210, 660, 60, 80);
 
         practicalTotalLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        practicalTotalLbl.setText("100");
         jPanel1.add(practicalTotalLbl);
         practicalTotalLbl.setBounds(160, 660, 50, 80);
 
         eed.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        eed.setText("100");
         jPanel1.add(eed);
         eed.setBounds(100, 666, 60, 70);
 
         nameLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        nameLbl.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         jPanel1.add(nameLbl);
-        nameLbl.setBounds(473, 380, 150, 20);
+        nameLbl.setBounds(80, 380, 540, 20);
 
         specLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        specLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(specLbl);
-        specLbl.setBounds(523, 410, 150, 20);
+        specLbl.setBounds(83, 410, 590, 20);
 
         jLabel41.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(jLabel41);
@@ -838,6 +895,26 @@ private void clearLabels() {
         jLabel4.setText("مصلحة الكفاية الإنتاجية والتدريب المهنى ");
         jPanel1.add(jLabel4);
         jLabel4.setBounds(460, 210, 306, 25);
+
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel5.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");
+        jPanel1.add(jLabel5);
+        jLabel5.setBounds(10, 1030, 780, 20);
+
+        jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel6.setText("مصلحة الكفاية الإنتاجية والتدريب المهني حاصلة علي نظام إدارة الجودة 9001 ISO");
+        jPanel1.add(jLabel6);
+        jLabel6.setBounds(270, 1070, 490, 20);
+
+        jLabel7.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        jLabel7.setText("1038530");
+        jPanel1.add(jLabel7);
+        jLabel7.setBounds(680, 1180, 80, 25);
+
+        jLabel8.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel8.setText(" رقم ٩٢ الصادر في ١٧ / ٦ /١٩٦٨ وتم تعديل بالقرار رقم ٥٧ لسنة ١٩٦٩");
+        jPanel1.add(jLabel8);
+        jLabel8.setBounds(350, 1050, 410, 20);
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/certificate_1.jpg"))); // NOI18N
@@ -903,6 +980,10 @@ private void clearLabels() {
     private javax.swing.JLabel jLabel31;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel41;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel mark1Lbl;
     private javax.swing.JLabel mark2Lbl;

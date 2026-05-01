@@ -72,7 +72,7 @@ public class StudentService {
 
     public static List<Student> getAllStudents() {
         List<Student> students = new ArrayList<>();
-        String query = "SELECT * FROM students";
+        String query = "SELECT * FROM students ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query);
                 ResultSet rs = stmt.executeQuery()) {
@@ -125,6 +125,8 @@ public class StudentService {
             query.append("AND center_name LIKE ? ");
             parameters.add("%" + centerName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "") + "%");
         }
+
+        query.append(" ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query.toString())) {
@@ -404,9 +406,12 @@ public class StudentService {
 
     public static void syncProfessionAndGroup(Connection conn, String profession, String profGroup) {
         if (profession == null || profession.trim().isEmpty()) return;
+        profession = profession.trim();
+        if (profGroup != null) profGroup = profGroup.trim();
+
         try {
             Integer pgId = null;
-            if (profGroup != null && !profGroup.trim().isEmpty()) {
+            if (profGroup != null && !profGroup.isEmpty()) {
                 // Ensure profGroup exists
                 try (PreparedStatement stmt = conn.prepareStatement("MERGE INTO professional_groups pg USING (SELECT ? n FROM DUAL) src ON (pg.name = src.n) WHEN NOT MATCHED THEN INSERT (name) VALUES (src.n)")) {
                     stmt.setString(1, profGroup);
@@ -741,13 +746,14 @@ public class StudentService {
             return "غير محدد";
 
         // Check for specific negative markers first (global status override)
+        // Dynamic lookup from student_statuses table (status_code column)
+        Map<Integer, String> codeToStatus = StatusesService.getCodeToStatusMap();
         for (Integer mark : grades.values()) {
-            if (mark != null) {
-                if (mark == -1) return "غائب";
-                if (mark == -2) return "محروم";
-                if (mark == -3) return "مفصول";
-                if (mark == -4) return "معتذر";
-                if (mark == -5) return "مؤجل";
+            if (mark != null && mark < 0) {
+                String mappedStatus = codeToStatus.get(mark);
+                if (mappedStatus != null) {
+                    return mappedStatus;
+                }
             }
         }
 

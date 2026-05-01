@@ -10,7 +10,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class StatusesPage extends JPanel {
 
@@ -55,7 +56,7 @@ public class StatusesPage extends JPanel {
         titleLbl.setFont(UITheme.FONT_TITLE);
         titleLbl.setForeground(UITheme.TEXT_PRIMARY);
 
-        JLabel subLbl = new JLabel("أضف أو احذف الحالات التي تُستخدم في تقييم الطلاب", SwingConstants.RIGHT);
+        JLabel subLbl = new JLabel("أضف أو احذف الحالات التي تُستخدم في تقييم الطلاب — يمكنك ربط كل حالة برقم سالب يُستخدم عند إدخال الدرجات", SwingConstants.RIGHT);
         subLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subLbl.setForeground(UITheme.TEXT_SECONDARY);
 
@@ -122,12 +123,20 @@ public class StatusesPage extends JPanel {
         gridPanel.removeAll();
         java.util.Map<String, Integer> counts = com.pvtd.students.services.StudentService.getDashboardStats();
 
-        List<String> statuses = StatusesService.getAllStatuses();
-        for (String status : statuses) {
+        LinkedHashMap<String, Integer> statusesWithCodes = StatusesService.getAllStatusesWithCodes();
+
+        // Also ensure core statuses appear
+        if (!statusesWithCodes.containsKey("ناجح")) statusesWithCodes.put("ناجح", null);
+        if (!statusesWithCodes.containsKey("راسب")) statusesWithCodes.put("راسب", null);
+        if (!statusesWithCodes.containsKey("دور ثاني")) statusesWithCodes.put("دور ثاني", null);
+
+        for (Map.Entry<String, Integer> entry : statusesWithCodes.entrySet()) {
+            String status = entry.getKey();
+            Integer code = entry.getValue();
             Color[] colors = getSemanticColor(status);
-            gridPanel.add(buildCard(status, colors[0], colors[1], counts.getOrDefault(status, 0)));
+            gridPanel.add(buildCard(status, code, colors[0], colors[1], counts.getOrDefault(status, 0)));
         }
-        if (statuses.isEmpty()) {
+        if (statusesWithCodes.isEmpty()) {
             gridPanel.setLayout(new BorderLayout());
             JLabel empty = new JLabel(
                 "<html><div style='text-align:center'>لا توجد حالات مُضافة بعد.<br>اضغط &laquo;+ إضافة حالة جديدة&raquo; لإنشاء أول حالة.</div></html>",
@@ -164,13 +173,13 @@ public class StatusesPage extends JPanel {
         return PALETTE[hash];
     }
 
-    private JPanel buildCard(String statusName, Color bgColor, Color accentColor, int studentCount) {
+    private JPanel buildCard(String statusName, Integer statusCode, Color bgColor, Color accentColor, int studentCount) {
         JPanel cardWrapper = new JPanel(new BorderLayout());
         cardWrapper.setOpaque(false);
         // Fixed height to prevent stretching
-        cardWrapper.setPreferredSize(new Dimension(270, 130));
-        cardWrapper.setMinimumSize(new Dimension(270, 130));
-        cardWrapper.setMaximumSize(new Dimension(270, 130));
+        cardWrapper.setPreferredSize(new Dimension(270, 150));
+        cardWrapper.setMinimumSize(new Dimension(270, 150));
+        cardWrapper.setMaximumSize(new Dimension(270, 150));
         cardWrapper.setBorder(BorderFactory.createCompoundBorder(
                 new DropShadowBorder(Color.BLACK, 6, 0.07f, 16, UITheme.BG_LIGHT),
                 new EmptyBorder(0, 0, 0, 0)));
@@ -193,7 +202,7 @@ public class StatusesPage extends JPanel {
         cardInner.setOpaque(false);
         cardInner.setBorder(new EmptyBorder(18, 16, 14, 16));
 
-        // Top: Status Name + Count
+        // Top: Status Name + Code Badge
         JPanel topRow = new JPanel(new BorderLayout());
         topRow.setOpaque(false);
 
@@ -209,30 +218,66 @@ public class StatusesPage extends JPanel {
         nameLbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         nameLbl.setBorder(null);
 
-        // Colored dot badge
-        JPanel dotBadge = new JPanel() {
+        // Code badge - shows the negative number
+        JPanel codeBadge = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bgColor);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.setColor(accentColor);
-                int cx = getWidth() / 2, cy = getHeight() / 2;
-                g2.fillOval(cx - 4, cy - 4, 8, 8);
                 g2.dispose();
             }
         };
-        dotBadge.setOpaque(false);
-        dotBadge.setPreferredSize(new Dimension(28, 22));
+        codeBadge.setOpaque(false);
+        codeBadge.setLayout(new BorderLayout());
+
+        if (statusCode != null) {
+            JLabel codeLabel = new JLabel(String.valueOf(statusCode), SwingConstants.CENTER);
+            codeLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            codeLabel.setForeground(accentColor);
+            codeBadge.add(codeLabel, BorderLayout.CENTER);
+            codeBadge.setPreferredSize(new Dimension(40, 24));
+            codeBadge.setToolTipText("كود الحالة: عند إدخال " + statusCode + " كدرجة، يتم تعيين الحالة تلقائياً");
+        } else {
+            // Colored dot badge (no code)
+            JPanel dotInner = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(accentColor);
+                    int cx = getWidth() / 2, cy = getHeight() / 2;
+                    g2.fillOval(cx - 4, cy - 4, 8, 8);
+                    g2.dispose();
+                }
+            };
+            dotInner.setOpaque(false);
+            codeBadge.add(dotInner, BorderLayout.CENTER);
+            codeBadge.setPreferredSize(new Dimension(28, 22));
+            codeBadge.setToolTipText("بدون كود — لا يمكن تعيين هذه الحالة تلقائياً عبر الدرجات");
+        }
 
         topRow.add(nameLbl, BorderLayout.EAST);
-        topRow.add(dotBadge, BorderLayout.WEST);
+        topRow.add(codeBadge, BorderLayout.WEST);
+
+        // Middle: Code info label
+        JPanel middleRow = new JPanel(new BorderLayout());
+        middleRow.setOpaque(false);
+        middleRow.setBorder(new EmptyBorder(6, 0, 0, 0));
+
+        String codeText = statusCode != null
+                ? "كود الدرجة: " + statusCode
+                : "بدون كود";
+        JLabel codeInfoLbl = new JLabel(codeText, SwingConstants.RIGHT);
+        codeInfoLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        codeInfoLbl.setForeground(statusCode != null ? accentColor : new Color(0xA0AEC0));
+        middleRow.add(codeInfoLbl, BorderLayout.EAST);
 
         // Bottom: Count label + Buttons
         JPanel bottomRow = new JPanel(new BorderLayout());
         bottomRow.setOpaque(false);
-        bottomRow.setBorder(new EmptyBorder(10, 0, 0, 0));
+        bottomRow.setBorder(new EmptyBorder(6, 0, 0, 0));
 
         JLabel countLbl = new JLabel("الطلاب: " + studentCount, SwingConstants.LEFT);
         countLbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -250,7 +295,7 @@ public class StatusesPage extends JPanel {
         btnEdit.setPreferredSize(new Dimension(72, 28));
         btnEdit.putClientProperty("JButton.buttonType", "roundRect");
         btnEdit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnEdit.addActionListener(e -> handleRename(statusName));
+        btnEdit.addActionListener(e -> handleEdit(statusName, statusCode));
 
         // Delete: danger outline
         JButton btnDel = new JButton("حذف") {
@@ -282,7 +327,14 @@ public class StatusesPage extends JPanel {
         bottomRow.add(countLbl, BorderLayout.EAST);
         bottomRow.add(btnRow, BorderLayout.WEST);
 
+        // Assemble card
+        JPanel centerBlock = new JPanel();
+        centerBlock.setOpaque(false);
+        centerBlock.setLayout(new BoxLayout(centerBlock, BoxLayout.Y_AXIS));
+        centerBlock.add(middleRow);
+
         cardInner.add(topRow, BorderLayout.NORTH);
+        cardInner.add(centerBlock, BorderLayout.CENTER);
         cardInner.add(bottomRow, BorderLayout.SOUTH);
         cardWrapper.add(cardInner, BorderLayout.CENTER);
 
@@ -308,12 +360,15 @@ public class StatusesPage extends JPanel {
 
     // ── Actions ────────────────────────────────────────────────────────────────
     private void handleAdd() {
-        // Dialog with name + color picker
-        JPanel p = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel p = new JPanel(new GridLayout(3, 2, 10, 10));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         JTextField nameField = new JTextField();
         nameField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JTextField codeField = new JTextField();
+        codeField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        codeField.setToolTipText("رقم سالب مثل -6 أو -7 — اتركه فارغاً إذا لم تحتاج تعيين تلقائي");
 
         JComboBox<String> colorCombo = new JComboBox<>(COLOR_NAMES);
         colorCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
@@ -331,6 +386,8 @@ public class StatusesPage extends JPanel {
 
         p.add(new JLabel("اسم الحالة:", SwingConstants.RIGHT));
         p.add(nameField);
+        p.add(new JLabel("كود الدرجة (رقم سالب):", SwingConstants.RIGHT));
+        p.add(codeField);
         p.add(new JLabel("اللون:", SwingConstants.RIGHT));
         p.add(colorCombo);
 
@@ -342,9 +399,25 @@ public class StatusesPage extends JPanel {
                 warn("اسم الحالة لا يمكن أن يكون فارغاً.");
                 return;
             }
+
+            Integer code = parseCode(codeField.getText().trim());
+            if (code != null && code >= 0) {
+                warn("كود الحالة يجب أن يكون رقماً سالباً (مثل -6).");
+                return;
+            }
+
+            // Check code uniqueness
+            if (code != null) {
+                String existing = StatusesService.getStatusNameByCode(code);
+                if (existing != null) {
+                    warn("الكود " + code + " مستخدم بالفعل للحالة: «" + existing + "»");
+                    return;
+                }
+            }
+
             try {
                 String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
-                StatusesService.addStatus(name, user);
+                StatusesService.addStatus(name, code, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ: " + ex.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
@@ -368,20 +441,67 @@ public class StatusesPage extends JPanel {
         }
     }
 
-    private void handleRename(String oldName) {
-        String newName = (String) JOptionPane.showInputDialog(this,
-                "الاسم الجديد للحالة:",
-                "تعديل الحالة", JOptionPane.PLAIN_MESSAGE, null, null, oldName);
-        if (newName != null && !newName.trim().isEmpty() && !newName.trim().equals(oldName)) {
+    private void handleEdit(String oldName, Integer oldCode) {
+        JPanel p = new JPanel(new GridLayout(2, 2, 10, 10));
+        p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JTextField nameField = new JTextField(oldName);
+        nameField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JTextField codeField = new JTextField(oldCode != null ? String.valueOf(oldCode) : "");
+        codeField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        codeField.setToolTipText("رقم سالب مثل -6 أو -7 — اتركه فارغاً إذا لم تحتاج تعيين تلقائي");
+
+        p.add(new JLabel("اسم الحالة:", SwingConstants.RIGHT));
+        p.add(nameField);
+        p.add(new JLabel("كود الدرجة (رقم سالب):", SwingConstants.RIGHT));
+        p.add(codeField);
+
+        int result = JOptionPane.showConfirmDialog(this, p, "تعديل الحالة", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String newName = nameField.getText().trim();
+            if (newName.isEmpty()) {
+                warn("اسم الحالة لا يمكن أن يكون فارغاً.");
+                return;
+            }
+
+            Integer newCode = parseCode(codeField.getText().trim());
+            if (newCode != null && newCode >= 0) {
+                warn("كود الحالة يجب أن يكون رقماً سالباً (مثل -6).");
+                return;
+            }
+
+            // Check code uniqueness (excluding current status)
+            if (newCode != null) {
+                String existing = StatusesService.getStatusNameByCode(newCode);
+                if (existing != null && !existing.equals(oldName)) {
+                    warn("الكود " + newCode + " مستخدم بالفعل للحالة: «" + existing + "»");
+                    return;
+                }
+            }
+
             try {
                 String user = frame != null ? frame.getLoggedInUser().getUsername() : "SYSTEM";
-                StatusesService.deleteStatus(oldName, user);
-                StatusesService.addStatus(newName.trim(), user);
+                StatusesService.updateStatus(oldName, newName, newCode, user);
                 loadCards();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "حدث خطأ أثناء التعديل: " + ex.getMessage(), "خطأ",
                         JOptionPane.ERROR_MESSAGE);
             }
+        }
+    }
+
+    /**
+     * Parses a code string. Returns null if empty, or the parsed integer.
+     */
+    private Integer parseCode(String text) {
+        if (text == null || text.isEmpty()) return null;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            warn("الكود يجب أن يكون رقماً صحيحاً.");
+            return 0; // Will be caught by the >= 0 check
         }
     }
 

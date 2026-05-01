@@ -32,6 +32,12 @@ public class LoginFrame extends JFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setResizable(true);
 
+        // Set window icon from logo.jpg
+        java.net.URL logoUrl = getClass().getClassLoader().getResource("logo.jpg");
+        if (logoUrl != null) {
+            setIconImage(new ImageIcon(logoUrl).getImage());
+        }
+
         // Setup aggressive window focus
         setAlwaysOnTop(true);
         toFront();
@@ -476,20 +482,13 @@ public class LoginFrame extends JFrame {
 
         // Footer hint - moved to bottom of outer layout to detach from card if wanted,
         // but user wanted it inside card at bottom
-        JLabel hint = new JLabel("اسم المستخدم الافتراضي: admin / admin123", SwingConstants.CENTER);
-        hint.setFont(new Font(APP_FONT, Font.PLAIN, 12));
-        hint.setForeground(new Color(0x94A3B8));
-        hint.setAlignmentX(Component.CENTER_ALIGNMENT);
-        hint.setBorder(new EmptyBorder(30, 0, 0, 0));
-
         formCard.add(welcomeLabel);
         formCard.add(instructLabel);
         formCard.add(userWrapper);
         formCard.add(passWrapper);
         formCard.add(loginButton);
         formCard.add(statusLabel); // Moved status under button or just keep space
-        formCard.add(Box.createVerticalGlue()); // Push hint to bottom
-        formCard.add(hint);
+        formCard.add(Box.createVerticalGlue()); // Push content to top
 
         formOuter.add(formCard);
 

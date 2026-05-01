@@ -104,7 +104,6 @@ public class DataEntryPage extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
         
-        add(buildFooterActions(), BorderLayout.SOUTH);
 
         loadCenters();
     }
@@ -556,6 +555,7 @@ public class DataEntryPage extends JPanel {
         String regDisplay = (String) regionCombo.getSelectedItem();
         String selReg = regionCombo.getSelectedIndex() > 0 ? regionCodeToNameMap.getOrDefault(regDisplay, regDisplay) : "الكل";
         centerStudents = StudentService.searchStudents("", "", "الكل", selReg, "الكل", "الكل", center);
+        System.out.println("[DataEntryPage] center='" + center + "', region='" + selReg + "' -> students=" + centerStudents.size());
         
         if (centerStudents.isEmpty()) {
             JOptionPane.showMessageDialog(this, "لا يوجد طلاب مسجلين في هذا المركز.", "معلومة", JOptionPane.INFORMATION_MESSAGE);
@@ -589,6 +589,10 @@ public class DataEntryPage extends JPanel {
     private void navigateTo(int index) {
         currentIndex = index;
         currentStudent = centerStudents.get(index);
+        System.out.println("[DataEntryPage] navigateTo index=" + index
+                + ", studentId=" + currentStudent.getId()
+                + ", name='" + currentStudent.getName() + "'"
+                + ", rawProfession='" + currentStudent.getProfession() + "'");
         
         secretNoField.setText(currentStudent.getSecretNo() != null ? currentStudent.getSecretNo() : "غير محدد");
         
@@ -596,6 +600,12 @@ public class DataEntryPage extends JPanel {
         renderSubjectsForProfession();
         populateGradesIntoUI();
         recalculate();
+        
+        SwingUtilities.invokeLater(() -> {
+            if (!orderedGradeFields.isEmpty()) {
+                orderedGradeFields.get(0).requestFocusInWindow();
+            }
+        });
     }
 
     private void renderSubjectsForProfession() {
@@ -603,8 +613,17 @@ public class DataEntryPage extends JPanel {
         gradeFieldsMap.clear();
         orderedGradeFields.clear();
 
-        if (currentStudent == null || currentStudent.getProfession() == null) return;
-        currentSubjects = SubjectService.getSubjectsByProfession(currentStudent.getProfession());
+        if (currentStudent == null || currentStudent.getProfession() == null) {
+            subjectsContainer.revalidate();
+            subjectsContainer.repaint();
+            return;
+        }
+
+        String profession = cleanString(currentStudent.getProfession());
+        System.out.println("[DataEntryPage] renderSubjects rawProfession='" + currentStudent.getProfession()
+                + "', cleanedProfession='" + profession + "'");
+        currentSubjects = SubjectService.getSubjectsByProfession(profession);
+        System.out.println("[DataEntryPage] rendered subjects count=" + currentSubjects.size());
 
         // Build a map of parent_id -> list of children (sub-subjects for 30/70)
         java.util.Map<Integer, List<Subject>> childrenMap = new java.util.LinkedHashMap<>();
@@ -632,13 +651,27 @@ public class DataEntryPage extends JPanel {
         RoundedPanel mainCard = new RoundedPanel(12, Color.WHITE);
         mainCard.setLayout(new BoxLayout(mainCard, BoxLayout.Y_AXIS));
 
-        if (!theorySubjects.isEmpty())   renderSubjectGroup(mainCard, "نظري",   CLR_CYAN_HEADER,            theorySubjects,   childrenMap);
-        if (!practicalSubjects.isEmpty()) renderSubjectGroup(mainCard, "عملي",   CLR_GREEN_BTN,              practicalSubjects, childrenMap);
-        if (!appliedSubjects.isEmpty())   renderSubjectGroup(mainCard, "تطبيقي", new Color(0xF59E0B),        appliedSubjects,  childrenMap);
+        if (currentSubjects.isEmpty()) {
+            JLabel emptyLabel = new JLabel("لا توجد مواد مسجلة لهذه المهنة.", SwingConstants.CENTER);
+            emptyLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            emptyLabel.setForeground(Color.GRAY);
+            emptyLabel.setBorder(new EmptyBorder(20, 20, 20, 20));
+            emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            mainCard.add(emptyLabel);
+        } else {
+            if (!theorySubjects.isEmpty())   renderSubjectGroup(mainCard, "نظري",   CLR_CYAN_HEADER,     theorySubjects, childrenMap);
+            if (!practicalSubjects.isEmpty()) renderSubjectGroup(mainCard, "عملي",   CLR_GREEN_BTN,       practicalSubjects, childrenMap);
+            if (!appliedSubjects.isEmpty())   renderSubjectGroup(mainCard, "تطبيقي", new Color(0xF59E0B), appliedSubjects, childrenMap);
+        }
 
         subjectsContainer.add(mainCard);
         subjectsContainer.revalidate();
         subjectsContainer.repaint();
+    }
+
+    private String cleanString(String input) {
+        if (input == null) return null;
+        return input.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
     }
 
     private void renderSubjectGroup(JPanel container, String title, Color headerBg,
@@ -920,6 +953,8 @@ public class DataEntryPage extends JPanel {
         if (nextIdx < centerStudents.size()) {
             isDirty = false;
             navigateTo(nextIdx);
+        } else {
+            JOptionPane.showMessageDialog(this, "لقد تم الانتهاء من جميع طلاب هذا المركز.", "نهاية المركز", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 

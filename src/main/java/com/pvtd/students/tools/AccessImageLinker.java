@@ -57,7 +57,14 @@ public class AccessImageLinker {
              return;
         }
 
-        String dbUrl = "jdbc:ucanaccess://" + dbFile.getAbsolutePath() + ";memory=true";
+        try {
+            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+        } catch (ClassNotFoundException e) {
+            JOptionPane.showMessageDialog(null, "تعذر تحميل مكتبة UCanAccess. يرجى التأكد من إضافة المكتبات اللازمة للمشروع.", "خطأ في المكتبات", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String dbUrl = "jdbc:ucanaccess://" + dbFile.getAbsolutePath();
         int matched = 0;
         int notFound = 0;
         int emptyIds = 0;
