@@ -36,7 +36,10 @@ import javax.swing.table.JTableHeader;
  * @author Seif
  */
 public class delayed extends javax.swing.JFrame {
+    private String manualExamMonth = null;
+    private String manualAdmissionMonth = null;
     public boolean isCancelled = false;
+
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(delayed.class.getName());
 
@@ -45,6 +48,18 @@ public class delayed extends javax.swing.JFrame {
      */
     public delayed() {
         initComponents();
+        initTableLogic();
+    }
+
+    public delayed(String examMonth, String admissionMonth) {
+        this.manualExamMonth = examMonth;
+        this.manualAdmissionMonth = admissionMonth;
+        initComponents();
+        initTableLogic();
+    }
+
+    private void initTableLogic() {
+
         // احسب الارتفاع الحقيقي
 
         jTable2.setFillsViewportHeight(true);
@@ -115,9 +130,10 @@ public class delayed extends javax.swing.JFrame {
                 return c;
             }
         });
-        String month = chooseMonth();
+        String examMonth = (manualExamMonth != null) ? manualExamMonth : chooseMonth("اختر شهر الشهادة / الامتحان", "يوليو");
+        String admissionMonth = (manualAdmissionMonth != null) ? manualAdmissionMonth : chooseMonth("اختر شهر دفعة القبول", "أكتوبر");
 
-        if (month == null) {
+        if (examMonth == null || admissionMonth == null) {
             this.isCancelled = true;
             return;
         }
@@ -126,8 +142,9 @@ public class delayed extends javax.swing.JFrame {
 
         String arabicYear = toArabicNumbers(String.valueOf(year));
 
-        jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + "مايو" + " " + "لسنة " + toArabicNumbers("2026"));
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth + " " + "لسنة " + arabicYear);
+
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -150,7 +167,7 @@ public class delayed extends javax.swing.JFrame {
                 .replace("9", "٩");
     }
 
-    private String chooseMonth() {
+    private String chooseMonth(String title, String defaultMonth) {
 
         String[] months = {
                 "يناير", "فبراير", "مارس", "أبريل",
@@ -160,13 +177,14 @@ public class delayed extends javax.swing.JFrame {
 
         return (String) JOptionPane.showInputDialog(
                 this,
-                "اختر شهر الشهادة",
-                "تاريخ الشهادة",
+                title,
+                "تحديد الموعد",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
                 months,
-                months[7]);
+                defaultMonth);
     }
+
 
     public void loadStudents(String center) {
 

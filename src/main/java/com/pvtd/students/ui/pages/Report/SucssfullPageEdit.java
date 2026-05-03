@@ -17,6 +17,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import com.pvtd.students.ui.utils.ReportWorker;
+import com.pvtd.students.ui.utils.ReportUtils;
+
 import com.pvtd.students.models.Student;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,6 +41,13 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
 
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
+        
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+
+        final String selMonth = months[0];
+        final String admMonth = months[1];
+
         for (int row : selectedRows) {
             String seatNo = String.valueOf(model1.getValueAt(row, 1)); 
             String prof   = String.valueOf(model1.getValueAt(row, 5)); 
@@ -143,7 +152,8 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                                 }
                             } catch (Exception ex) { ex.printStackTrace(); }
 
-                            gradReportSucc report = new gradReportSucc(prof, centerName, currentRegion, profSystem, list);
+                            gradReportSucc report = new gradReportSucc(prof, centerName, currentRegion, profSystem, list, selMonth, admMonth);
+
                             report.appendToDocument(document);
                         }
 
@@ -490,8 +500,13 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = combobox1.getSelectedItem() != null ? combobox1.getSelectedItem().toString() : "";
 
-        successful report = new successful();
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+
+
+        successful report = new successful(months[0], months[1]);
         if (report.isCancelled) return;
+
 
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
 

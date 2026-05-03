@@ -362,6 +362,11 @@ public class DetailersFRamepage extends javax.swing.JFrame {
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
         String getProfSystemSql = "SELECT exam_system FROM professions WHERE TRIM(name) = TRIM(?)";
 
+        String[] months = com.pvtd.students.ui.utils.ReportUtils.chooseMonths(this);
+        if (months == null) return;
+        String selMonth = months[0];
+        String admMonth = months[1];
+
         ReportWorker worker = new ReportWorker(this, "كشف المفصولين بالدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
@@ -453,7 +458,7 @@ public class DetailersFRamepage extends javax.swing.JFrame {
                             }
 
                             updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportGeneric report = new gradReportGeneric(prof, centerName, currentRegion, systemName, list, "تلاميذ مفصولون", new java.awt.Color(200, 100, 100), "Detailed_Detailers_Report");
+                            gradReportGeneric report = new gradReportGeneric("تلاميذ مفصولون", prof, centerName, currentRegion, systemName, list, new java.awt.Color(200, 100, 100), "Detailed_Detailers_Report", selMonth, admMonth);
                             report.appendToDocument(document);
                         }
                         document.close();

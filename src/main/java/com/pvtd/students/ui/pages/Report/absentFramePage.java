@@ -10,6 +10,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import com.pvtd.students.ui.utils.ReportWorker;
+import com.pvtd.students.ui.utils.ReportUtils;
+
 import java.io.File;
 import javax.swing.JFrame;
 import javax.swing.JTable;
@@ -364,6 +366,12 @@ i++
 
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
+        
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+        final String selMonth = months[0];
+        final String admMonth = months[1];
+
         for (int row : selectedRows) {
             String seatNo = String.valueOf(model1.getValueAt(row, 1)); 
             String prof   = String.valueOf(model1.getValueAt(row, 3)); 
@@ -465,7 +473,8 @@ i++
                             }
 
                             updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportGeneric report = new gradReportGeneric(prof, centerName, currentRegion, systemName, list, "تلاميذ غائبون", new java.awt.Color(100, 100, 100), "Detailed_Absent_Report");
+                            gradReportGeneric report = new gradReportGeneric("تلاميذ غائبون", prof, centerName, currentRegion, systemName, list, new java.awt.Color(100, 100, 100), "Detailed_Absent_Report", selMonth, admMonth);
+
                             report.appendToDocument(document);
                         }
                         document.close();
@@ -490,8 +499,12 @@ i++
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
 
-        absent report = new absent();
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+
+        absent report = new absent(months[0], months[1]);
         if (report.isCancelled) return;
+
 
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
 

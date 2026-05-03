@@ -13,6 +13,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import com.pvtd.students.ui.utils.ReportWorker;
+import com.pvtd.students.ui.utils.ReportUtils;
+
 import java.io.File;
 import javax.swing.JFrame;
 import javax.swing.JTable;
@@ -346,6 +348,12 @@ public class delayedFramePage extends javax.swing.JFrame {
 
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
+        
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+        final String selMonth = months[0];
+        final String admMonth = months[1];
+
         for (int row : selectedRows) {
             // Note: in delayedFramePage, loadStudents adds: i++, name, profession, registration_no, seat_no, status
             // seat_no is index 4, profession is index 2
@@ -449,7 +457,8 @@ public class delayedFramePage extends javax.swing.JFrame {
                             }
 
                             updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportGeneric report = new gradReportGeneric(prof, centerName, currentRegion, systemName, list, "تلاميذ مؤجلون", new java.awt.Color(200, 150, 0), "Detailed_Delayed_Report");
+                            gradReportGeneric report = new gradReportGeneric("تلاميذ مؤجلون", prof, centerName, currentRegion, systemName, list, new java.awt.Color(200, 150, 0), "Detailed_Delayed_Report", selMonth, admMonth);
+
                             report.appendToDocument(document);
                         }
                         document.close();
@@ -474,8 +483,12 @@ public class delayedFramePage extends javax.swing.JFrame {
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
 
-        delayed report = new delayed();
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+
+        delayed report = new delayed(months[0], months[1]);
         if (report.isCancelled) return;
+
 
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
 

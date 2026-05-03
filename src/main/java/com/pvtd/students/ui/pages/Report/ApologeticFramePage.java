@@ -347,6 +347,11 @@ public class ApologeticFramePage extends javax.swing.JFrame {
         String regionName = combobox2.getSelectedItem() != null ? combobox2.getSelectedItem().toString() : "";
         String getProfSystemSql = "SELECT exam_system FROM professions WHERE TRIM(name) = TRIM(?)";
 
+        String[] months = com.pvtd.students.ui.utils.ReportUtils.chooseMonths(this);
+        if (months == null) return;
+        String selMonth = months[0];
+        String admMonth = months[1];
+
         ReportWorker worker = new ReportWorker(this, "كشف المعتذرين بالدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
@@ -438,7 +443,7 @@ public class ApologeticFramePage extends javax.swing.JFrame {
                             }
 
                             updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportGeneric report = new gradReportGeneric(prof, centerName, currentRegion, systemName, list, "تلاميذ معتذرون", new java.awt.Color(200, 100, 0), "Detailed_Apologetic_Report");
+                            gradReportGeneric report = new gradReportGeneric("تلاميذ معتذرون", prof, centerName, currentRegion, systemName, list, new java.awt.Color(200, 100, 0), "Detailed_Apologetic_Report", selMonth, admMonth);
                             report.appendToDocument(document);
                         }
                         document.close();

@@ -13,6 +13,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import com.pvtd.students.ui.utils.ReportWorker;
+import com.pvtd.students.ui.utils.ReportUtils;
+
 import com.pvtd.students.models.Student;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,9 +51,16 @@ public class FailedFramePage extends javax.swing.JFrame {
 
         LinkedHashMap<String, List<String>> byProfession = new LinkedHashMap<>();
         int totalSelected = selectedRows.length;
+        
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
+
+        final String selMonth = months[0];
+        final String admMonth = months[1];
+
         for (int row : selectedRows) {
-            String seatNo = String.valueOf(model1.getValueAt(row, 1));
-            String prof = String.valueOf(model1.getValueAt(row, 3));
+            String seatNo = String.valueOf(model1.getValueAt(row, 2)); // Index 2 for seat_no
+            String prof = String.valueOf(model1.getValueAt(row, 4)); // Index 4 for profession
             byProfession.computeIfAbsent(prof, k -> new ArrayList<>()).add(seatNo);
         }
 
@@ -149,7 +158,8 @@ public class FailedFramePage extends javax.swing.JFrame {
                             }
 
                             updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportFail report = new gradReportFail(prof, centerName, currentRegion, systemName, list);
+                            gradReportFail report = new gradReportFail(prof, centerName, currentRegion, systemName, list, selMonth, admMonth);
+
                             report.appendToDocument(document);
                         }
 
@@ -251,6 +261,18 @@ public class FailedFramePage extends javax.swing.JFrame {
         jTable1.setForeground(java.awt.Color.BLACK);
         jTable1.setSelectionBackground(new java.awt.Color(135, 206, 250)); // Light sky blue for better contrast
         jTable1.setSelectionForeground(java.awt.Color.BLACK);
+        
+        // Set column widths to prevent clipping of subjects
+        if (jTable1.getColumnCount() >= 7) {
+            jTable1.getColumnModel().getColumn(0).setPreferredWidth(350); // مواد الدور الثاني
+            jTable1.getColumnModel().getColumn(1).setPreferredWidth(80);  // حالة الطالب
+            jTable1.getColumnModel().getColumn(2).setPreferredWidth(100); // رقم الجلوس
+            jTable1.getColumnModel().getColumn(3).setPreferredWidth(100); // رقم التسجيل
+            jTable1.getColumnModel().getColumn(4).setPreferredWidth(180); // المهنة
+            jTable1.getColumnModel().getColumn(5).setPreferredWidth(250); // الاسم
+            jTable1.getColumnModel().getColumn(6).setPreferredWidth(40);  // م
+        }
+
         jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
             @Override
             public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
@@ -296,12 +318,25 @@ public class FailedFramePage extends javax.swing.JFrame {
 
             try (Connection con = DatabaseConnection.getConnection()) {
 
-                String sql = "SELECT name, profession, registration_no, seat_no, status " +
-                        "FROM students " +
-                        "WHERE center_name = ? " +
-                        "AND region = ? " +
-                        "AND status = 'راسب' " +
-                        "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
+                String sql = """
+                        SELECT st.name, st.profession, st.registration_no, st.seat_no, st.status,
+                        (
+                            SELECT LISTAGG(sub.name, '<br/>') WITHIN GROUP (ORDER BY sub.display_order)
+                            FROM subjects sub
+                            WHERE TRIM(sub.profession) = TRIM(st.profession)
+                            AND sub.parent_subject_id IS NULL
+                            AND (
+                                sub.id NOT IN (SELECT sg.subject_id FROM student_grades sg WHERE sg.student_id = st.id)
+                                OR 
+                                sub.id IN (SELECT sg.subject_id FROM student_grades sg WHERE sg.student_id = st.id AND sg.obtained_mark < sub.pass_mark)
+                            )
+                        ) as failed_subjects
+                        FROM students st
+                        WHERE st.center_name = ? 
+                        AND st.region = ? 
+                        AND st.status = 'راسب'
+                        ORDER BY CASE WHEN REGEXP_LIKE(st.seat_no, '^[0-9]+$') THEN TO_NUMBER(st.seat_no) ELSE 999999 END, st.id ASC
+                        """;
 
                 PreparedStatement ps = con.prepareStatement(sql);
 
@@ -313,8 +348,11 @@ public class FailedFramePage extends javax.swing.JFrame {
                 int i = 1;
 
                 while (rs.next()) {
+                    String failedSubs = rs.getString("failed_subjects");
+                    if (failedSubs == null) failedSubs = "";
 
                     model.addRow(new Object[] {
+                            failedSubs, // مواد الدور الثاني
                             rs.getString("status"),
                             rs.getString("seat_no"),
                             rs.getString("registration_no"),
@@ -460,7 +498,7 @@ public class FailedFramePage extends javax.swing.JFrame {
                         { null, null, null, null, null, null }
                 },
                 new String[] {
-                        "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
+                        "مواد الدور الثاني", "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
                 }));
         jScrollPane1.setViewportView(jTable1);
 
@@ -512,10 +550,15 @@ public class FailedFramePage extends javax.swing.JFrame {
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
+        
+        String[] months = ReportUtils.chooseMonths(this);
+        if (months == null) return;
 
-        Failed report = new Failed();
+
+        Failed report = new Failed(months[0], months[1]);
         if (report.isCancelled)
             return;
+
 
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
 
@@ -541,9 +584,9 @@ public class FailedFramePage extends javax.swing.JFrame {
                     }
 
                     for (int i = 0; i < selectedRows.length; i++) {
+                        // jTable1 has 7 cols matching Failed.jTable2: [مواد الدور الثاني(0), حالة الطالب(1), رقم الجلوس(2), رقم التسجيل(3), المهنه(4), الاسم(5), م(6)]
                         java.util.Vector rowData = (java.util.Vector) model1.getDataVector().get(selectedRows[i]);
-                        String prof = String.valueOf(model1.getValueAt(selectedRows[i], 3)).trim();
-                        // Remove HTML tags if present
+                        String prof = String.valueOf(model1.getValueAt(selectedRows[i], 4)).trim();
                         if (prof.startsWith("<html>")) {
                             prof = prof.replaceAll("<[^>]*>", "");
                         }
@@ -562,6 +605,8 @@ public class FailedFramePage extends javax.swing.JFrame {
     }
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
+
+
         jTable1.selectAll();
     }
 

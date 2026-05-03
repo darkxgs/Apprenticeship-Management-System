@@ -51,17 +51,37 @@ public class gradReportSucc extends JFrame {
     private final String system;
     private final List<Student> students;
     private List<Subject> subjects;
+    private String selectedMonth;
+    private String admissionMonth;
+
+
 
     private JPanel uiRootPanel;
     private int dynamicRowHeight = 40;
 
     public gradReportSucc(String profession, String center, String region, String system, List<Student> students) {
+        this(profession, center, region, system, students, null, null);
+    }
+
+    public gradReportSucc(String profession, String center, String region, String system, List<Student> students, String selectedMonth, String admissionMonth) {
         this.profession = profession;
         this.center = center;
         this.region = region;
         this.system = system;
         this.students = students;
         this.subjects = SubjectService.getSubjectsByProfession(profession);
+        
+        if (selectedMonth != null && admissionMonth != null) {
+            this.selectedMonth = selectedMonth;
+            this.admissionMonth = admissionMonth;
+        } else {
+            this.selectedMonth = chooseMonth("اختر المنعقد فيه", "يوليو");
+
+            this.admissionMonth = chooseMonth("اختر شهر دفعة القبول", "أكتوبر");
+        }
+
+
+
 
         setTitle("كشف الناجحين - " + profession);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -157,12 +177,14 @@ public class gradReportSucc extends JFrame {
 
         centerPanel.add(Box.createVerticalStrut(15));
 
-        JLabel batchInfo = label("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها", 38, true);
+        JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " لسنة " + toArabicNumbers("2023") + " وما قبلها", 38, true);
+
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : يوليو لسنة ٢٠٢٦", 38, true);
+        JLabel examDate = label("المنعقد في : " + selectedMonth + " لسنة " + toArabicNumbers(String.valueOf(java.time.LocalDate.now().getYear())), 38, true);
+
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(examDate);
@@ -221,7 +243,8 @@ public class gradReportSucc extends JFrame {
         }
 
         int subCount = parentSubjects.size();
-        String[] cols = new String[8 + subCount + 4];
+        // Base columns (8) + subjects + theorySum + Practical + Applied + Combined + Total + Status
+        String[] cols = new String[8 + subCount + 1 + 1 + 1 + 1 + 1 + 1];
         int i = 0;
         cols[i++] = "م";
         cols[i++] = "الاسم";
@@ -231,10 +254,10 @@ public class gradReportSucc extends JFrame {
         cols[i++] = "الرقم القومي";
         cols[i++] = "رقم الجلوس";
         cols[i++] = "الرقم السري";
+        
         boolean theoryColAdded = false;
         for (Subject s : parentSubjects) {
             String name = s.getName();
-            // Wrap in HTML for multi-line support if the name is long
             if (name != null && name.length() > 10) {
                 cols[i++] = "<html><center>" + name.replace(" ", "<br/>") + "</center></html>";
             } else {
@@ -247,161 +270,137 @@ public class gradReportSucc extends JFrame {
         }
         if (!theoryColAdded)
             cols[i++] = "مجموع النظري";
+            
+        cols[i++] = "العملي";
+        cols[i++] = "التطبيقي";
         cols[i++] = "مجموع عملي وتطبيقي";
         cols[i++] = "المجموع الكلي";
         cols[i] = "حالة";
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
             public boolean isCellEditable(int r, int c) {
                 return false;
             }
         };
 
-        // Row 1 & 2: Max/Min
-        // Pre-calculate total Max
-        int totalMax = 0, theoryMaxSum = 0, practicalMax = 0, appliedMax = 0;
+        // Pre-calculate totals
+        int theoryMaxSum = 0, practicalMax = 0, appliedMax = 0;
+        int theoryPassSum = 0, practicalPass = 0, appliedPass = 0;
+        
         for (Subject s : parentSubjects) {
             List<Subject> children = childrenMap.get(s.getId());
             int m = (children != null && !children.isEmpty()) ? 0 : s.getMaxMark();
+            int p = (children != null && !children.isEmpty()) ? 0 : s.getPassMark();
             if (children != null) {
-                for (Subject c : children)
+                for (Subject c : children) {
                     m += c.getMaxMark();
+                    p += c.getPassMark();
+                }
             }
-            totalMax += m;
-            if ("نظري".equals(s.getType()))
+            if ("نظري".equals(s.getType())) {
                 theoryMaxSum += m;
-            else if ("تطبيقي".equals(s.getType()))
+                theoryPassSum += p;
+            } else if ("تطبيقي".equals(s.getType())) {
                 appliedMax += m;
-            else
+                appliedPass += p;
+            } else {
                 practicalMax += m;
+                practicalPass += p;
+            }
         }
 
+        // 1. Max Row
         Object[] maxRow = new Object[cols.length];
         maxRow[1] = "النهاية العظمى";
-        int subIdx = 8;
-        boolean theoryMaxAdded = false;
+        int colIdx = 8;
+        boolean tMaxAdded = false;
         for (Subject s : parentSubjects) {
             List<Subject> children = childrenMap.get(s.getId());
-            int m = (children != null && !children.isEmpty()) ? 0 : s.getMaxMark();
-            if (children != null) {
-                for (Subject c : children)
-                    m += c.getMaxMark();
-            }
-            maxRow[subIdx++] = m;
+            int m = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getMaxMark).sum() : s.getMaxMark();
+            maxRow[colIdx++] = m;
             if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                maxRow[subIdx++] = theoryMaxSum;
-                theoryMaxAdded = true;
+                maxRow[colIdx++] = theoryMaxSum;
+                tMaxAdded = true;
             }
         }
-        if (!theoryMaxAdded)
-            maxRow[subIdx++] = theoryMaxSum;
-        maxRow[subIdx++] = (practicalMax + appliedMax);
-        maxRow[subIdx++] = totalMax;
-        maxRow[subIdx] = "0";
+        if (!tMaxAdded) maxRow[colIdx++] = theoryMaxSum;
+        maxRow[colIdx++] = practicalMax;
+        maxRow[colIdx++] = appliedMax;
+        maxRow[colIdx++] = (practicalMax + appliedMax);
+        maxRow[colIdx++] = (theoryMaxSum + practicalMax + appliedMax);
+        maxRow[colIdx] = " ";
         model.addRow(maxRow);
 
-        // Pre-calculate total Pass
-        int theoryPassSum = 0, practicalPass = 0, appliedPass = 0;
-        for (Subject s : parentSubjects) {
-            List<Subject> children = childrenMap.get(s.getId());
-            int p = (children != null && !children.isEmpty()) ? 0 : s.getPassMark();
-            if (children != null) {
-                for (Subject c : children)
-                    p += c.getPassMark();
-            }
-            if ("نظري".equals(s.getType()))
-                theoryPassSum += p;
-            else if ("تطبيقي".equals(s.getType()))
-                appliedPass += p;
-            else
-                practicalPass += p;
-        }
-
+        // 2. Min Row
         Object[] minRow = new Object[cols.length];
         minRow[1] = "النهاية الصغرى";
-        subIdx = 8;
-        boolean theoryPassAdded = false;
+        colIdx = 8;
+        boolean tPassAdded = false;
         for (Subject s : parentSubjects) {
             List<Subject> children = childrenMap.get(s.getId());
-            int p = (children != null && !children.isEmpty()) ? 0 : s.getPassMark();
-            if (children != null) {
-                for (Subject c : children)
-                    p += c.getPassMark();
-            }
-            minRow[subIdx++] = p;
+            int p = (children != null && !children.isEmpty()) ? children.stream().mapToInt(Subject::getPassMark).sum() : s.getPassMark();
+            minRow[colIdx++] = p;
             if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                minRow[subIdx++] = theoryPassSum;
-                theoryPassAdded = true;
+                minRow[colIdx++] = theoryPassSum;
+                tPassAdded = true;
             }
         }
-        if (!theoryPassAdded)
-            minRow[subIdx++] = theoryPassSum;
-        minRow[subIdx++] = (practicalPass + appliedPass);
-        minRow[subIdx++] = "0";
-        minRow[subIdx] = "0";
+        if (!tPassAdded) minRow[colIdx++] = theoryPassSum;
+        minRow[colIdx++] = (int) Math.ceil(practicalMax * 0.5);
+        minRow[colIdx++] = (int) Math.ceil(appliedMax * 0.5);
+        minRow[colIdx++] = (int) Math.ceil((practicalMax + appliedMax) * 0.5);
+        minRow[colIdx++] = (int) Math.ceil((theoryMaxSum + practicalMax + appliedMax) * 0.5);
+        minRow[colIdx] = " ";
         model.addRow(minRow);
 
-        for (int i_chunk = 0; i_chunk < 20; i_chunk++) {
+        // 3. Students Rows
+        for (int i_chunk = 0; i_chunk < 50; i_chunk++) {
             if (i_chunk < chunk.size()) {
                 Student st = chunk.get(i_chunk);
                 Object[] row = new Object[cols.length];
-                int colIdx = 0;
-                row[colIdx++] = students.indexOf(st) + 1;
-                row[colIdx++] = st.getName();
-                row[colIdx++] = st.getRegistrationNo();
-                row[colIdx++] = "<html><center>" + (st.getProfession() != null ? st.getProfession() : "")
-                        + "</center></html>";
-                row[colIdx++] = "<html><center>" + (st.getProfessionalGroup() != null ? st.getProfessionalGroup() : "")
-                        + "</center></html>";
-                row[colIdx++] = st.getNationalId();
-                row[colIdx++] = st.getSeatNo();
-                row[colIdx++] = st.getSecretNo();
+                int c = 0;
+                row[c++] = students.indexOf(st) + 1;
+                row[c++] = st.getName();
+                row[c++] = st.getRegistrationNo();
+                row[c++] = st.getProfession();
+                row[c++] = st.getProfessionalGroup();
+                row[c++] = st.getNationalId();
+                row[c++] = st.getSeatNo();
+                row[c++] = st.getSecretNo();
 
                 int theorySum = 0, practicalMark = 0, appliedMark = 0;
                 Map<Integer, Integer> grades = st.getGrades();
+                
+                // Grades data
+                boolean tRowAdded = false;
                 for (Subject s : parentSubjects) {
                     List<Subject> children = childrenMap.get(s.getId());
-                    int mark = (children != null && !children.isEmpty()) ? 0
-                            : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
-                    if (children != null) {
-                        for (Subject c : children)
-                            mark += (grades != null ? grades.getOrDefault(c.getId(), 0) : 0);
-                    }
-                    if ("نظري".equals(s.getType()))
-                        theorySum += (mark > 0 ? mark : 0);
-                    else if ("تطبيقي".equals(s.getType()))
-                        appliedMark += (mark > 0 ? mark : 0);
-                    else
-                        practicalMark += (mark > 0 ? mark : 0);
-                }
+                    int mark = (children != null && !children.isEmpty()) 
+                        ? children.stream().mapToInt(child -> grades != null ? grades.getOrDefault(child.getId(), 0) : 0).sum()
+                        : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+                    
+                    row[c++] = mark;
+                    if ("نظري".equals(s.getType())) theorySum += mark;
+                    else if ("تطبيقي".equals(s.getType())) appliedMark += mark;
+                    else practicalMark += mark;
 
-                boolean theoryRowAdded = false;
-                for (Subject s : parentSubjects) {
-                    List<Subject> children = childrenMap.get(s.getId());
-                    int mark = (children != null && !children.isEmpty()) ? 0
-                            : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
-                    if (children != null) {
-                        for (Subject c : children)
-                            mark += (grades != null ? grades.getOrDefault(c.getId(), 0) : 0);
-                    }
-                    row[colIdx++] = mark > 0 ? mark : "0";
                     if (s.getName() != null && s.getName().contains("لغة انجليزية")) {
-                        row[colIdx++] = theorySum;
-                        theoryRowAdded = true;
+                        row[c++] = theorySum;
+                        tRowAdded = true;
                     }
                 }
-
-                if (!theoryRowAdded)
-                    row[colIdx++] = theorySum;
-                row[colIdx++] = (practicalMark + appliedMark);
-                row[colIdx++] = (theorySum + practicalMark + appliedMark);
-                row[colIdx] = st.getStatus();
+                if (!tRowAdded) row[c++] = theorySum;
+                
+                row[c++] = practicalMark;
+                row[c++] = appliedMark;
+                row[c++] = (practicalMark + appliedMark);
+                row[c++] = (theorySum + practicalMark + appliedMark);
+                row[c] = st.getStatus();
                 model.addRow(row);
             } else {
                 Object[] row = new Object[cols.length];
-                for (int c = 0; c < cols.length; c++) {
-                    row[c] = " ";
-                }
+                for (int x = 0; x < cols.length; x++) row[x] = " ";
                 model.addRow(row);
             }
         }
@@ -410,24 +409,20 @@ public class gradReportSucc extends JFrame {
         styleTable(table, dynamicRowHeight);
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row,
-                    int col) {
-                // Use HTML for consistent wrapping and centering like in Tasoeda
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
                 String txt = (val == null) ? "" : val.toString();
                 if (!txt.toLowerCase().startsWith("<html>")) {
-                    txt = "<html><div align='right' style='padding-right:10px;'>" + txt + "</div></html>";
+                    txt = "<html><div align='right' style='padding-right:20px;'>" + txt + "</div></html>";
                 }
-                Component c = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
-                if (row == 0)
-                    c.setBackground(new Color(220, 252, 231));
-                else if (row == 1)
-                    c.setBackground(new Color(254, 249, 195));
-                else
-                    c.setBackground(Color.WHITE);
-                c.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 22));
+                Component comp = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
+                if (row == 0) comp.setBackground(new Color(220, 252, 231));
+                else if (row == 1) comp.setBackground(new Color(254, 249, 195));
+                else comp.setBackground(Color.WHITE);
+                
+                comp.setFont(new Font("Tahoma", Font.PLAIN, 22));
                 setHorizontalAlignment(SwingConstants.RIGHT);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-                return c;
+                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+                return comp;
             }
         });
 
@@ -508,6 +503,39 @@ public class gradReportSucc extends JFrame {
         }
         return p;
     }
+
+    private String chooseMonth(String title, String defaultMonth) {
+        String[] months = {
+                "يناير", "فبراير", "مارس", "أبريل",
+                "مايو", "يونيو", "يوليو", "أغسطس",
+                "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        };
+        String choice = (String) javax.swing.JOptionPane.showInputDialog(
+                this,
+                title,
+                "تحديد الموعد",
+                javax.swing.JOptionPane.QUESTION_MESSAGE,
+                null,
+                months,
+                defaultMonth);
+        return (choice != null) ? choice : defaultMonth;
+    }
+
+
+    private String toArabicNumbers(String number) {
+        return number
+                .replace("0", "٠")
+                .replace("1", "١")
+                .replace("2", "٢")
+                .replace("3", "٣")
+                .replace("4", "٤")
+                .replace("5", "٥")
+                .replace("6", "٦")
+                .replace("7", "٧")
+                .replace("8", "٨")
+                .replace("9", "٩");
+    }
+
 
     private JLabel label(String text, int size, boolean bold) {
         JLabel l = new JLabel(text);

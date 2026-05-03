@@ -12,6 +12,7 @@ import com.pvtd.students.ui.pages.DataEntryPage;
 import com.pvtd.students.ui.pages.ArchivesPage;
 import com.pvtd.students.ui.pages.AdminLogsPage;
 import com.pvtd.students.ui.pages.BackupRestorePage;
+import com.pvtd.students.ui.pages.ResultsPage;
 import com.pvtd.students.ui.pages.SystemSettingsPage;
 import com.pvtd.students.ui.pages.SecretNumberPage;
 import com.pvtd.students.ui.utils.UITheme;
@@ -82,19 +83,20 @@ public class Sidebar extends JPanel {
         // ── Navigation Buttons ──────────────────────────────────────────────────
         String role = frame.getLoggedInUser() != null ? frame.getLoggedInUser().getRole() : "admin";
 
-        HoverButton btnSettings  = menu("إعدادات النظام",              () -> frame.showPage(new SystemSettingsPage(frame)));
-        HoverButton btnSubj      = menu("المواد الدراسية",             () -> frame.showPage(new SubjectsPage(frame)));
-        HoverButton btnStat      = menu("حالات الطلاب",                () -> frame.showPage(new StatusesPage(frame)));
-        HoverButton btnStudents  = menu("الطلاب",                      () -> frame.showPage(new StudentsPage(frame)));
-        HoverButton btnImport    = menu("استيراد بيانات",              () -> frame.showPage(new ImportPage(frame)));
-        HoverButton btnSecret    = menu("إنشاء الرقم السري",           () -> frame.showPage(new SecretNumberPage(frame)));
-        HoverButton btnDataEntry = menu("إدخال الدرجات السريع",        () -> frame.showPage(new DataEntryPage(frame)));
-        HoverButton btnRep       = menu("التقارير",                    () -> frame.showPage(new ReportsPage()));
-        HoverButton btnArchives  = menu("الأرشيف",                     () -> frame.showPage(new ArchivesPage()));
-        HoverButton btnUsers     = menu("المستخدمين",                  () -> frame.showPage(new UsersPage(frame)));
-        HoverButton btnLogs      = menu("سجل النشاط",                  () -> frame.showPage(new AdminLogsPage(frame)));
-        HoverButton btnBackup    = menu("النسخ الاحتياطي",             () -> frame.showPage(new BackupRestorePage(frame)));
-        HoverButton btnDash      = menu("لوحة التحكم",                 () -> frame.showPage(new DashboardPage(frame)));
+        HoverButton btnSettings = menu("إعدادات النظام", () -> frame.showPage(new SystemSettingsPage(frame)));
+        HoverButton btnSubj = menu("المواد الدراسية", () -> frame.showPage(new SubjectsPage(frame)));
+        HoverButton btnStat = menu("حالات الطلاب", () -> frame.showPage(new StatusesPage(frame)));
+        HoverButton btnStudents = menu("الطلاب", () -> frame.showPage(new StudentsPage(frame)));
+        HoverButton btnImport = menu("استيراد بيانات", () -> frame.showPage(new ImportPage(frame)));
+        HoverButton btnSecret = menu("إنشاء الرقم السري", () -> frame.showPage(new SecretNumberPage(frame)));
+        HoverButton btnDataEntry = menu("إدخال الدرجات السريع", () -> frame.showPage(new DataEntryPage(frame)));
+        HoverButton btnRep = menu("التقارير", () -> frame.showPage(new ReportsPage()));
+        HoverButton btnResults = menu("النتيجة", () -> frame.showPage(new ResultsPage(frame)));
+        HoverButton btnArchives = menu("الأرشيف", () -> frame.showPage(new ArchivesPage()));
+        HoverButton btnUsers = menu("المستخدمين", () -> frame.showPage(new UsersPage(frame)));
+        HoverButton btnLogs = menu("سجل النشاط", () -> frame.showPage(new AdminLogsPage(frame)));
+        HoverButton btnBackup = menu("النسخ الاحتياطي", () -> frame.showPage(new BackupRestorePage(frame)));
+        HoverButton btnDash = menu("لوحة التحكم", () -> frame.showPage(new DashboardPage(frame)));
 
         if (role.equals("data_entry")) {
             // ── Data Entry Role: minimal sidebar ──
@@ -141,6 +143,8 @@ public class Sidebar extends JPanel {
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnRep);
             navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnResults);
+            navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(createSeparator());
             navPanel.add(Box.createVerticalStrut(6));
 
@@ -149,7 +153,8 @@ public class Sidebar extends JPanel {
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnArchives);
             navPanel.add(Box.createVerticalStrut(6));
-            HoverButton btnAccessLink = menu("ربط صور الأكسس", () -> frame.showPage(new com.pvtd.students.ui.pages.AccessLinkerPage(frame)));
+            HoverButton btnAccessLink = menu("ربط صور الأكسس",
+                    () -> frame.showPage(new com.pvtd.students.ui.pages.AccessLinkerPage(frame)));
             navPanel.add(btnAccessLink);
             navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(btnUsers);
@@ -182,6 +187,8 @@ public class Sidebar extends JPanel {
             navPanel.add(createSectionLabel("التقارير"));
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnRep);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnResults);
             navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(createSeparator());
             navPanel.add(Box.createVerticalStrut(6));
@@ -263,7 +270,7 @@ public class Sidebar extends JPanel {
         navButtons.add(btn);
         return btn;
     }
-    
+
     private JLabel createSectionLabel(String title) {
         JLabel lbl = new JLabel(title, SwingConstants.RIGHT);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -274,7 +281,7 @@ public class Sidebar extends JPanel {
         lbl.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         return lbl;
     }
-    
+
     private JSeparator createSeparator() {
         JSeparator sep = new JSeparator();
         sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));

@@ -36,7 +36,10 @@ import javax.swing.table.JTableHeader;
  * @author Seif
  */
 public class Failed extends javax.swing.JFrame {
+        private String manualExamMonth = null;
+        private String manualAdmissionMonth = null;
         public boolean isCancelled = false;
+
 
         private static final java.util.logging.Logger logger = java.util.logging.Logger
                         .getLogger(Failed.class.getName());
@@ -46,6 +49,18 @@ public class Failed extends javax.swing.JFrame {
          */
         public Failed() {
                 initComponents();
+                initTableLogic();
+        }
+
+        public Failed(String examMonth, String admissionMonth) {
+                this.manualExamMonth = examMonth;
+                this.manualAdmissionMonth = admissionMonth;
+                initComponents();
+                initTableLogic();
+        }
+
+        private void initTableLogic() {
+
                 // احسب الارتفاع الحقيقي
 
                 jTable2.setFillsViewportHeight(true);
@@ -64,17 +79,53 @@ public class Failed extends javax.swing.JFrame {
                 jTable2.setShowHorizontalLines(true);
                 jTable2.setShowVerticalLines(true);
 
-                // إنشاء منسق خلايا لضبط النص في المنتصف واختيار الخط مع خلفية بيضاء ثابتة
+                jTable2.setShowVerticalLines(true);
+
+                // 7-column model
+                DefaultTableModel model7 = new DefaultTableModel(
+                    new String[] { "مواد الدور الثاني", "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م" }, 0
+                );
+                jTable2.setModel(model7);
+
+                jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>مواد الدور<br>الثاني</center></html>");
+                jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
+                jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
+                jTable2.getColumnModel().getColumn(3).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
+
+                jTable2.getColumnModel().getColumn(0).setPreferredWidth(500); // مواد الدور الثاني
+                jTable2.getColumnModel().getColumn(1).setPreferredWidth(90);  // حالة التلميذ
+                jTable2.getColumnModel().getColumn(2).setPreferredWidth(120); // رقم الجلوس
+                jTable2.getColumnModel().getColumn(3).setPreferredWidth(120); // رقم التسجيل
+                jTable2.getColumnModel().getColumn(4).setPreferredWidth(210); // المهنة
+                jTable2.getColumnModel().getColumn(5).setPreferredWidth(270); // الاسم
+                jTable2.getColumnModel().getColumn(6).setPreferredWidth(60);  // م
+
                 javax.swing.table.DefaultTableCellRenderer centerCellRenderer = new javax.swing.table.DefaultTableCellRenderer() {
                         @Override
                         public Component getTableCellRendererComponent(JTable table, Object value,
                                         boolean isSelected, boolean hasFocus,
                                         int row, int column) {
-                                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus,
+                                String txt = (value == null) ? "" : value.toString();
+                                if (!txt.toLowerCase().startsWith("<html>") && txt.length() > 0) {
+                                    txt = "<html><div align='right' style='padding-right:10px;'>" + txt + "</div></html>";
+                                }
+                                Component c = super.getTableCellRendererComponent(table, txt, isSelected, hasFocus,
                                                 row, column);
-                                c.setBackground(java.awt.Color.WHITE); // Make all rows white
+                                c.setBackground(java.awt.Color.WHITE);
                                 setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-                                c.setFont(new Font("Tahoma", Font.PLAIN, 22));
+                                // col 0 = مواد الدور الثاني: scale font by content length
+                                if (column == 0) {
+                                    int lineCount = txt.split("<br/>|<br>").length;
+                                    if (lineCount > 5) {
+                                        c.setFont(new Font("Tahoma", Font.BOLD, 16));
+                                    } else if (lineCount > 3) {
+                                        c.setFont(new Font("Tahoma", Font.BOLD, 19));
+                                    } else {
+                                        c.setFont(new Font("Tahoma", Font.BOLD, 23));
+                                    }
+                                } else {
+                                    c.setFont(new Font("Tahoma", Font.PLAIN, 21));
+                                }
                                 return c;
                         }
                 };
@@ -83,59 +134,46 @@ public class Failed extends javax.swing.JFrame {
                         jTable2.getColumnModel().getColumn(col).setCellRenderer(centerCellRenderer);
                 }
 
-                if (jTable2.getColumnCount() >= 6) {
-                        jTable2.getColumnModel().getColumn(0)
-                                        .setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
-                        jTable2.getColumnModel().getColumn(1)
-                                        .setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
-                        jTable2.getColumnModel().getColumn(2)
-                                        .setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
-
-                        jTable2.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة التلميذ
-                        jTable2.getColumnModel().getColumn(1).setPreferredWidth(140); // رقم الجلوس
-                        jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم التسجيل
-                        jTable2.getColumnModel().getColumn(3).setPreferredWidth(520); // المهنة
-                        jTable2.getColumnModel().getColumn(4).setPreferredWidth(430); // الاسم
-                        jTable2.getColumnModel().getColumn(5).setPreferredWidth(50); // م
-                }
-
                 JTableHeader header = jTable2.getTableHeader();
-
                 header.setDefaultRenderer(new DefaultTableCellRenderer() {
                         @Override
                         public Component getTableCellRendererComponent(JTable table, Object value,
                                         boolean isSelected, boolean hasFocus,
                                         int row, int column) {
-
-                                Component c = super.getTableCellRendererComponent(
-                                                table, value, isSelected, hasFocus, row, column);
-
-                                setHorizontalAlignment(javax.swing.SwingConstants.CENTER); // توسيط الكلام في الهيدر
-
+                                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
                                 c.setFont(new Font("Tahoma", Font.BOLD, 18));
                                 c.setBackground(new Color(204, 255, 255));
                                 c.setForeground(Color.BLACK);
-
                                 return c;
                         }
                 });
-                String month = chooseMonth();
 
-                if (month == null) {
+                String examMonth = (manualExamMonth != null) ? manualExamMonth : chooseMonth("اختر المنعقد فيه", "يوليو");
+                String admissionMonth = (manualAdmissionMonth != null) ? manualAdmissionMonth : chooseMonth("اختر شهر دفعة القبول", "أكتوبر");
+
+                if (examMonth == null || admissionMonth == null) {
                         this.isCancelled = true;
                         return;
                 }
 
                 int year = java.time.Year.now().getValue();
-
                 String arabicYear = toArabicNumbers(String.valueOf(year));
 
-                jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-                jLabel11.setText("المنعقد في : " + "مايو" + " " + "لسنة " + toArabicNumbers("2026"));
+                jLabel6.setText("تلاميذ راسبون ولهم حق دخول الدور الثاني");
+                jLabel6.setForeground(new Color(42, 82, 152)); // Blue color from image
+
+                jLabel10.setText("دفعة قبول : " + admissionMonth + " لسنة ٢٠١٩ وما قبلها"); // Fixed as per image
+                jLabel11.setText("المنعقد في : " + examMonth + " لسنة " + arabicYear);
 
                 regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                
+                jLabel1.setText("وزارة التجارة والصناعة");
+                jLabel2.setText("مصلحة الكفاية الانتاجية والتدريب المهني");
+                jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
+                jLabel4.setText("لجنة النظام والمراقبة");
 
         }
 
@@ -154,7 +192,7 @@ public class Failed extends javax.swing.JFrame {
                                 .replace("9", "٩");
         }
 
-        private String chooseMonth() {
+        private String chooseMonth(String title, String defaultMonth) {
 
                 String[] months = {
                                 "يناير", "فبراير", "مارس", "أبريل",
@@ -164,13 +202,14 @@ public class Failed extends javax.swing.JFrame {
 
                 return (String) JOptionPane.showInputDialog(
                                 this,
-                                "اختر شهر الشهادة",
-                                "تاريخ الشهادة",
+                                title,
+                                "تحديد الموعد",
                                 JOptionPane.QUESTION_MESSAGE,
                                 null,
                                 months,
-                                months[7]);
+                                defaultMonth);
         }
+
 
         public void loadStudents(String center) {
 
@@ -207,12 +246,13 @@ public class Failed extends javax.swing.JFrame {
                                 String htmlProf = "<html><RIGHT>" + prof.trim() + "</RIGHT></html>";
 
                                 model.addRow(new Object[] {
-                                                "راسب", // 0: حالة التلميذ (تظهر في اليسار)
-                                                rs.getString("seat_no"), // 1: رقم الجلوس
-                                                rs.getString("registration_no"), // 2: رقم التسجيل
-                                                htmlProf, // 3: المهنة
-                                                htmlName, // 4: الاسم
-                                                i++ // 5: م (يظهر في اليمين)
+                                                "",                              // 0: مواد الدور الثاني (فارغ)
+                                                "راسب",                         // 1: حالة التلميذ
+                                                rs.getString("seat_no"),        // 2: رقم الجلوس
+                                                rs.getString("registration_no"), // 3: رقم التسجيل
+                                                htmlProf,                        // 4: المهنة
+                                                htmlName,                        // 5: الاسم
+                                                i++                              // 6: م
                                 });
                         }
 
@@ -232,67 +272,65 @@ public class Failed extends javax.swing.JFrame {
         }
 
         public void buildPagePanel(int rowCount) {
-                jPanel1.setLayout(null); // Force absolute layout to prevent GroupLayout clipping
-                jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
-                jPanel1.setSize(1400, 1980);
+                // A4 portrait canvas: 1400 x 1980 px
+                final int PANEL_W = 1400;
+                final int PANEL_H = 1980;
+                final int HEADER_H = 220;   // space for ministry + title + dates
+                final int FOOTER_H = 80;    // separator + signature labels
+                final int MARGIN   = 15;
+
+                jPanel1.setLayout(null);
+                jPanel1.setPreferredSize(new java.awt.Dimension(PANEL_W, PANEL_H));
+                jPanel1.setSize(PANEL_W, PANEL_H);
                 jPanel1.setBackground(java.awt.Color.WHITE);
 
-                // Logo (Top Left)
+                // ── Logo (top-left) ──────────────────────────────────────
                 jLabel8.setBounds(50, 20, 100, 100);
 
-                // Page Info (Left under logo)
+                // ── Page counter (left, below logo) ─────────────────────
                 jLabel13.setFont(new Font("Tahoma", Font.BOLD, 16));
-                jLabel13.setBounds(30, 160, 250, 25); // الصفحة
+                jLabel13.setBounds(30, 160, 250, 25);
 
-                // Ministry Info (Right Top)
-                int rAlign = 1000;
+                // ── Ministry info (top-right) ────────────────────────────
                 jLabel1.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel2.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel3.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel4.setFont(new Font("Tahoma", Font.BOLD, 18));
-
                 jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                jLabel1.setBounds(1000, 10,  390, 25);
+                jLabel2.setBounds(1000, 35,  390, 25);
+                jLabel3.setBounds(1000, 60,  390, 25);
+                jLabel4.setBounds(1000, 85,  390, 25);
 
-                jLabel1.setBounds(rAlign, 10, 390, 25);
-                jLabel2.setBounds(rAlign, 35, 390, 25);
-                jLabel3.setBounds(rAlign, 60, 390, 25);
-                jLabel4.setBounds(rAlign, 85, 390, 25);
-
-                // Region, Center, System below ministry
+                // ── Region / Center / System (right block) ───────────────
                 jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel9.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel12.setFont(new Font("Tahoma", Font.BOLD, 18));
                 regoin.setFont(new Font("Tahoma", Font.BOLD, 18));
                 cent.setFont(new Font("Tahoma", Font.BOLD, 18));
                 system.setFont(new Font("Tahoma", Font.BOLD, 18));
-
                 jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                jLabel7.setBounds(1250, 120, 120, 30);  regoin.setBounds(900, 120, 350, 30);
+                jLabel9.setBounds(1250, 150, 120, 30);  cent.setBounds(900, 150, 350, 30);
+                jLabel12.setBounds(1250, 180, 120, 30); system.setBounds(900, 180, 350, 30);
 
-                int dataX = 1050;
-                jLabel7.setBounds(dataX + 220, 120, 100, 30);
-                regoin.setBounds(dataX - 80, 120, 300, 30);
-                jLabel9.setBounds(dataX + 220, 150, 100, 30);
-                cent.setBounds(dataX - 80, 150, 300, 30);
-                jLabel12.setBounds(dataX + 220, 180, 100, 30);
-                system.setBounds(dataX - 80, 180, 300, 30);
-
-                // Center Titles
+                // ── Center titles ────────────────────────────────────────
                 jLabel5.setFont(new Font("Tahoma", Font.BOLD, 18));
                 jLabel6.setFont(new Font("Tahoma", Font.BOLD, 28));
                 jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
                 jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-                jLabel5.setBounds(400, 40, 600, 35);
-                jLabel6.setBounds(400, 80, 600, 50);
+                jLabel5.setBounds(400, 40,  600, 35);
+                jLabel6.setBounds(400, 80,  600, 50);
 
-                // Dates
+                // ── Dates ────────────────────────────────────────────────
                 jLabel10.setFont(new Font("Tahoma", Font.BOLD, 16));
                 jLabel11.setFont(new Font("Tahoma", Font.BOLD, 16));
                 jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -300,27 +338,27 @@ public class Failed extends javax.swing.JFrame {
                 jLabel10.setBounds(400, 140, 600, 25);
                 jLabel11.setBounds(400, 170, 600, 25);
 
-                // Table Content
-                int tableY = 220;
-                int rowH = 50;
+                // ── Table: fills space between header and footer ──────────
+                int tableY        = HEADER_H;
+                int tableHeight   = PANEL_H - HEADER_H - FOOTER_H - MARGIN * 2;
+                int tableHeaderH  = 45; // JTable header row height
+                // rowH = remaining space after header, divided by 10 rows
+                int rowH = (tableHeight - tableHeaderH) / 10;
                 jTable2.setRowHeight(rowH);
-                int tableHeight = 1600;
-                jScrollPane2.setBounds(15, tableY, 1370, tableHeight);
+                jScrollPane2.setBounds(MARGIN, tableY, PANEL_W - MARGIN * 2, tableHeight);
 
-                // Footer
-                int separatorY = tableY + tableHeight + 20;
-                jSeparator1.setBounds(15, separatorY, 1370, 10);
-
-                int labelsY = separatorY + 20;
+                // ── Footer ───────────────────────────────────────────────
+                int separatorY = PANEL_H - FOOTER_H - MARGIN;
+                jSeparator1.setBounds(MARGIN, separatorY, PANEL_W - MARGIN * 2, 3);
+                int labelsY = separatorY + 8;
                 jLabel16.setFont(new Font("Tahoma", Font.BOLD, 16));
                 jLabel17.setFont(new Font("Tahoma", Font.BOLD, 16));
                 jLabel18.setFont(new Font("Tahoma", Font.BOLD, 16));
                 jLabel14.setFont(new Font("Tahoma", Font.BOLD, 16));
-
-                jLabel14.setBounds(1150, labelsY, 200, 40); // كتبه (right)
-                jLabel18.setBounds(850, labelsY, 200, 40); // املاه
-                jLabel17.setBounds(550, labelsY, 200, 40); // راجعه
-                jLabel16.setBounds(50, labelsY, 300, 40); // رئيس اللجنة (left)
+                jLabel14.setBounds(1150, labelsY, 200, 40);
+                jLabel18.setBounds(850,  labelsY, 200, 40);
+                jLabel17.setBounds(550,  labelsY, 200, 40);
+                jLabel16.setBounds(50,   labelsY, 300, 40);
 
                 jPanel1.doLayout();
                 jPanel1.revalidate();
@@ -330,7 +368,7 @@ public class Failed extends javax.swing.JFrame {
         public void createPDF() {
                 try {
 
-                        int rowsPerPage = 32; // Updated limit as requested
+                        int rowsPerPage = 10; // Limited to 10 students per page as requested for better spacing
 
                         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
                         Vector<Vector> originalData = new Vector<>(model.getDataVector());
@@ -353,14 +391,14 @@ public class Failed extends javax.swing.JFrame {
 
                                 for (int i = start; i < end; i++) {
                                         Vector row = new Vector(originalData.get(i));
-                                        row.set(0, "راسب"); // 0: حالة التلميذ
-                                        row.set(5, globalIndex++); // 5: م
+                                        row.set(1, "راسب"); // 1: حالة التلميذ
+                                        row.set(6, globalIndex++); // 6: م
                                         model.addRow(row);
                                 }
 
-                                // Fill remaining rows up to 32 to ensure consistent full-page table appearance
-                                while (model.getRowCount() < 32) {
-                                        model.addRow(new Object[] { "", "", "", "", "", "" });
+                                // Fill remaining rows to 10 so table always fills the page
+                                while (model.getRowCount() < 10) {
+                                        model.addRow(new Object[] { "", "", "", "", "", "", "" });
                                 }
 
                                 // Apply A4 standardization
@@ -384,6 +422,10 @@ public class Failed extends javax.swing.JFrame {
                                                 java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
                                                 java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                                g2d.setRenderingHint(java.awt.RenderingHints.KEY_FRACTIONALMETRICS,
+                                                java.awt.RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+                                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                                                java.awt.RenderingHints.VALUE_RENDER_QUALITY);
                                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
                                                 java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
@@ -428,7 +470,7 @@ public class Failed extends javax.swing.JFrame {
                         java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem,
                         String centerName, String regionName, boolean isFirstCall) {
                 try {
-                        int rowsPerPage = 32;
+                        int rowsPerPage = 10; // Limited to 10 students per page for better clarity
 
                         String folderStr = "التقارير/بدون درجات/راسبين";
                         java.io.File folder = new java.io.File(folderStr);
@@ -475,12 +517,15 @@ public class Failed extends javax.swing.JFrame {
 
                                         for (int i = start; i < end; i++) {
                                                 java.util.Vector row = new java.util.Vector(rows.get(i));
-                                                row.set(0, "راسب");
-                                                row.set(5, globalIndex++);
+                                                // Ensure 7 columns
+                                                while (row.size() < 7) row.add("");
+                                                if (row.size() > 7) row.setSize(7);
+                                                row.set(1, "راسب");      // 1: حالة التلميذ
+                                                row.set(6, globalIndex++); // 6: م
                                                 model.addRow(row);
                                         }
-                                        while (model.getRowCount() < 32) {
-                                                model.addRow(new Object[] { "", "", "", "", "", "" });
+                                        while (model.getRowCount() < 10) {
+                                                model.addRow(new Object[] { "", "", "", "", "", "", "" });
                                         }
 
                                         jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1))
@@ -519,43 +564,36 @@ public class Failed extends javax.swing.JFrame {
         }
 
         public void loadCenterData(String centerName) {
-
-                try {
-
+                try (Connection con = DatabaseConnection.getConnection()) {
                         String sql = """
-                                        SELECT s.region, NVL(p.exam_system, s.exam_system) as exam_system
+                                        SELECT DISTINCT s.region, NVL(p.exam_system, 'نظامي') as exam_system
                                         FROM students s
                                         LEFT JOIN professions p ON TRIM(p.name) = TRIM(s.profession)
                                         WHERE s.center_name = ?
                                         AND ROWNUM = 1
                                         """;
 
-                        Connection con = DatabaseConnection.getConnection();
-                        PreparedStatement ps = con.prepareStatement(sql);
+                        try (PreparedStatement ps = con.prepareStatement(sql)) {
+                                ps.setString(1, centerName);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                        if (rs.next()) {
+                                                String regio = rs.getString("region");
+                                                String syste = rs.getString("exam_system");
 
-                        ps.setString(1, centerName);
-
-                        ResultSet rs = ps.executeQuery();
-
-                        if (rs.next()) {
-
-                                String regio = rs.getString("region");
-                                String syste = rs.getString("exam_system");
-
-                                regoin.setText(regio); // المنطقة
-                                system.setText(syste); // النظام
-                        } else {
-                                regoin.setText("—");
-                                system.setText("—");
+                                                regoin.setText(regio != null ? regio : "—");
+                                                system.setText(syste != null ? syste : "نظامي");
+                                        } else {
+                                                regoin.setText("—");
+                                                system.setText("نظامي");
+                                        }
+                                }
                         }
 
-                        // تعيين اسم المركز الممرر للدالة
                         if (centerName != null) {
                                 cent.setText(centerName);
                         }
-
                 } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.log(java.util.logging.Level.SEVERE, "Error loading center data", e);
                 }
         }
 

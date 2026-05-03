@@ -78,7 +78,8 @@ public class EltaSoeda extends javax.swing.JFrame {
                 comboCenter.addItem(c);
             }
         } else {
-            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
+            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService
+                    .getCentersByRegionWithCodes(region);
             for (String c : centers.keySet()) {
                 comboCenter.addItem(c);
             }
@@ -314,16 +315,12 @@ public class EltaSoeda extends javax.swing.JFrame {
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 
-        String[] months = {
-                "يناير", "فبراير", "مارس", "أبريل",
-                "مايو", "يونيو", "يوليو", "أغسطس",
-                "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-        };
-        String selectedMonth = (String) javax.swing.JOptionPane.showInputDialog(this, "اختر شهر الامتحان:",
-                "تحديد الموعد",
-                javax.swing.JOptionPane.QUESTION_MESSAGE, null, months, months[4]);
-        if (selectedMonth == null)
+        String[] monthsResult = com.pvtd.students.ui.utils.ReportUtils.chooseMonths(this);
+        if (monthsResult == null)
             return;
+        String selectedMonth = monthsResult[0];
+        String admissionMonth = monthsResult[1];
+
 
         String currentYear = String.valueOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR));
 
@@ -332,8 +329,6 @@ public class EltaSoeda extends javax.swing.JFrame {
             protected Void doInBackground() throws Exception {
                 String centerName = "";
                 String regionName = "";
-
-
 
                 try (Connection con = DatabaseConnection.getConnection()) {
                     String getStudentSql = "SELECT id, name, registration_no, coordination_no, seat_no, status, national_id, professional_group, secret_no, region, center_name FROM students WHERE seat_no = ?";
@@ -384,71 +379,81 @@ public class EltaSoeda extends javax.swing.JFrame {
                         }
                     }
 
-                // Group and Sort by Center First
-                java.util.Map<String, java.util.List<Student>> groupedByCenter = allSelectedStudents.stream()
-                        .collect(java.util.stream.Collectors.groupingBy(s -> s.getCenterName() != null && !s.getCenterName().isEmpty() ? s.getCenterName() : "غير محدد"));
+                    // Group and Sort by Center First
+                    java.util.Map<String, java.util.List<Student>> groupedByCenter = allSelectedStudents.stream()
+                            .collect(java.util.stream.Collectors.groupingBy(
+                                    s -> s.getCenterName() != null && !s.getCenterName().isEmpty() ? s.getCenterName()
+                                            : "غير محدد"));
 
-                java.io.File folder = new java.io.File("التقارير/تسويدة");
-                if (!folder.exists())
-                    folder.mkdirs();
+                    java.io.File folder = new java.io.File("التقارير/تسويدة");
+                    if (!folder.exists())
+                        folder.mkdirs();
 
-                for (java.util.Map.Entry<String, java.util.List<Student>> centerEntry : groupedByCenter.entrySet()) {
-                    String currentCenterName = centerEntry.getKey();
-                    java.util.List<Student> centerStudents = centerEntry.getValue();
+                    for (java.util.Map.Entry<String, java.util.List<Student>> centerEntry : groupedByCenter
+                            .entrySet()) {
+                        String currentCenterName = centerEntry.getKey();
+                        java.util.List<Student> centerStudents = centerEntry.getValue();
 
-                    com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(
-                            com.itextpdf.text.PageSize.A3.rotate());
-                    String sanitizedCenter = currentCenterName.replace("/", "_").replace("\\", "_").replace(":", "_");
-                    String combinedFn = "التقارير/تسويدة/" + sanitizedCenter + ".pdf";
-                    com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
-                    combinedDoc.open();
+                        com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(
+                                com.itextpdf.text.PageSize.A3.rotate());
+                        String sanitizedCenter = currentCenterName.replace("/", "_").replace("\\", "_").replace(":",
+                                "_");
+                        String combinedFn = "التقارير/تسويدة/" + sanitizedCenter + ".pdf";
+                        com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc,
+                                new java.io.FileOutputStream(combinedFn));
+                        combinedDoc.open();
 
-                    // Group and Sort Professions by their minimum Secret Number (Numerical) within this center
-                    java.util.Map<String, java.util.List<Student>> grouped = centerStudents.stream()
-                            .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+                        // Group and Sort Professions by their minimum Secret Number (Numerical) within
+                        // this center
+                        java.util.Map<String, java.util.List<Student>> grouped = centerStudents.stream()
+                                .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
 
-                    java.util.List<String> sortedProfessions = grouped.keySet().stream()
-                            .sorted((p1, p2) -> {
-                                Integer min1 = grouped.get(p1).stream()
-                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                        .filter(s -> !s.isEmpty())
-                                        .map(Integer::parseInt)
-                                        .min(Integer::compare).orElse(99999999);
-                                Integer min2 = grouped.get(p2).stream()
-                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                        .filter(s -> !s.isEmpty())
-                                        .map(Integer::parseInt)
-                                        .min(Integer::compare).orElse(99999999);
-                                return min1.compareTo(min2);
-                            })
-                            .collect(java.util.stream.Collectors.toList());
+                        java.util.List<String> sortedProfessions = grouped.keySet().stream()
+                                .sorted((p1, p2) -> {
+                                    Integer min1 = grouped.get(p1).stream()
+                                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "")
+                                                    : "99999999")
+                                            .filter(s -> !s.isEmpty())
+                                            .map(Integer::parseInt)
+                                            .min(Integer::compare).orElse(99999999);
+                                    Integer min2 = grouped.get(p2).stream()
+                                            .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "")
+                                                    : "99999999")
+                                            .filter(s -> !s.isEmpty())
+                                            .map(Integer::parseInt)
+                                            .min(Integer::compare).orElse(99999999);
+                                    return min1.compareTo(min2);
+                                })
+                                .collect(java.util.stream.Collectors.toList());
 
-                    for (String prof : sortedProfessions) {
-                        java.util.List<Student> list = grouped.get(prof);
-                        processed += list.size();
-                        updateStatus(processed, totalSelected, "جاري معالجة بيانات التسويدة لمركز: " + currentCenterName + " - مهنة: " + prof);
+                        for (String prof : sortedProfessions) {
+                            java.util.List<Student> list = grouped.get(prof);
+                            processed += list.size();
+                            updateStatus(processed, totalSelected,
+                                    "جاري معالجة بيانات التسويدة لمركز: " + currentCenterName + " - مهنة: " + prof);
 
-                        // Sort within profession by secret number (Numerical)
-                        list.sort((s1, s2) -> {
-                            String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
-                            String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
+                            // Sort within profession by secret number (Numerical)
+                            list.sort((s1, s2) -> {
+                                String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
+                                String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
 
-                            try {
-                                if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
-                                    return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
+                                try {
+                                    if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
+                                        return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
+                                    }
+                                } catch (Exception ex) {
                                 }
-                            } catch (Exception ex) {}
-                            return sn1Str.compareTo(sn2Str);
-                        });
+                                return sn1Str.compareTo(sn2Str);
+                            });
 
-                        String rName = list.get(0).getRegion() != null ? list.get(0).getRegion() : regionName;
-                        gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, false,
-                                selectedMonth, currentYear);
-                        report.createPDF(combinedDoc);
+                            String rName = list.get(0).getRegion() != null ? list.get(0).getRegion() : regionName;
+                            gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, false,
+                                    selectedMonth, currentYear, admissionMonth);
+                            report.createPDF(combinedDoc);
+                        }
+
+                        combinedDoc.close();
                     }
-
-                    combinedDoc.close();
-                }
 
                     java.awt.Desktop.getDesktop().open(folder);
                 }

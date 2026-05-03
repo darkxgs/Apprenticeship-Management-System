@@ -107,10 +107,13 @@ public class EltaSoeda3070 extends JFrame {
 
         // ── Table ─────────────────────────────────────────────────────
         jTable1 = new JTable(new DefaultTableModel(
-            new Object[][]{},
-            new String[]{"الحالة", "الرقم السري", "رقم الجلوس", "الرقم القومي", "الحرفة", "كود التنسيق", "رقم التسجيل", "الاسم"}
-        ) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+                new Object[][] {},
+                new String[] { "الحالة", "الرقم السري", "رقم الجلوس", "الرقم القومي", "الحرفة", "كود التنسيق",
+                        "رقم التسجيل", "الاسم" }) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         });
         jScrollPane1 = new JScrollPane(jTable1);
         add(jScrollPane1, BorderLayout.CENTER);
@@ -133,7 +136,8 @@ public class EltaSoeda3070 extends JFrame {
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) c.setBackground(Color.WHITE);
+                if (!isSelected)
+                    c.setBackground(Color.WHITE);
                 setHorizontalAlignment(SwingConstants.CENTER);
                 return c;
             }
@@ -145,7 +149,8 @@ public class EltaSoeda3070 extends JFrame {
     private void loadFilters() {
         comboRegion.removeAllItems();
         comboRegion.addItem("الكل");
-        java.util.List<String> regions = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION);
+        java.util.List<String> regions = com.pvtd.students.services.DictionaryService
+                .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION);
         for (String r : regions) {
             comboRegion.addItem(r);
         }
@@ -155,7 +160,8 @@ public class EltaSoeda3070 extends JFrame {
 
         comboProf.removeAllItems();
         comboProf.addItem("الكل");
-        java.util.List<String> professions = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROFESSION);
+        java.util.List<String> professions = com.pvtd.students.services.DictionaryService
+                .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROFESSION);
         for (String p : professions) {
             comboProf.addItem(p);
         }
@@ -165,12 +171,14 @@ public class EltaSoeda3070 extends JFrame {
         comboCenter.removeAllItems();
         comboCenter.addItem("الكل");
         if (region.equals("الكل")) {
-            java.util.List<String> centers = com.pvtd.students.services.DictionaryService.getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_CENTER);
+            java.util.List<String> centers = com.pvtd.students.services.DictionaryService
+                    .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_CENTER);
             for (String c : centers) {
                 comboCenter.addItem(c);
             }
         } else {
-            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
+            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService
+                    .getCentersByRegionWithCodes(region);
             for (String c : centers.keySet()) {
                 comboCenter.addItem(c);
             }
@@ -185,12 +193,13 @@ public class EltaSoeda3070 extends JFrame {
         model.setRowCount(0);
 
         StringBuilder sql = new StringBuilder(
-            "SELECT name, seat_no, registration_no, coordination_no, professional_group, profession, status, national_id, secret_no " +
-            "FROM students s WHERE EXISTS (" +
-            "  SELECT 1 FROM subjects sub " +
-            "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
-            "  AND sub.parent_subject_id IS NOT NULL" +
-            ")");
+                "SELECT name, seat_no, registration_no, coordination_no, professional_group, profession, status, national_id, secret_no "
+                        +
+                        "FROM students s WHERE EXISTS (" +
+                        "  SELECT 1 FROM subjects sub " +
+                        "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
+                        "  AND sub.parent_subject_id IS NOT NULL" +
+                        ")");
         if (region != null && !region.equals("الكل"))
             sql.append(" AND TRIM(s.region) = TRIM(?)");
         if (center != null && !center.equals("الكل"))
@@ -200,22 +209,25 @@ public class EltaSoeda3070 extends JFrame {
         sql.append(" ORDER BY s.name ASC");
 
         try (Connection con = DatabaseConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql.toString())) {
+                PreparedStatement ps = con.prepareStatement(sql.toString())) {
             int idx = 1;
-            if (region != null && !region.equals("الكل"))     ps.setString(idx++, region);
-            if (center != null && !center.equals("الكل"))     ps.setString(idx++, center);
-            if (profession != null && !profession.equals("الكل")) ps.setString(idx++, profession);
+            if (region != null && !region.equals("الكل"))
+                ps.setString(idx++, region);
+            if (center != null && !center.equals("الكل"))
+                ps.setString(idx++, center);
+            if (profession != null && !profession.equals("الكل"))
+                ps.setString(idx++, profession);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    model.addRow(new Object[]{
-                        rs.getString("status"),
-                        rs.getString("secret_no"),
-                        rs.getString("seat_no"),
-                        rs.getString("national_id"),
-                        rs.getString("profession"),
-                        rs.getString("coordination_no"),
-                        rs.getString("registration_no"),
-                        rs.getString("name")
+                    model.addRow(new Object[] {
+                            rs.getString("status"),
+                            rs.getString("secret_no"),
+                            rs.getString("seat_no"),
+                            rs.getString("national_id"),
+                            rs.getString("profession"),
+                            rs.getString("coordination_no"),
+                            rs.getString("registration_no"),
+                            rs.getString("name")
                     });
                 }
             }
@@ -240,7 +252,7 @@ public class EltaSoeda3070 extends JFrame {
     private void refreshTable() {
         String region = (String) comboRegion.getSelectedItem();
         String center = (String) comboCenter.getSelectedItem();
-        String prof  = (String) comboProf.getSelectedItem();
+        String prof = (String) comboProf.getSelectedItem();
         loadStudents(region == null ? "الكل" : region, center == null ? "الكل" : center, prof == null ? "الكل" : prof);
     }
 
@@ -255,23 +267,20 @@ public class EltaSoeda3070 extends JFrame {
             return;
         }
 
-        // Add Month selection
-        String[] months = {
-            "يناير", "فبراير", "مارس", "أبريل",
-            "مايو", "يونيو", "يوليو", "أغسطس",
-            "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-        };
-        String selectedMonth = (String) JOptionPane.showInputDialog(this, "اختر شهر الامتحان:", "تحديد الموعد",
-                JOptionPane.QUESTION_MESSAGE, null, months, months[4]);
-        if (selectedMonth == null) return;
-        
+        String[] monthsResult = com.pvtd.students.ui.utils.ReportUtils.chooseMonths(this);
+        if (monthsResult == null)
+            return;
+        String selectedMonth = monthsResult[0];
+        String admissionMonth = monthsResult[1];
+
+
         String currentYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
 
         // Group selected students by profession
         java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         for (int i : selectedRows) {
             String seatNo = String.valueOf(model1.getValueAt(i, 2)); // col 2 = رقم الجلوس
-            String prof   = String.valueOf(model1.getValueAt(i, 4)); // col 4 = الحرفة
+            String prof = String.valueOf(model1.getValueAt(i, 4)); // col 4 = الحرفة
             byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
         }
 
@@ -280,12 +289,10 @@ public class EltaSoeda3070 extends JFrame {
 
         try {
 
-
             try (Connection con = DatabaseConnection.getConnection()) {
-                String getStudentSql =
-                    "SELECT id, name, registration_no, coordination_no, seat_no, status, " +
-                    "national_id, professional_group, secret_no, region, center_name " +
-                    "FROM students WHERE seat_no = ?";
+                String getStudentSql = "SELECT id, name, registration_no, coordination_no, seat_no, status, " +
+                        "national_id, professional_group, secret_no, region, center_name " +
+                        "FROM students WHERE seat_no = ?";
                 PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
 
                 // Fetch child-subject grades (مواد الابن اللي فيها درجات الـ 30 والـ 70)
@@ -335,7 +342,9 @@ public class EltaSoeda3070 extends JFrame {
 
                 // Group and Sort by Center First
                 java.util.Map<String, java.util.List<Student>> groupedByCenter = allSelectedStudents.stream()
-                        .collect(java.util.stream.Collectors.groupingBy(s -> s.getCenterName() != null && !s.getCenterName().isEmpty() ? s.getCenterName() : "غير محدد"));
+                        .collect(java.util.stream.Collectors.groupingBy(
+                                s -> s.getCenterName() != null && !s.getCenterName().isEmpty() ? s.getCenterName()
+                                        : "غير محدد"));
 
                 java.io.File folder = new java.io.File("التقارير/تسويدة");
                 if (!folder.exists())
@@ -352,25 +361,28 @@ public class EltaSoeda3070 extends JFrame {
                     com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
                     combinedDoc.open();
 
-                    // Group and Sort Professions by their minimum Secret Number (Numerical) within this center
+                    // Group and Sort Professions by their minimum Secret Number (Numerical) within
+                    // this center
                     java.util.Map<String, java.util.List<Student>> grouped = centerStudents.stream()
-                        .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
+                            .collect(java.util.stream.Collectors.groupingBy(Student::getProfession));
 
                     java.util.List<String> sortedProfessions = grouped.keySet().stream()
-                        .sorted((p1, p2) -> {
-                            Integer min1 = grouped.get(p1).stream()
-                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                .filter(s -> !s.isEmpty())
-                                .map(Integer::parseInt)
-                                .min(Integer::compare).orElse(99999999);
-                            Integer min2 = grouped.get(p2).stream()
-                                .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "") : "99999999")
-                                .filter(s -> !s.isEmpty())
-                                .map(Integer::parseInt)
-                                .min(Integer::compare).orElse(99999999);
-                            return min1.compareTo(min2);
-                        })
-                        .collect(java.util.stream.Collectors.toList());
+                            .sorted((p1, p2) -> {
+                                Integer min1 = grouped.get(p1).stream()
+                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "")
+                                                : "99999999")
+                                        .filter(s -> !s.isEmpty())
+                                        .map(Integer::parseInt)
+                                        .min(Integer::compare).orElse(99999999);
+                                Integer min2 = grouped.get(p2).stream()
+                                        .map(s -> s.getSecretNo() != null ? s.getSecretNo().replaceAll("\\D", "")
+                                                : "99999999")
+                                        .filter(s -> !s.isEmpty())
+                                        .map(Integer::parseInt)
+                                        .min(Integer::compare).orElse(99999999);
+                                return min1.compareTo(min2);
+                            })
+                            .collect(java.util.stream.Collectors.toList());
 
                     for (String prof : sortedProfessions) {
                         java.util.List<Student> list = grouped.get(prof);
@@ -379,31 +391,33 @@ public class EltaSoeda3070 extends JFrame {
                             list.sort((s1, s2) -> {
                                 String sn1Str = s1.getSecretNo() != null ? s1.getSecretNo().replaceAll("\\D", "") : "";
                                 String sn2Str = s2.getSecretNo() != null ? s2.getSecretNo().replaceAll("\\D", "") : "";
-                                
+
                                 try {
                                     if (!sn1Str.isEmpty() && !sn2Str.isEmpty()) {
                                         return Integer.compare(Integer.parseInt(sn1Str), Integer.parseInt(sn2Str));
                                     }
-                                } catch (Exception ex) {}
+                                } catch (Exception ex) {
+                                }
                                 return sn1Str.compareTo(sn2Str);
                             });
 
                             // is3070 = true → gradReportTasoeda يعرض مواد الابن (30/70)
                             String rName = list.get(0).getRegion() != null ? list.get(0).getRegion() : regionName;
-                            gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, true, selectedMonth, currentYear);
+                            gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, true,
+                                    selectedMonth, currentYear, admissionMonth);
                             report.createPDF(combinedDoc);
                         }
                     }
 
                     combinedDoc.close();
                 }
-            Desktop.getDesktop().open(folder);
-        }
+                Desktop.getDesktop().open(folder);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
-                "حدث خطأ أثناء إنشاء التقرير: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
+                    "حدث خطأ أثناء إنشاء التقرير: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
         }
     }
 

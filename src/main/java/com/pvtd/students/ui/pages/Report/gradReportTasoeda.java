@@ -58,17 +58,22 @@ public class gradReportTasoeda extends JFrame {
     private boolean is3070;
     private final String examMonth;
     private final String examYear;
+    private final String admissionMonth;
+
     private String centerCode = "  ";
     private int dynamicRowHeight = 140; // auto-calculated to fill A3 page
 
     public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070,
-            String examMonth, String examYear) {
+            String examMonth, String examYear, String admissionMonth) {
+
         this.profession = profession;
         this.center = center;
         this.region = region;
         this.students = students;
         this.examMonth = (examMonth != null) ? examMonth : "........";
         this.examYear = (examYear != null) ? examYear : "........";
+        this.admissionMonth = (admissionMonth != null) ? admissionMonth : "أكتوبر";
+
 
         // Fetch center code from database
         try (Connection conn = com.pvtd.students.db.DatabaseConnection.getConnection();
@@ -134,10 +139,10 @@ public class gradReportTasoeda extends JFrame {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(10, 30, 20, 30));
-        p.setPreferredSize(new Dimension(2800, 380));
+        p.setPreferredSize(new Dimension(4900, 660));
 
-        Font fontBold = new Font("Arial", Font.BOLD, 32);
-        Font fontTitle = new Font("Arial", Font.BOLD, 42);
+        Font fontBold = new Font("Arial", Font.BOLD, 56);
+        Font fontTitle = new Font("Arial", Font.BOLD, 74);
 
         // --- RIGHT PANEL (Committee & Special Table) ---
         JPanel rightPanel = new JPanel();
@@ -149,7 +154,7 @@ public class gradReportTasoeda extends JFrame {
         committeeLbl.setFont(fontBold);
         committeeLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
         rightPanel.add(committeeLbl);
-        rightPanel.add(Box.createVerticalStrut(20));
+        rightPanel.add(Box.createVerticalStrut(30));
 
         // Small 6-row table on the right
         JPanel smallTable = new JPanel(new GridBagLayout());
@@ -168,16 +173,16 @@ public class gradReportTasoeda extends JFrame {
             JPanel valCell = new JPanel();
             valCell.setBackground(Color.WHITE);
             valCell.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-            valCell.setPreferredSize(new Dimension(280, 40));
+            valCell.setPreferredSize(new Dimension(380, 60));
             smallTable.add(valCell, gbc);
 
             // Label cell
             gbc.gridx = 1;
             gbc.weightx = 0.4;
             JLabel label = new JLabel(labels[i] + "  ", SwingConstants.RIGHT);
-            label.setFont(new Font("Arial", Font.BOLD, 24));
+            label.setFont(new Font("Arial", Font.BOLD, 48));
             label.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-            label.setPreferredSize(new Dimension(160, 40));
+            label.setPreferredSize(new Dimension(280, 60));
             smallTable.add(label, gbc);
         }
         rightPanel.add(smallTable);
@@ -191,9 +196,10 @@ public class gradReportTasoeda extends JFrame {
         String[] centerLines = {
                 " مسودة نتائج الصف الثالث ",
                 " دبلوم التلمذة الصناعية ",
-                " دفعة قبول أكتوبر لسنة ٢٠٢٣ وما قبلها ",
-                " المنعقد في يوليو لسنة ٢٠٢٦ "
+                " دفعة قبول " + admissionMonth + " لسنة ٢٠٢٣ وما قبلها ",
+                " المنعقد في " + examMonth + " لسنة " + toArabicNumbers(examYear) + " "
         };
+
 
         for (String line : centerLines) {
             JLabel lbl = new JLabel(line, SwingConstants.CENTER);
@@ -234,9 +240,9 @@ public class gradReportTasoeda extends JFrame {
         JLabel pCur = new JLabel(centerCode, SwingConstants.CENTER);
         JLabel pLine = new JLabel("-------", SwingConstants.CENTER);
         JLabel pEmpty = new JLabel("   ", SwingConstants.CENTER);
-        pCur.setFont(new Font("Arial", Font.BOLD, 30));
-        pLine.setFont(new Font("Arial", Font.BOLD, 15));
-        pEmpty.setFont(new Font("Arial", Font.BOLD, 22));
+        pCur.setFont(new Font("Arial", Font.BOLD, 52));
+        pLine.setFont(new Font("Arial", Font.BOLD, 26));
+        pEmpty.setFont(new Font("Arial", Font.BOLD, 38));
         pCur.setAlignmentX(Component.CENTER_ALIGNMENT);
         pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
         pEmpty.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -308,6 +314,21 @@ public class gradReportTasoeda extends JFrame {
 
         // Pre-calculate total Max
         int theoryMaxSum = 0;
+        int practicalMax = 0;
+        int appliedMax = 0;
+        int practicalPass = 0;
+        int appliedPass = 0;
+        
+        for (Subject s : allSubjects) {
+            if ("عملي".equals(s.getType()) || (s.getName() != null && s.getName().contains("عملي"))) {
+                practicalMax += s.getMaxMark();
+                practicalPass += s.getPassMark();
+            } else if ("تطبيقي".equals(s.getType()) || (s.getName() != null && s.getName().contains("تطبيقي"))) {
+                appliedMax += s.getMaxMark();
+                appliedPass += s.getPassMark();
+            }
+        }
+
         for (Subject s : theoryCols) {
             List<Subject> children = allSubjects.stream()
                     .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
@@ -329,10 +350,10 @@ public class gradReportTasoeda extends JFrame {
                     : s.getMaxMark();
         }
         maxRow[subIdx++] = theoryMaxSum;
-        maxRow[subIdx++] = " "; // العملي
-        maxRow[subIdx++] = " "; // تطبيقي
-        maxRow[subIdx++] = "300"; // مجموع عملي وتطبيقي
-        maxRow[subIdx++] = "600"; // المجموع الكلي
+        maxRow[subIdx++] = String.valueOf(practicalMax); // العملي
+        maxRow[subIdx++] = String.valueOf(appliedMax); // تطبيقي
+        maxRow[subIdx++] = String.valueOf(practicalMax + appliedMax); // مجموع عملي وتطبيقي
+        maxRow[subIdx++] = String.valueOf(theoryMaxSum + practicalMax + appliedMax); // المجموع الكلي
         maxRow[subIdx++] = " "; // ملاحظات
         maxRow[subIdx] = " "; // التقدير
         model.addRow(maxRow);
@@ -352,10 +373,10 @@ public class gradReportTasoeda extends JFrame {
             theoryPassSum += curPass;
         }
         minRow[subIdx++] = theoryPassSum;
-        minRow[subIdx++] = " "; // العملي
-        minRow[subIdx++] = " "; // تطبيقي
-        minRow[subIdx++] = "180 "; // مجموع عملي وتطبيقي
-        minRow[subIdx++] = "330"; // المجموع الكلي
+        minRow[subIdx++] = String.valueOf(practicalPass); // العملي
+        minRow[subIdx++] = String.valueOf(appliedPass); // تطبيقي
+        minRow[subIdx++] = String.valueOf(practicalPass + appliedPass); // مجموع عملي وتطبيقي
+        minRow[subIdx++] = String.valueOf(theoryPassSum + practicalPass + appliedPass); // المجموع الكلي
         minRow[subIdx++] = " "; // ملاحظات
         minRow[subIdx] = " "; // التقدير
         model.addRow(minRow);
@@ -367,8 +388,8 @@ public class gradReportTasoeda extends JFrame {
                 int colIdx = 0;
                 row[colIdx++] = students.indexOf(st) + 1;
                 row[colIdx++] = st.getName();
-                row[colIdx++] = "<html><center>" + (st.getProfession() != null ? st.getProfession() : "")
-                        + "</center></html>";
+                row[colIdx++] = "<html><div align='right' style='padding-right: 50px;'>" + (st.getProfession() != null ? st.getProfession() : "")
+                        + "</div></html>";
                 row[colIdx++] = st.getRegistrationNo();
                 row[colIdx++] = st.getSeatNo();
                 row[colIdx++] = st.getSecretNo();
@@ -379,9 +400,23 @@ public class gradReportTasoeda extends JFrame {
                     row[colIdx++] = " ";
                 }
                 row[colIdx++] = " "; // مجموع النظري
-                row[colIdx++] = " "; // العملي
-                row[colIdx++] = " "; // تطبيقي
-                row[colIdx++] = " "; // مجموع عملي وتطبيقي
+                
+                int practicalMark = 0, appliedMark = 0;
+                Map<Integer, Integer> grades = st.getGrades();
+                if (grades != null) {
+                    for (Subject s : allSubjects) {
+                        int mark = grades.getOrDefault(s.getId(), 0);
+                        if ("عملي".equals(s.getType()) || (s.getName() != null && s.getName().contains("عملي"))) {
+                            practicalMark += mark;
+                        } else if ("تطبيقي".equals(s.getType()) || (s.getName() != null && s.getName().contains("تطبيقي"))) {
+                            appliedMark += mark;
+                        }
+                    }
+                }
+                
+                row[colIdx++] = practicalMark > 0 ? String.valueOf(practicalMark) : "0"; // العملي
+                row[colIdx++] = appliedMark > 0 ? String.valueOf(appliedMark) : "0"; // تطبيقي
+                row[colIdx++] = String.valueOf(practicalMark + appliedMark); // مجموع عملي وتطبيقي
                 row[colIdx++] = " "; // المجموع الكلي
                 row[colIdx++] = " "; // ملاحظات
                 row[colIdx] = " "; // التقدير
@@ -409,7 +444,7 @@ public class gradReportTasoeda extends JFrame {
                 Component c = super.getTableCellRendererComponent(t, htmlVal, sel, foc, row, col);
                 c.setBackground(Color.WHITE);
                 c.setForeground(Color.BLACK);
-                c.setFont(new Font("Arial", Font.PLAIN, 24));
+                c.setFont(new Font("Arial", Font.PLAIN, 42));
                 setHorizontalAlignment(SwingConstants.RIGHT);
                 setVerticalAlignment(SwingConstants.CENTER);
                 ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
@@ -425,78 +460,48 @@ public class gradReportTasoeda extends JFrame {
 
     private void styleTable(JTable table) {
         table.setRowHeight(dynamicRowHeight);
-        table.setFont(new Font("Arial", Font.PLAIN, 24));
+        table.setFont(new Font("Arial", Font.PLAIN, 42));
         table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         table.getTableHeader().setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        table.getTableHeader().setFont(new Font("Arial", Font.PLAIN, 22));
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 38));
         table.getTableHeader().setBackground(new Color(204, 255, 255));
         table.getTableHeader().setForeground(Color.BLACK);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 220));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 380));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
+        int theoryCount = displayColumns.stream()
+                .filter(s -> "نظري".equals(s.getType()))
+                .collect(Collectors.toList()).size();
+        
+        int theoryWidth = theoryCount > 0 ? (1000 / theoryCount) : 1000;
+
         for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setPreferredWidth(300);
+            table.getColumnModel().getColumn(i).setPreferredWidth(theoryWidth);
         }
 
-        try {
-            table.getColumn("م").setPreferredWidth(80);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("الاسم").setPreferredWidth(1000);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("الحرفة").setPreferredWidth(900);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("رقم التسجيل").setPreferredWidth(350);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("رقم الجلوس").setPreferredWidth(350);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("الرقم السري 1").setPreferredWidth(300);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumnModel().getColumn(6).setPreferredWidth(100);
-        } catch (Exception e) {
-        } // The empty column
-        try {
-            table.getColumn("الرقم السري 2").setPreferredWidth(300);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("العملي").setPreferredWidth(300);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("تطبيقي").setPreferredWidth(300);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("<html><center>مجموع عملي<br/>وتطبيقي</center></html>").setPreferredWidth(380);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("<html><center>المجموع<br/>الكلي</center></html>").setPreferredWidth(350);
-        } catch (Exception e) {
-        }
-        try {
-            table.getColumn("ملاحظات").setPreferredWidth(400);
-        } catch (Exception e) {
-        }
+        try { table.getColumn("م").setPreferredWidth(80); } catch (Exception e) {}
+        try { table.getColumn("الاسم").setPreferredWidth(850); } catch (Exception e) {}
+        try { table.getColumn("الحرفة").setPreferredWidth(400); } catch (Exception e) {}
+        try { table.getColumn("رقم التسجيل").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("رقم الجلوس").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("الرقم السري 1").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumnModel().getColumn(6).setPreferredWidth(100); } catch (Exception e) {} // The empty column
+        try { table.getColumn("الرقم السري 2").setPreferredWidth(220); } catch (Exception e) {}
+        
+        try { table.getColumn("<html><center>مجموع<br/>النظري</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("عملي").setPreferredWidth(180); } catch (Exception e) {}
+        try { table.getColumn("تطبيقي").setPreferredWidth(180); } catch (Exception e) {}
+        try { table.getColumn("<html><center>مجموع عملي<br/>وتطبيقي</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("<html><center>المجموع<br/>الكلي</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("ملاحظات").setPreferredWidth(350); } catch (Exception e) {}
+        try { table.getColumn("حالة التلميذ").setPreferredWidth(220); } catch (Exception e) {}
     }
 
     private JPanel buildFooter() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, Color.BLACK));
-        p.setPreferredSize(new Dimension(2000, 220));
+        p.setPreferredSize(new Dimension(3500, 380));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
@@ -514,10 +519,10 @@ public class gradReportTasoeda extends JFrame {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel t = new JLabel(title, SwingConstants.CENTER);
-        t.setFont(new Font("Arial", Font.BOLD, 30));
+        t.setFont(new Font("Arial", Font.BOLD, 46));
         t.setAlignmentX(Component.CENTER_ALIGNMENT);
         JLabel line = new JLabel(".............................................", SwingConstants.CENTER);
-        line.setFont(new Font("Arial", Font.PLAIN, 26));
+        line.setFont(new Font("Arial", Font.PLAIN, 40));
         line.setAlignmentX(Component.CENTER_ALIGNMENT);
         p.add(Box.createVerticalStrut(20));
         p.add(t);
@@ -605,14 +610,14 @@ public class gradReportTasoeda extends JFrame {
         page.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
         // Fixed A3 landscape dimensions at high resolution
-        int panelWidth = 2800;
-        int panelHeight = (int) (panelWidth / 1.4142); // ~1980px
+        int panelWidth = 4900;
+        int panelHeight = (int) (panelWidth / 1.4142); // ~3465px
 
         // Calculate row height to fill available space dynamically
-        int headerH = 380, footerH = 220, tableHeaderH = 220;
+        int headerH = 660, footerH = 380, tableHeaderH = 380;
         int available = panelHeight - headerH - footerH - tableHeaderH - 50; // 50px safety margin for borders
         int totalRows = 10 + 2; // +2 for النهاية العظمى / الصغرى rows
-        dynamicRowHeight = Math.max(50, available / totalRows);
+        dynamicRowHeight = Math.max(80, available / totalRows);
 
         page.add(buildHeader(pageNum, totalPages));
         JPanel tablePanel = buildTable(chunk);
@@ -623,5 +628,20 @@ public class gradReportTasoeda extends JFrame {
         page.addNotify();
         page.validate();
         return page;
+    }
+    private String toArabicNumbers(String number) {
+        if (number == null)
+            return "";
+        return number
+                .replace("0", "٠")
+                .replace("1", "١")
+                .replace("2", "٢")
+                .replace("3", "٣")
+                .replace("4", "٤")
+                .replace("5", "٥")
+                .replace("6", "٦")
+                .replace("7", "٧")
+                .replace("8", "٨")
+                .replace("9", "٩");
     }
 }
