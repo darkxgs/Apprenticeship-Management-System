@@ -384,6 +384,7 @@ public class EltaSoeda3070 extends JFrame {
                             })
                             .collect(java.util.stream.Collectors.toList());
 
+                    int globalPageCounter = 1;
                     for (String prof : sortedProfessions) {
                         java.util.List<Student> list = grouped.get(prof);
                         if (!list.isEmpty()) {
@@ -405,7 +406,7 @@ public class EltaSoeda3070 extends JFrame {
                             String rName = list.get(0).getRegion() != null ? list.get(0).getRegion() : regionName;
                             gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, true,
                                     selectedMonth, currentYear, admissionMonth);
-                            report.createPDF(combinedDoc);
+                            globalPageCounter = report.createPDF(combinedDoc, globalPageCounter);
                         }
                     }
 

@@ -44,6 +44,10 @@ public class Apologetic extends javax.swing.JFrame {
      * Creates new form Apologetic
      */
     public Apologetic() {
+        this(null, null);
+    }
+
+    public Apologetic(String examMonth, String admissionMonth) {
         initComponents();
         this.setSize(1200, 800);
         
@@ -59,61 +63,66 @@ public class Apologetic extends javax.swing.JFrame {
         jTable2.setShowHorizontalLines(true);
         jTable2.setShowVerticalLines(true);
          
-javax.swing.table.DefaultTableCellRenderer centerCellRenderer = new javax.swing.table.DefaultTableCellRenderer() {
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus,
-                                                   int row, int column) {
-        Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-        c.setBackground(java.awt.Color.WHITE); // Make all rows white
-        setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        c.setFont(new Font("Tahoma", Font.PLAIN, 22));
-        return c;
-    }
-};
+        javax.swing.table.DefaultTableCellRenderer centerCellRenderer = new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                c.setBackground(java.awt.Color.WHITE); // Make all rows white
+                setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                c.setFont(new Font("Tahoma", Font.PLAIN, 22));
+                return c;
+            }
+        };
 
-for (int col = 0; col < jTable2.getColumnCount(); col++) {
-    jTable2.getColumnModel().getColumn(col).setCellRenderer(centerCellRenderer);
-}
+        for (int col = 0; col < jTable2.getColumnCount(); col++) {
+            jTable2.getColumnModel().getColumn(col).setCellRenderer(centerCellRenderer);
+        }
 
-if (jTable2.getColumnCount() >= 6) {
-    jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
-    jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
-    jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
-            jTable2.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة التلميذ
-            jTable2.getColumnModel().getColumn(1).setPreferredWidth(140); // رقم الجلوس
-            jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم التسجيل
-            jTable2.getColumnModel().getColumn(3).setPreferredWidth(520); // المهنة
-            jTable2.getColumnModel().getColumn(4).setPreferredWidth(430); // الاسم
-            jTable2.getColumnModel().getColumn(5).setPreferredWidth(50); // م
-}
-         
-                 JTableHeader header = jTable2.getTableHeader();
+        if (jTable2.getColumnCount() >= 6) {
+            jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
+            jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
+            jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
+                    jTable2.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة التلميذ
+                    jTable2.getColumnModel().getColumn(1).setPreferredWidth(140); // رقم الجلوس
+                    jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم التسجيل
+                    jTable2.getColumnModel().getColumn(3).setPreferredWidth(520); // المهنة
+                    jTable2.getColumnModel().getColumn(4).setPreferredWidth(430); // الاسم
+                    jTable2.getColumnModel().getColumn(5).setPreferredWidth(50); // م
+        }
+                 
+                         JTableHeader header = jTable2.getTableHeader();
 
-header.setDefaultRenderer(new DefaultTableCellRenderer() {
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus,
-                                                   int row, int column) {
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
 
-        Component c = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
+                Component c = super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
 
-        setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        c.setBackground(new Color(204, 255, 255));
-        c.setForeground(Color.BLACK);
-        c.setFont(new Font("Tahoma", Font.BOLD, 22));
-        return c;
-    }
-});
-        String month = chooseMonth();
-        if(month == null){
-    this.isCancelled = true;
-    return;
-}        int year = java.time.Year.now().getValue();
-        String arabicYear = toArabicNumbers(String.valueOf(year));
-        jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + "مايو" + " " + "لسنة " + toArabicNumbers("2026"));
+                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                c.setBackground(new Color(204, 255, 255));
+                c.setForeground(Color.BLACK);
+                c.setFont(new Font("Tahoma", Font.BOLD, 22));
+                return c;
+            }
+        });
+
+        if (examMonth == null || admissionMonth == null) {
+            String month = chooseMonth();
+            if (month == null) {
+                this.isCancelled = true;
+                return;
+            }
+            examMonth = month;
+            admissionMonth = "اكتوبر لسنة ٢٠٢٣"; // Fallback
+        }
+
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth);
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -316,7 +325,7 @@ public void loadCenterData(String centerName) {
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+        jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(30, 60, 114));
@@ -578,10 +587,10 @@ public void loadCenterData(String centerName) {
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel1.setBounds(rAlign, 10, 390, 25);
-        jLabel2.setBounds(rAlign, 35, 390, 25);
-        jLabel3.setBounds(rAlign, 60, 390, 25);
-        jLabel4.setBounds(rAlign, 85, 390, 25);
+        jLabel1.setBounds(890, 10, 500, 25);
+        jLabel2.setBounds(890, 35, 500, 25);
+        jLabel3.setBounds(890, 60, 500, 25);
+        jLabel4.setBounds(890, 85, 500, 25);
 
         // Region, Center, System below ministry
         jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));

@@ -196,8 +196,8 @@ public class gradReportTasoeda extends JFrame {
         String[] centerLines = {
                 " مسودة نتائج الصف الثالث ",
                 " دبلوم التلمذة الصناعية ",
-                " دفعة قبول " + admissionMonth + " لسنة ٢٠٢٣ وما قبلها ",
-                " المنعقد في " + examMonth + " لسنة " + toArabicNumbers(examYear) + " "
+                " دفعة قبول " + admissionMonth + " وما قبلها ",
+                " المنعقد في " + examMonth + " "
         };
 
 
@@ -209,11 +209,11 @@ public class gradReportTasoeda extends JFrame {
             centerTitlesPanel.add(Box.createVerticalStrut(12));
         }
 
-        JPanel centerPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 200, 0));
+        JPanel centerPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 350, 0));
         centerPanel.setOpaque(false);
-        centerPanel.add(createCenterCodeBox());
+        centerPanel.add(createCenterCodeBox(pageNum));
         centerPanel.add(centerTitlesPanel);
-        centerPanel.add(createCenterCodeBox());
+        centerPanel.add(createCenterCodeBox(pageNum));
 
         // --- LEFT PANEL (Empty) ---
         JPanel leftPanel = new JPanel();
@@ -229,31 +229,36 @@ public class gradReportTasoeda extends JFrame {
         return p;
     }
 
-    private JPanel createCenterCodeBox() {
+    private JPanel createCenterCodeBox(int pageNum) {
         JPanel pageBox = new JPanel();
         pageBox.setOpaque(false);
         pageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         pageBox.setLayout(new BoxLayout(pageBox, BoxLayout.Y_AXIS));
-        pageBox.setPreferredSize(new Dimension(120, 100));
-        pageBox.setMaximumSize(new Dimension(120, 100));
+        // Increased height to 160 to prevent clipping of the bottom label
+        pageBox.setPreferredSize(new Dimension(140, 160));
+        pageBox.setMaximumSize(new Dimension(140, 160));
 
-        JLabel pCur = new JLabel(centerCode, SwingConstants.CENTER);
+        // Top: Center Code | Middle: Line | Bottom: Page Number
+        JLabel pCenter = new JLabel(toArabicNumbers(centerCode), SwingConstants.CENTER);
         JLabel pLine = new JLabel("-------", SwingConstants.CENTER);
-        JLabel pEmpty = new JLabel("   ", SwingConstants.CENTER);
-        pCur.setFont(new Font("Arial", Font.BOLD, 52));
-        pLine.setFont(new Font("Arial", Font.BOLD, 26));
-        pEmpty.setFont(new Font("Arial", Font.BOLD, 38));
-        pCur.setAlignmentX(Component.CENTER_ALIGNMENT);
-        pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
-        pEmpty.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel pPage = new JLabel(toArabicNumbers(String.valueOf(pageNum)), SwingConstants.CENTER);
         
-        pCur.setForeground(Color.BLACK);
+        pCenter.setFont(new Font("Arial", Font.BOLD, 52));
+        pLine.setFont(new Font("Arial", Font.BOLD, 26));
+        pPage.setFont(new Font("Arial", Font.BOLD, 52));
+        
+        pCenter.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pPage.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        pCenter.setForeground(Color.BLACK);
         pLine.setForeground(Color.BLACK);
-        pEmpty.setForeground(Color.BLACK);
+        pPage.setForeground(Color.BLACK);
+        
         pageBox.add(Box.createVerticalGlue());
-        pageBox.add(pCur);
+        pageBox.add(pCenter);
         pageBox.add(pLine);
-        pageBox.add(pEmpty);
+        pageBox.add(pPage);
         pageBox.add(Box.createVerticalGlue());
         
         return pageBox;
@@ -400,26 +405,12 @@ public class gradReportTasoeda extends JFrame {
                     row[colIdx++] = " ";
                 }
                 row[colIdx++] = " "; // مجموع النظري
-                
-                int practicalMark = 0, appliedMark = 0;
-                Map<Integer, Integer> grades = st.getGrades();
-                if (grades != null) {
-                    for (Subject s : allSubjects) {
-                        int mark = grades.getOrDefault(s.getId(), 0);
-                        if ("عملي".equals(s.getType()) || (s.getName() != null && s.getName().contains("عملي"))) {
-                            practicalMark += mark;
-                        } else if ("تطبيقي".equals(s.getType()) || (s.getName() != null && s.getName().contains("تطبيقي"))) {
-                            appliedMark += mark;
-                        }
-                    }
-                }
-                
-                row[colIdx++] = practicalMark > 0 ? String.valueOf(practicalMark) : "0"; // العملي
-                row[colIdx++] = appliedMark > 0 ? String.valueOf(appliedMark) : "0"; // تطبيقي
-                row[colIdx++] = String.valueOf(practicalMark + appliedMark); // مجموع عملي وتطبيقي
+                row[colIdx++] = " "; // العملي
+                row[colIdx++] = " "; // تطبيقي
+                row[colIdx++] = " "; // مجموع عملي وتطبيقي
                 row[colIdx++] = " "; // المجموع الكلي
                 row[colIdx++] = " "; // ملاحظات
-                row[colIdx] = " "; // التقدير
+                row[colIdx] = " ";   // التقدير
                 model.addRow(row);
             } else {
                 Object[] row = new Object[totalCols];
@@ -481,7 +472,7 @@ public class gradReportTasoeda extends JFrame {
 
         try { table.getColumn("م").setPreferredWidth(80); } catch (Exception e) {}
         try { table.getColumn("الاسم").setPreferredWidth(850); } catch (Exception e) {}
-        try { table.getColumn("الحرفة").setPreferredWidth(400); } catch (Exception e) {}
+        try { table.getColumn("الحرفة").setPreferredWidth(700); } catch (Exception e) {}
         try { table.getColumn("رقم التسجيل").setPreferredWidth(220); } catch (Exception e) {}
         try { table.getColumn("رقم الجلوس").setPreferredWidth(220); } catch (Exception e) {}
         try { table.getColumn("الرقم السري 1").setPreferredWidth(220); } catch (Exception e) {}
@@ -530,7 +521,8 @@ public class gradReportTasoeda extends JFrame {
         return p;
     }
 
-    public void createPDF(com.itextpdf.text.Document combinedDoc) {
+    public int createPDF(com.itextpdf.text.Document combinedDoc, int startPageNum) {
+        int currentPageNum = startPageNum;
         try {
             // إنشاء الفولدرات
             File mainFolder = new File("التقارير");
@@ -552,7 +544,7 @@ public class gradReportTasoeda extends JFrame {
                 int end = Math.min(start + pageSizeCount, totalCount);
                 List<Student> chunk = students.subList(start, end);
 
-                JPanel pagePanel = buildPagePanel(chunk, pIdx + 1, totalPages);
+                JPanel pagePanel = buildPagePanel(chunk, currentPageNum++, totalPages);
                 
                 int scale = 2; // High resolution
                 BufferedImage img = new BufferedImage(pagePanel.getWidth() * scale, pagePanel.getHeight() * scale, BufferedImage.TYPE_INT_RGB);
@@ -597,10 +589,11 @@ public class gradReportTasoeda extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return currentPageNum;
     }
 
     public void createPDF() {
-        createPDF(null);
+        createPDF(null, 1);
     }
 
     private JPanel buildPagePanel(List<Student> chunk, int pageNum, int totalPages) {

@@ -1,4 +1,4 @@
-    package com.pvtd.students.ui.pages.Report;
+package com.pvtd.students.ui.pages.Report;
 
 import com.pvtd.students.db.DatabaseConnection;
 import com.pvtd.students.ui.utils.UITheme;
@@ -22,9 +22,11 @@ import com.pvtd.students.ui.utils.ReportUtils;
 import com.pvtd.students.models.Student;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.*;
 
 public class SucssfullPageEdit extends javax.swing.JFrame {
 
+    private com.pvtd.students.ui.utils.ReportFilterPanel filterPanel;
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SucssfullPageEdit.class.getName());
 
     /** Caches the exam_system fetched from loadStudents — used by both reports */
@@ -39,20 +41,12 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             return;
         }
 
-        java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
         int totalSelected = selectedRows.length;
         
-        String[] months = ReportUtils.chooseMonths(this);
-        if (months == null) return;
-
-        final String selMonth = months[0];
-        final String admMonth = months[1];
-
-        for (int row : selectedRows) {
-            String seatNo = String.valueOf(model1.getValueAt(row, 1)); 
-            String prof   = String.valueOf(model1.getValueAt(row, 5)); 
-            byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
-        }
+        String[] filters = filterPanel != null ? filterPanel.getSelectedMonths() : new String[]{"", "", "", "", "", ""};
+        if (filters == null || filters.length < 6) return;
+        final String selMonth = filters[4];
+        final String admMonth = filters[5];
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = combobox1.getSelectedItem() != null ? combobox1.getSelectedItem().toString() : "";
@@ -61,109 +55,188 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         ReportWorker worker = new ReportWorker(this, "كشف الناجحين بالدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
-                // Group all selected students by region first
-                java.util.LinkedHashMap<String, java.util.LinkedHashMap<String, java.util.List<String>>> byRegion = new java.util.LinkedHashMap<>();
+                // تخزين الطلاب حسب المنطقة مع الحفاظ على ترتيب الاختيار
+                java.util.LinkedHashMap<String, java.util.List<com.pvtd.students.models.Student>> allStudentsByRegion = new java.util.LinkedHashMap<>();
+                java.util.Map<String, String> allStudentSystems = new java.util.HashMap<>();
 
                 try (Connection con = DatabaseConnection.getConnection()) {
-                    String getRegionSql = "SELECT region FROM students WHERE seat_no = ?";
-                    PreparedStatement getRegionPs = con.prepareStatement(getRegionSql);
+                    // 1. جمع كافة أرقام الجلوس المختارة في قائمة
+                    java.util.List<String> seatNumbers = new java.util.ArrayList<>();
+                    for (int row : selectedRows) {
+                        int modelRow = jTable1.convertRowIndexToModel(row);
+                        seatNumbers.add(String.valueOf(model1.getValueAt(modelRow, 1)));
+                    }
 
-                    for (java.util.Map.Entry<String, java.util.List<String>> entry : byProfession.entrySet()) {
-                        String prof = entry.getKey();
-                        for (String seatNo : entry.getValue()) {
-                            String region = regionName; // fallback
-                            getRegionPs.setString(1, seatNo);
-                            try (ResultSet rsR = getRegionPs.executeQuery()) {
-                                if (rsR.next() && rsR.getString("region") != null && !rsR.getString("region").isEmpty()) {
-                                    region = rsR.getString("region");
+                    if (seatNumbers.isEmpty()) return null;
+
+                    // 2. جلب بيانات الطلاب دفعة واحدة (مقسمة لمجموعات لتجنب حدود الـ IN clause)
+                    java.util.Map<String, com.pvtd.students.models.Student> studentMap = new java.util.HashMap<>();
+                    java.util.Map<String, String> studentRegions = new java.util.HashMap<>();
+                    java.util.List<Integer> studentIds = new java.util.ArrayList<>();
+
+                    int batchSize = 500;
+                    for (int i = 0; i < seatNumbers.size(); i += batchSize) {
+                        int end = Math.min(i + batchSize, seatNumbers.size());
+                        java.util.List<String> batch = seatNumbers.subList(i, end);
+                        
+                        StringBuilder sb = new StringBuilder("SELECT id, name, registration_no, seat_no, status, national_id, profession, professional_group, secret_no, coordination_no, region, exam_system FROM students WHERE seat_no IN (");
+                        for (int j = 0; j < batch.size(); j++) {
+                            sb.append("?");
+                            if (j < batch.size() - 1) sb.append(",");
+                        }
+                        sb.append(")");
+
+                        try (PreparedStatement ps = con.prepareStatement(sb.toString())) {
+                            for (int j = 0; j < batch.size(); j++) {
+                                ps.setString(j + 1, batch.get(j));
+                            }
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    com.pvtd.students.models.Student st = new com.pvtd.students.models.Student();
+                                    st.setId(rs.getInt("id"));
+                                    st.setName(rs.getString("name"));
+                                    st.setRegistrationNo(rs.getString("registration_no"));
+                                    st.setSeatNo(rs.getString("seat_no"));
+                                    st.setStatus(rs.getString("status"));
+                                    st.setNationalId(rs.getString("national_id"));
+                                    st.setProfessionalGroup(rs.getString("professional_group"));
+                                    st.setExamSystem(rs.getString("exam_system"));
+                                    st.setCoordinationNo(rs.getString("coordination_no"));
+                                    st.setSecretNo(rs.getString("secret_no"));
+                                    st.setProfession(rs.getString("profession"));
+                                    
+                                    String r = rs.getString("region");
+                                    if (r == null || r.trim().isEmpty()) r = regionName;
+                                    
+                                    studentMap.put(st.getSeatNo(), st);
+                                    studentRegions.put(st.getSeatNo(), r);
+                                    studentIds.add(st.getId());
                                 }
                             }
-                            byRegion
-                                .computeIfAbsent(region, k -> new java.util.LinkedHashMap<>())
-                                .computeIfAbsent(prof, k -> new java.util.ArrayList<>())
-                                .add(seatNo);
                         }
                     }
 
-                    java.io.File folder = new java.io.File("التقارير/تبييضة/ناجحين");
-                    if (!folder.exists()) folder.mkdirs();
-
-                    for (java.util.Map.Entry<String, java.util.LinkedHashMap<String, java.util.List<String>>> regionEntry : byRegion.entrySet()) {
-                        String currentRegion = regionEntry.getKey();
-                        java.util.LinkedHashMap<String, java.util.List<String>> profMap = regionEntry.getValue();
-
-                        String sanitizedRegion = currentRegion.replace("/", "_").replace("\\", "_").replace(":", "_");
-                        String fn = "التقارير/تبييضة/ناجحين/" + sanitizedRegion + ".pdf";
-
-                        com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-                        com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
-                        document.open();
-
-                        String getStudentSql = "SELECT id, name, registration_no, seat_no, status, national_id, professional_group, secret_no, coordination_no FROM students WHERE seat_no = ?";
-                        PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
-                        String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
-                        PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
-
-                        int processed = 0;
-                        for (java.util.Map.Entry<String, java.util.List<String>> entry : profMap.entrySet()) {
-                            String prof = entry.getKey();
-                            java.util.List<Student> list = new java.util.ArrayList<>();
-
-                            for (String seatNo : entry.getValue()) {
-                                processed++;
-                                updateStatus(processed, totalSelected, "جاري جلب بيانات الطالب: " + seatNo);
-                                getStudentPs.setString(1, seatNo);
-                                try (ResultSet rsStudent = getStudentPs.executeQuery()) {
-                                    if (rsStudent.next()) {
-                                        Student st = new Student();
-                                        st.setId(rsStudent.getInt("id"));
-                                        st.setName(rsStudent.getString("name"));
-                                        st.setRegistrationNo(rsStudent.getString("registration_no"));
-                                        st.setSeatNo(rsStudent.getString("seat_no"));
-                                        st.setStatus(rsStudent.getString("status"));
-                                        st.setNationalId(rsStudent.getString("national_id"));
-                                        st.setProfessionalGroup(rsStudent.getString("professional_group"));
-                                        st.setCoordinationNo(rsStudent.getString("coordination_no"));
-                                        st.setSecretNo(rsStudent.getString("secret_no"));
-                                        st.setProfession(prof);
-
-                                        java.util.Map<Integer, Integer> grades = new java.util.HashMap<>();
-                                        getGradesPs.setInt(1, st.getId());
-                                        try (ResultSet rsGrades = getGradesPs.executeQuery()) {
-                                            while (rsGrades.next()) {
-                                                grades.put(rsGrades.getInt("subject_id"), rsGrades.getInt("obtained_mark"));
-                                            }
-                                        }
-                                        st.setGrades(grades);
-                                        list.add(st);
+                    // 3. جلب كافة الدرجات دفعة واحدة
+                    java.util.Map<Integer, java.util.Map<Integer, Integer>> gradesMap = new java.util.HashMap<>();
+                    if (!studentIds.isEmpty()) {
+                        for (int i = 0; i < studentIds.size(); i += batchSize) {
+                            int end = Math.min(i + batchSize, studentIds.size());
+                            java.util.List<Integer> batchIds = studentIds.subList(i, end);
+                            
+                            StringBuilder sbG = new StringBuilder("SELECT student_id, subject_id, obtained_mark FROM student_grades WHERE student_id IN (");
+                            for (int j = 0; j < batchIds.size(); j++) {
+                                sbG.append("?");
+                                if (j < batchIds.size() - 1) sbG.append(",");
+                            }
+                            sbG.append(")");
+                            
+                            try (PreparedStatement psG = con.prepareStatement(sbG.toString())) {
+                                for (int j = 0; j < batchIds.size(); j++) {
+                                    psG.setInt(j + 1, batchIds.get(j));
+                                }
+                                try (ResultSet rsG = psG.executeQuery()) {
+                                    while (rsG.next()) {
+                                        int sid = rsG.getInt("student_id");
+                                        int subid = rsG.getInt("subject_id");
+                                        int mark = rsG.getInt("obtained_mark");
+                                        gradesMap.computeIfAbsent(sid, k -> new java.util.HashMap<>()).put(subid, mark);
                                     }
                                 }
                             }
+                        }
+                    }
 
-                            updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            String profSystem = systemName;
-                            try (PreparedStatement psSys2 = con.prepareStatement(
-                                    "SELECT exam_system FROM professions WHERE TRIM(name) = TRIM(?)")) {
-                                psSys2.setString(1, prof);
-                                try (ResultSet rsSys2 = psSys2.executeQuery()) {
-                                    if (rsSys2.next() && rsSys2.getString(1) != null && !rsSys2.getString(1).trim().isEmpty()) {
-                                        profSystem = rsSys2.getString(1).trim();
+                    // 4. جلب أنظمة المهن دفعة واحدة
+                    java.util.Set<String> professions = new java.util.HashSet<>();
+                    for (com.pvtd.students.models.Student s : studentMap.values()) {
+                        if (s.getProfession() != null) professions.add(s.getProfession().trim());
+                    }
+                    if (!professions.isEmpty()) {
+                        java.util.List<String> profList = new java.util.ArrayList<>(professions);
+                        for (int i = 0; i < profList.size(); i += batchSize) {
+                            java.util.List<String> batch = profList.subList(i, Math.min(i + batchSize, profList.size()));
+                            String inClause = String.join(",", java.util.Collections.nCopies(batch.size(), "?"));
+                            try (PreparedStatement psSys = con.prepareStatement("SELECT name, exam_system FROM professions WHERE TRIM(name) IN (" + inClause + ")")) {
+                                for (int j = 0; j < batch.size(); j++) psSys.setString(j + 1, batch.get(j));
+                                try (ResultSet rsSys = psSys.executeQuery()) {
+                                    while (rsSys.next()) {
+                                        allStudentSystems.put(rsSys.getString("name").trim(), rsSys.getString("exam_system") != null ? rsSys.getString("exam_system").trim() : systemName);
                                     }
                                 }
-                            } catch (Exception ex) { ex.printStackTrace(); }
-
-                            gradReportSucc report = new gradReportSucc(prof, centerName, currentRegion, profSystem, list, selMonth, admMonth);
-
-                            report.appendToDocument(document);
+                            }
                         }
-
-                        document.close();
                     }
+
+                    // 5. تجميع البيانات النهائية بالترتيب الأصلي للاختيار (0-20%)
+                    int total = seatNumbers.size();
+                    for (int i = 0; i < total; i++) {
+                        if (i % 50 == 0 || i == total - 1) {
+                            updateStatus((i + 1) * 20 / total, 100, "جاري تحضير البيانات: " + (i + 1) + "/" + total);
+                        }
+                        
+                        String seatNo = seatNumbers.get(i);
+                        com.pvtd.students.models.Student st = studentMap.get(seatNo);
+                        if (st != null) {
+                            st.setGrades(gradesMap.getOrDefault(st.getId(), new java.util.HashMap<>()));
+                            String region = studentRegions.get(seatNo);
+                            allStudentsByRegion.computeIfAbsent(region, k -> new java.util.ArrayList<>()).add(st);
+                        }
+                    }
+
+                    // توليد الملفات (20-100%)
+                    generatePdfFiles(allStudentsByRegion, allStudentSystems, centerName, selMonth, admMonth, "التقارير/تبييضة/ناجحين", "جاري إنشاء التقارير", 20, 100);
                 }
 
                 java.io.File folder = new java.io.File("التقارير/تبييضة/ناجحين");
                 java.awt.Desktop.getDesktop().open(folder);
                 return null;
+            }
+
+            private void generatePdfFiles(java.util.LinkedHashMap<String, java.util.List<com.pvtd.students.models.Student>> data, 
+                                        java.util.Map<String, String> systems, String centerName, String selM, String admM, String folderPath,
+                                        String label, int startPct, int endPct) throws Exception {
+                java.io.File folder = new java.io.File(folderPath);
+                if (!folder.exists()) folder.mkdirs();
+
+                String combinedFn = folderPath + "/مجمع تبييض ناجحين.pdf";
+                com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document();
+                com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                combinedDoc.open();
+
+                int totalStudents = data.values().stream().mapToInt(java.util.List::size).sum();
+                if (totalStudents == 0) return; 
+                int processed = 0;
+
+                for (java.util.Map.Entry<String, java.util.List<com.pvtd.students.models.Student>> rEntry : data.entrySet()) {
+                    if (rEntry.getValue().isEmpty()) continue;
+                    
+                    String region = rEntry.getKey();
+                    String sanitized = region.replace("/", "_").replace("\\", "_").replace(":", "_");
+                    String fn = folderPath + "/" + sanitized + ".pdf";
+
+                    com.itextpdf.text.Document doc = new com.itextpdf.text.Document();
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(doc, new java.io.FileOutputStream(fn));
+                    doc.open();
+
+                    // استخدام التقرير التتابعي الذي يدعم المهن المختلطة (مثل الراسبين)
+                    gradReportSequential report = new gradReportSequential("تلاميذ ناجحون", new Color(0, 102, 204), centerName, region, rEntry.getValue(), selM, admM);
+                    report.appendToDocument(doc);
+                    report.appendToDocument(combinedDoc);
+
+                    // تحديث الحالة
+                    processed += rEntry.getValue().size();
+                    int currentPct = startPct + (processed * (endPct - startPct) / totalStudents);
+                    updateStatus(currentPct, 100, label + ": منطقة " + region);
+                    
+                    doc.close();
+                }
+                if (processed > 0) {
+                    combinedDoc.close();
+                    if (folder.exists()) java.awt.Desktop.getDesktop().open(folder);
+                } else {
+                    combinedDoc.close(); // If we opened it, we must close it, but it might fail if 0 pages. 
+                    // Actually, if processed is 0, we shouldn't have opened it or we should add a dummy page.
+                }
             }
         };
         worker.start();
@@ -175,85 +248,37 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         setTitle("تقرير الناجحين");
         this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
-//
-//        jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-//        jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-//        jTable1.setShowGrid(true);
-//        jTable1.setGridColor(new Color(220, 220, 220));
-//        jTable1.setRowHeight(32);
-//        jTable1.setFont(new Font("Tahoma", Font.PLAIN, 14));
-//        jTable1.setFillsViewportHeight(true);
-//        jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-//            @Override
-//            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-//                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-//                if (!sel) {
-//                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(240, 255, 245));
-//                }
-//                c.setFont(new Font("Tahoma", Font.PLAIN, 14));
-//                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
-//                return c;
-//            }
-//        });
-//        jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
-//            @Override
-//            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-//                Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-//                c.setBackground(new Color(22, 100, 52));
-//                c.setForeground(Color.WHITE);
-//                c.setFont(new Font("Tahoma", Font.BOLD, 15));
-//                ((DefaultTableCellRenderer) c).setHorizontalAlignment(CENTER);
-//                return c;
-//            }
-//        });
-//        jTable1.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 38));
-//
-//        jPanel2.setBackground(new Color(22, 100, 52));
-//        javax.swing.JLabel titleLbl = new javax.swing.JLabel("  تقرير الناجحين", javax.swing.SwingConstants.RIGHT);
-//        titleLbl.setFont(new Font("Tahoma", Font.BOLD, 20));
-//        titleLbl.setForeground(Color.WHITE);
-//        java.awt.GridBagConstraints gbcT = new java.awt.GridBagConstraints();
-//        gbcT.gridx = 2;
-//        gbcT.gridy = 0;
-//        gbcT.weightx = 1.0;
-//        gbcT.anchor = java.awt.GridBagConstraints.EAST;
-//        gbcT.insets = new java.awt.Insets(10, 30, 10, 20);
-//        jPanel2.add(titleLbl, gbcT);
-//
-//        javax.swing.JButton btnClose = new javax.swing.JButton("✖  إغلاق");
-//        btnClose.setForeground(Color.WHITE);
-//        btnClose.setFont(new Font("Tahoma", Font.BOLD, 14));
-//        btnClose.setFocusPainted(false);
-//        btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-//        btnClose.addActionListener(e -> this.dispose());
-//        UITheme.styleButton(btnClose, new Color(220, 38, 38), new Color(180, 20, 20), new Color(140, 10, 10));
-//        java.awt.GridBagConstraints gbcC = new java.awt.GridBagConstraints();
-//        gbcC.gridx = 0;
-//        gbcC.gridy = 0;
-//        gbcC.anchor = java.awt.GridBagConstraints.WEST;
-//        gbcC.insets = new java.awt.Insets(8, 12, 8, 12);
-//        jPanel2.add(btnClose, gbcC);
-//
-//        jPanel3.setBackground(new Color(245, 247, 250));
-//        buttonGradient2.setText("📊  تقرير PDF بالدرجات");
-//        buttonGradient3.setText("📄  تقرير PDF بدون الدرجات");
-//        jButton1.setText("✔  تحديد الكل");
-//        jButton1.setFont(new Font("Tahoma", Font.BOLD, 13));
-//        UITheme.styleButton(jButton1, new Color(37, 99, 235), new Color(29, 78, 216), new Color(23, 64, 180));
-//        jButton1.setForeground(Color.WHITE);
-//        jScrollPane1.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200, 210, 230), 1));
+
+        this.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                String center = (String) cmdcenter.getSelectedItem();
+                String region = (String) combobox1.getSelectedItem();
+                if (center != null && region != null && !center.startsWith("اختر") && !region.startsWith("اختر")) {
+                    loadStudents(center, region);
+                }
+            }
+            @Override
+            public void windowLostFocus(java.awt.event.WindowEvent e) {}
+        });
 
         loadRegions();
         setupTableUi();
+        
+        filterPanel = new com.pvtd.students.ui.utils.ReportFilterPanel();
+        filterPanel.addFilterChangeListener(e -> cmdcenterActionPerformed(null));
+        javax.swing.JPanel topContainer = new javax.swing.JPanel(new java.awt.BorderLayout());
+        topContainer.add(jPanel2, java.awt.BorderLayout.CENTER);
+        topContainer.add(filterPanel, java.awt.BorderLayout.SOUTH);
+        jPanel1.add(topContainer, java.awt.BorderLayout.PAGE_START);
     }
 
-    
     private void setupTableUi() {
         if (jTable1 == null) return;
         jTable1.setRowHeight(35);
         jTable1.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 14));
         jTable1.setForeground(java.awt.Color.BLACK);
-        jTable1.setSelectionBackground(new java.awt.Color(135, 206, 250)); // Light sky blue for better contrast
+        jTable1.setSelectionBackground(new java.awt.Color(135, 206, 250));
         jTable1.setSelectionForeground(java.awt.Color.BLACK);
         jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
             @Override
@@ -278,61 +303,56 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         }
     }
 
-    //-------------------------------------------------------
-
     public void loadStudents(String center, String region) {
-
-    try {
-
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-
-        try (Connection con = DatabaseConnection.getConnection()) {
-
-            String sql = "SELECT name, profession, registration_no, seat_no, status, national_id, coordination_no, exam_system "
-                    + "FROM students "
-                    + "WHERE center_name = ? "
-                    + "AND region = ? "
-                    + "AND status = 'ناجح' "
-                    + "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
-
-            PreparedStatement ps = con.prepareStatement(sql);
-
-            ps.setString(1, center);
-            ps.setString(2, region);
-
-            ResultSet rs = ps.executeQuery();
-
-            int i = 1;
-            boolean systemCaptured = false;
-            while (rs.next()) {
-                // capture exam_system from first row
-                if (!systemCaptured) {
-                    String sys = rs.getString("exam_system");
-                    if (sys != null && !sys.trim().isEmpty()) {
-                        loadedSystemName = sys.trim();
-                        systemCaptured = true;
+        new javax.swing.SwingWorker<java.util.List<Object[]>, Void>() {
+            @Override
+            protected java.util.List<Object[]> doInBackground() throws Exception {
+                java.util.List<Object[]> data = new java.util.ArrayList<>();
+                try (Connection con = DatabaseConnection.getConnection()) {
+                    String sql = "SELECT name, profession, registration_no, seat_no, status, national_id, coordination_no, exam_system "
+                            + "FROM students "
+                            + "WHERE center_name = ? "
+                            + "AND region = ? "
+                            + "AND status = 'ناجح' ";
+                    sql += "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setString(1, center);
+                        ps.setString(2, region);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            int i = 1;
+                            while (rs.next()) {
+                                data.add(new Object[]{
+                                    rs.getString("status"),
+                                    rs.getString("seat_no"),
+                                    rs.getString("coordination_no"),
+                                    rs.getString("national_id"),
+                                    rs.getString("registration_no"),
+                                    rs.getString("profession"),
+                                    rs.getString("name"),
+                                    i++
+                                });
+                            }
+                        }
                     }
                 }
-                model.addRow(new Object[]{
-                    rs.getString("status"),
-                    rs.getString("seat_no"),
-                    rs.getString("coordination_no"),
-                    rs.getString("national_id"),
-                    rs.getString("registration_no"),
-                    rs.getString("profession"),
-                    rs.getString("name"),
-                    i++
-                });
+                return data;
             }
 
-        }
-
-    } catch (Exception e) {
-        e.printStackTrace();
+            @Override
+            protected void done() {
+                try {
+                    DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+                    model.setRowCount(0);
+                    java.util.List<Object[]> data = get();
+                    for (Object[] row : data) {
+                        model.addRow(row);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
     }
-}
-    //---------------------------------------------------------------
 
     public void loadCenters(String region) {
         cmdcenter.removeAllItems();
@@ -347,7 +367,6 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
-
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         cmdcenter = new com.pvtd.students.ui.components.Combobox();
@@ -356,15 +375,12 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         buttonGradient1 = new com.pvtd.students.ui.components.ButtonGradient();
         jButton1 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
-        gridBagConstraints = new java.awt.GridBagConstraints();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(new java.awt.BorderLayout());
-
         jPanel2.setBackground(new java.awt.Color(0, 102, 51));
         jPanel2.setPreferredSize(new java.awt.Dimension(1091, 80));
         jPanel2.setLayout(new java.awt.GridBagLayout());
@@ -372,50 +388,39 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         cmdcenter.setLabeText("المركز");
         cmdcenter.addActionListener(this::cmdcenterActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridheight = 4;
-        gridBagConstraints.ipadx = 162;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.gridx = 3; gridBagConstraints.gridy = 0; gridBagConstraints.gridheight = 4;
+        gridBagConstraints.ipadx = 162; gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(19, 12, 19, 0);
         jPanel2.add(cmdcenter, gridBagConstraints);
 
         combobox1.setLabeText("المنطقة");
         combobox1.addActionListener(this::combobox1ActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridheight = 4;
-        gridBagConstraints.ipadx = 167;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.gridx = 4; gridBagConstraints.gridy = 0; gridBagConstraints.gridheight = 4;
+        gridBagConstraints.ipadx = 167; gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(19, 12, 19, 0);
         jPanel2.add(combobox1, gridBagConstraints);
 
         buttonGradient3.setText("كشف الناجحين");
         buttonGradient3.setColor1(new java.awt.Color(68, 160, 141));
         buttonGradient3.setColor2(new java.awt.Color(9, 54, 55));
-        buttonGradient3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        buttonGradient3.setFont(new java.awt.Font("Segoe UI", 1, 12));
         buttonGradient3.setRadius(40);
         buttonGradient3.addActionListener(this::buttonGradient3ActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridheight = 3;
-        gridBagConstraints.ipadx = 26;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.gridx = 0; gridBagConstraints.gridy = 0; gridBagConstraints.gridheight = 3;
+        gridBagConstraints.ipadx = 26; gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(19, 6, 0, 0);
         jPanel2.add(buttonGradient3, gridBagConstraints);
 
         buttonGradient1.setText("كشف الناجحين بي الدرجات");
         buttonGradient1.setColor1(new java.awt.Color(35, 122, 87));
         buttonGradient1.setColor2(new java.awt.Color(9, 48, 40));
-        buttonGradient1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        buttonGradient1.setFont(new java.awt.Font("Segoe UI", 1, 12));
         buttonGradient1.setRadius(40);
         buttonGradient1.addActionListener(this::buttonSecretReportActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridheight = 3;
+        gridBagConstraints.gridx = 1; gridBagConstraints.gridy = 0; gridBagConstraints.gridheight = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(19, 18, 0, 0);
         jPanel2.add(buttonGradient1, gridBagConstraints);
@@ -425,56 +430,35 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         jButton1.setText("اختار الكل");
         jButton1.addActionListener(this::jButton1ActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridheight = 2;
-        gridBagConstraints.ipadx = 28;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.gridx = 2; gridBagConstraints.gridy = 0; gridBagConstraints.gridheight = 2;
+        gridBagConstraints.ipadx = 28; gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(26, 6, 0, 0);
         jPanel2.add(jButton1, gridBagConstraints);
 
-        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18));
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setText("كشف تقارير بي الطلاب الناجحين");
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 5;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.ipady = 17;
+        gridBagConstraints.gridx = 5; gridBagConstraints.gridy = 0; gridBagConstraints.ipady = 17;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(0, 6, 0, 19);
         jPanel2.add(jLabel1, gridBagConstraints);
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.PAGE_START);
 
-
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null}
-            },
-            new String [] {
-                "حالة التلميذ", "رقم الجلوس ", "كود التنسيق", "الرقم القومي", "رقم التسجيل", "المهنة", "الاسم", "م"
-            }
+            new Object [][] {{null, null, null, null, null, null, null, null}},
+            new String [] {"حالة التلميذ", "رقم الجلوس ", "كود التنسيق", "الرقم القومي", "رقم التسجيل", "المهنة", "الاسم", "م"}
         ));
         jScrollPane1.setViewportView(jTable1);
-
         jPanel1.add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 600, Short.MAX_VALUE)
-        );
-
+        layout.setHorizontalGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE));
+        layout.setVerticalGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 600, Short.MAX_VALUE));
         pack();
-    }// </editor-fold>//GEN-END:initComponents
+    }// </editor-fold>
 
     private void cmdcenterActionPerformed(java.awt.event.ActionEvent evt) {
         if (cmdcenter.getSelectedItem() != null && combobox1.getSelectedItem() != null) {
@@ -486,9 +470,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             }
             loadStudents(center, region);
         }
-    }//GEN-LAST:event_cmdcenterActionPerformed
-
-
+    }
 
     private void buttonGradient3ActionPerformed(java.awt.event.ActionEvent evt) {                                                
         int[] selectedRows = jTable1.getSelectedRows();
@@ -496,65 +478,43 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             javax.swing.JOptionPane.showMessageDialog(this, "برجاء اختيار طلاب أولاً", "تحذير", javax.swing.JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = combobox1.getSelectedItem() != null ? combobox1.getSelectedItem().toString() : "";
-
-        String[] months = ReportUtils.chooseMonths(this);
-        if (months == null) return;
-
-
-        successful report = new successful(months[0], months[1]);
+        String[] months = filterPanel != null ? filterPanel.getSelectedMonths() : new String[]{"", "", "", "", "", ""};
+        if (months == null || months.length < 6) return;
+        successful report = new successful(months[4], months[5]);
         if (report.isCancelled) return;
 
-
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
-
         ReportWorker worker = new ReportWorker(this, "كشف الطلاب الناجحين", null) {
             @Override
             protected Void doInBackground() throws Exception {
                 updateStatus(10, 100, "جاري جلب أنظمة المهن...");
-
                 java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem = new java.util.LinkedHashMap<>();
                 java.util.Map<String, String> profToSystem = new java.util.HashMap<>();
-
                 try (java.sql.Connection con = com.pvtd.students.db.DatabaseConnection.getConnection()) {
                     String sql = "SELECT name, exam_system FROM professions";
-                    try (java.sql.PreparedStatement ps = con.prepareStatement(sql);
-                         java.sql.ResultSet rs = ps.executeQuery()) {
+                    try (java.sql.PreparedStatement ps = con.prepareStatement(sql); java.sql.ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
                             String pName = rs.getString("name");
                             String pSys = rs.getString("exam_system");
-                            if (pName != null) {
-                                profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
-                            }
+                            if (pName != null) profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
                         }
                     }
-
                     for (int i = 0; i < selectedRows.length; i++) {
-                        int r = selectedRows[i];
+                        int r = jTable1.convertRowIndexToModel(selectedRows[i]);
                         String name = String.valueOf(model1.getValueAt(r, 6) != null ? model1.getValueAt(r, 6) : "");
                         String prof = String.valueOf(model1.getValueAt(r, 5) != null ? model1.getValueAt(r, 5) : "");
-                        
-                        // Strip HTML for lookup
                         String cleanProf = prof.replaceAll("<[^>]*>", "").trim();
                         String systemName = profToSystem.getOrDefault(cleanProf, "نظامي");
-
                         String htmlName = "<html><center>" + name.trim() + "</center></html>";
                         String htmlProf = "<html><center>" + prof.trim() + "</center></html>";
-
                         java.util.Vector rowData = new java.util.Vector();
-                        rowData.add(model1.getValueAt(r, 0)); // 0: حالة التلميذ
-                        rowData.add(model1.getValueAt(r, 1)); // 1: رقم الجلوس
-                        rowData.add(model1.getValueAt(r, 4)); // 2: رقم التسجيل
-                        rowData.add(htmlProf);                // 3: المهنة
-                        rowData.add(htmlName);                // 4: الاسم
-                        rowData.add(i + 1);                   // 5: م
-
+                        rowData.add(model1.getValueAt(r, 0)); rowData.add(model1.getValueAt(r, 1)); rowData.add(model1.getValueAt(r, 4));
+                        rowData.add(htmlProf); rowData.add(htmlName); rowData.add(i + 1);
                         bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
                     }
                 }
-
                 updateStatus(50, 100, "جاري إنشاء ملف PDF...");
                 report.createPDFGroupedBySystem(bySystem, centerName, regionName, true);
                 return null;
@@ -563,11 +523,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
         worker.start();
     }
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-
-        jTable1.selectAll();
-
-    }//GEN-LAST:event_jButton1ActionPerformed
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) { jTable1.selectAll(); }
 
     private void combobox1ActionPerformed(java.awt.event.ActionEvent evt) {
         if (combobox1.getSelectedItem() != null) {
@@ -579,17 +535,9 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
             }
             loadCenters(region);
         }
-    }//GEN-LAST:event_combobox1ActionPerformed
+    }
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -597,16 +545,10 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
+        } catch (Exception ex) { logger.log(java.util.logging.Level.SEVERE, null, ex); }
         java.awt.EventQueue.invokeLater(() -> new SucssfullPageEdit().setVisible(true));
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.pvtd.students.ui.components.ButtonGradient buttonGradient1;
     private com.pvtd.students.ui.components.ButtonGradient buttonGradient3;
     private com.pvtd.students.ui.components.Combobox cmdcenter;
@@ -617,5 +559,4 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
-    // End of variables declaration//GEN-END:variables
 }

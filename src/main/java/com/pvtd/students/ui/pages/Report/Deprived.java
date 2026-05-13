@@ -37,6 +37,10 @@ public class Deprived extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Deprived.class.getName());
 
     public Deprived() {
+        this(null, null);
+    }
+
+    public Deprived(String examMonth, String admissionMonth) {
         initComponents();
         // احسب الارتفاع الحقيقي
 
@@ -107,19 +111,19 @@ public class Deprived extends javax.swing.JFrame {
                 return c;
             }
         });
-        String month = chooseMonth();
 
-        if (month == null) {
-            this.isCancelled = true;
-            return;
+        if (examMonth == null || admissionMonth == null) {
+            String month = chooseMonth();
+            if (month == null) {
+                this.isCancelled = true;
+                return;
+            }
+            examMonth = month;
+            admissionMonth = "اكتوبر لسنة ٢٠٢٣"; // Fallback
         }
 
-        int year = java.time.Year.now().getValue();
-
-        String arabicYear = toArabicNumbers(String.valueOf(year));
-
-        jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + "مايو" + " " + "لسنة " + toArabicNumbers("2026"));
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth);
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -242,10 +246,10 @@ public class Deprived extends javax.swing.JFrame {
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel1.setBounds(rAlign, 10, 390, 25);
-        jLabel2.setBounds(rAlign, 35, 390, 25);
-        jLabel3.setBounds(rAlign, 60, 390, 25);
-        jLabel4.setBounds(rAlign, 85, 390, 25);
+        jLabel1.setBounds(890, 10, 500, 25);
+        jLabel2.setBounds(890, 35, 500, 25);
+        jLabel3.setBounds(890, 60, 500, 25);
+        jLabel4.setBounds(890, 85, 500, 25);
 
         // Region, Center, System below ministry
         jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
@@ -510,7 +514,7 @@ public class Deprived extends javax.swing.JFrame {
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+        jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
         jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(760, 40, 290, -1));
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N

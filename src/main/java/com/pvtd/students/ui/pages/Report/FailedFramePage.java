@@ -37,6 +37,7 @@ import javax.swing.table.JTableHeader;
  */
 public class FailedFramePage extends javax.swing.JFrame {
 
+    private com.pvtd.students.ui.utils.ReportFilterPanel filterPanel;
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger(FailedFramePage.class.getName());
 
@@ -49,125 +50,196 @@ public class FailedFramePage extends javax.swing.JFrame {
             return;
         }
 
-        LinkedHashMap<String, List<String>> byProfession = new LinkedHashMap<>();
-        int totalSelected = selectedRows.length;
-        
-        String[] months = ReportUtils.chooseMonths(this);
-        if (months == null) return;
+        String[] months = filterPanel != null ? filterPanel.getSelectedMonths()
+                : new String[] { "", "", "", "", "", "" };
+        if (months == null || months.length < 6)
+            return;
 
-        final String selMonth = months[0];
-        final String admMonth = months[1];
+        final String selMonth = months[4];
+        final String admMonth = months[5];
 
+        // Collect all selected seat numbers (no grouping by profession)
+        List<String> selectedSeatNos = new ArrayList<>();
         for (int row : selectedRows) {
-            String seatNo = String.valueOf(model1.getValueAt(row, 2)); // Index 2 for seat_no
-            String prof = String.valueOf(model1.getValueAt(row, 4)); // Index 4 for profession
-            byProfession.computeIfAbsent(prof, k -> new ArrayList<>()).add(seatNo);
+            selectedSeatNos.add(String.valueOf(model1.getValueAt(row, 2)));
         }
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
-        String getProfSystemSql = "SELECT exam_system FROM professions WHERE TRIM(name) = TRIM(?)";
-        PreparedStatement getProfSystemPs = null;
+
+        // Build an ordered list of seat numbers as they appear in the table (for the
+        // new copy)
+        final List<String> orderedSeatNos = new ArrayList<>(selectedSeatNos);
 
         ReportWorker worker = new ReportWorker(this, "كشف الراسبين بالدرجات", null) {
             @Override
             protected Void doInBackground() throws Exception {
-                // Group all selected students by region first
-                java.util.LinkedHashMap<String, java.util.LinkedHashMap<String, List<String>>> byRegion = new java.util.LinkedHashMap<>();
+                // Map seatNo -> Student and seatNo -> region (used for both old & new
+                // generation)
+                java.util.Map<String, com.pvtd.students.models.Student> allSeatToStudent = new HashMap<>();
+                java.util.Map<String, String> seatToRegion = new HashMap<>();
 
                 try (Connection con = DatabaseConnection.getConnection()) {
-                    PreparedStatement getRegionPs = con.prepareStatement("SELECT region FROM students WHERE seat_no = ?");
 
-                    for (Map.Entry<String, List<String>> entry : byProfession.entrySet()) {
-                        String prof = entry.getKey();
-                        for (String seatNo : entry.getValue()) {
-                            String region = regionName;
-                            getRegionPs.setString(1, seatNo);
-                            try (ResultSet rsR = getRegionPs.executeQuery()) {
-                                if (rsR.next() && rsR.getString("region") != null && !rsR.getString("region").isEmpty()) {
-                                    region = rsR.getString("region");
+                    // Map: region -> list of students (all professions mixed)
+                    java.util.LinkedHashMap<String, List<com.pvtd.students.models.Student>> byRegion = new java.util.LinkedHashMap<>();
+
+                    int chunkSize = 500;
+                    for (int i = 0; i < selectedSeatNos.size(); i += chunkSize) {
+                        List<String> chunk = selectedSeatNos.subList(i,
+                                Math.min(selectedSeatNos.size(), i + chunkSize));
+                        String inClause = String.join(",", java.util.Collections.nCopies(chunk.size(), "?"));
+
+                        String getStudentSql = "SELECT id, name, registration_no, seat_no, status, national_id, " +
+                                "professional_group, secret_no, coordination_no, profession, region " +
+                                "FROM students WHERE seat_no IN (" + inClause + ")";
+
+                        Map<Integer, com.pvtd.students.models.Student> idToStudent = new HashMap<>();
+
+                        try (PreparedStatement ps = con.prepareStatement(getStudentSql)) {
+                            for (int j = 0; j < chunk.size(); j++)
+                                ps.setString(j + 1, chunk.get(j));
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    com.pvtd.students.models.Student st = new com.pvtd.students.models.Student();
+                                    st.setId(rs.getInt("id"));
+                                    st.setName(rs.getString("name"));
+                                    st.setRegistrationNo(rs.getString("registration_no"));
+                                    st.setSeatNo(rs.getString("seat_no"));
+                                    st.setStatus(rs.getString("status"));
+                                    st.setNationalId(rs.getString("national_id"));
+                                    st.setProfessionalGroup(rs.getString("professional_group"));
+                                    st.setSecretNo(rs.getString("secret_no"));
+                                    st.setCoordinationNo(rs.getString("coordination_no"));
+                                    st.setProfession(rs.getString("profession"));
+                                    st.setGrades(new HashMap<>());
+
+                                    String reg = rs.getString("region");
+                                    if (reg == null || reg.isEmpty())
+                                        reg = regionName;
+
+                                    idToStudent.put(st.getId(), st);
+                                    byRegion.computeIfAbsent(reg, k -> new ArrayList<>()).add(st);
+                                    // Track for new ordered copy
+                                    allSeatToStudent.put(st.getSeatNo(), st);
+                                    seatToRegion.put(st.getSeatNo(), reg);
                                 }
                             }
-                            byRegion
-                                .computeIfAbsent(region, k -> new java.util.LinkedHashMap<>())
-                                .computeIfAbsent(prof, k -> new ArrayList<>())
-                                .add(seatNo);
                         }
-                    }
 
-                    java.io.File folder = new File("التقارير/تبييضة/راسبين");
-                    if (!folder.exists()) folder.mkdirs();
-
-                    for (Map.Entry<String, java.util.LinkedHashMap<String, List<String>>> regionEntry : byRegion.entrySet()) {
-                        String currentRegion = regionEntry.getKey();
-                        java.util.LinkedHashMap<String, List<String>> profMap = regionEntry.getValue();
-
-                        String sanitizedRegion = currentRegion.replace("/", "_").replace("\\", "_").replace(":", "_");
-                        String fn = "التقارير/تبييضة/راسبين/" + sanitizedRegion + ".pdf";
-
-                        com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-                        com.itextpdf.text.pdf.PdfWriter.getInstance(document, new FileOutputStream(fn));
-                        document.open();
-
-                        String getStudentSql = "SELECT id, name, registration_no, seat_no, status, national_id, professional_group, secret_no, coordination_no FROM students WHERE seat_no = ?";
-                        PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
-                        PreparedStatement localGetProfSystemPs = con.prepareStatement(getProfSystemSql);
-                        String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
-                        PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
-
-                        int processed = 0;
-                        for (Map.Entry<String, List<String>> entry : profMap.entrySet()) {
-                            String prof = entry.getKey();
-                            List<com.pvtd.students.models.Student> list = new ArrayList<>();
-
-                            String systemName = "نظامي";
-                            localGetProfSystemPs.setString(1, prof);
-                            try (ResultSet rsSys = localGetProfSystemPs.executeQuery()) {
-                                if (rsSys.next() && rsSys.getString(1) != null) systemName = rsSys.getString(1);
-                            }
-
-                            for (String seatNo : entry.getValue()) {
-                                processed++;
-                                updateStatus(processed, totalSelected, "جاري جلب بيانات الطالب: " + seatNo);
-                                getStudentPs.setString(1, seatNo);
-                                try (ResultSet rsStudent = getStudentPs.executeQuery()) {
-                                    if (rsStudent.next()) {
-                                        com.pvtd.students.models.Student st = new com.pvtd.students.models.Student();
-                                        st.setId(rsStudent.getInt("id"));
-                                        st.setName(rsStudent.getString("name"));
-                                        st.setRegistrationNo(rsStudent.getString("registration_no"));
-                                        st.setSeatNo(rsStudent.getString("seat_no"));
-                                        st.setStatus(rsStudent.getString("status"));
-                                        st.setNationalId(rsStudent.getString("national_id"));
-                                        st.setProfessionalGroup(rsStudent.getString("professional_group"));
-                                        st.setSecretNo(rsStudent.getString("secret_no"));
-                                        st.setCoordinationNo(rsStudent.getString("coordination_no"));
-                                        st.setProfession(prof);
-
-                                        Map<Integer, Integer> grades = new HashMap<>();
-                                        getGradesPs.setInt(1, st.getId());
-                                        try (ResultSet rsGrades = getGradesPs.executeQuery()) {
-                                            while (rsGrades.next()) {
-                                                grades.put(rsGrades.getInt("subject_id"), rsGrades.getInt("obtained_mark"));
-                                            }
-                                        }
-                                        st.setGrades(grades);
-                                        list.add(st);
+                        // Load grades for this chunk
+                        if (!idToStudent.isEmpty()) {
+                            String idIn = String.join(",", java.util.Collections.nCopies(idToStudent.size(), "?"));
+                            try (PreparedStatement gps = con.prepareStatement(
+                                    "SELECT student_id, subject_id, obtained_mark FROM student_grades WHERE student_id IN ("
+                                            + idIn + ")")) {
+                                int idx = 1;
+                                for (Integer sid : idToStudent.keySet())
+                                    gps.setInt(idx++, sid);
+                                try (ResultSet rg = gps.executeQuery()) {
+                                    while (rg.next()) {
+                                        int sid = rg.getInt("student_id");
+                                        int subId = rg.getInt("subject_id");
+                                        int mark = rg.getInt("obtained_mark");
+                                        if (idToStudent.containsKey(sid))
+                                            idToStudent.get(sid).getGrades().put(subId, mark);
                                     }
                                 }
                             }
-
-                            updateStatus(processed, totalSelected, "جاري توليد تقرير مهنة: " + prof);
-                            gradReportFail report = new gradReportFail(prof, centerName, currentRegion, systemName, list, selMonth, admMonth);
-
-                            report.appendToDocument(document);
                         }
+                    }
+
+                    // === النظام القديم: ترتيب حسب رقم الجلوس ===
+                    // Sort each region's students by seat_no
+                    for (List<com.pvtd.students.models.Student> list : byRegion.values()) {
+                        list.sort((a, b) -> {
+                            try {
+                                return Integer.compare(Integer.parseInt(a.getSeatNo()),
+                                        Integer.parseInt(b.getSeatNo()));
+                            } catch (Exception e) {
+                                return a.getSeatNo().compareTo(b.getSeatNo());
+                            }
+                        });
+                    }
+
+                    // Output folder
+                    java.io.File folder = new java.io.File("التقارير/تبييضة/راسبين");
+                    if (!folder.exists())
+                        folder.mkdirs();
+
+                    String combinedFn = "التقارير/تبييضة/راسبين/مجمع تبييض راسبين.pdf";
+                    com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document();
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                    combinedDoc.open();
+
+                    for (Map.Entry<String, List<com.pvtd.students.models.Student>> entry : byRegion.entrySet()) {
+                        String currentRegion = entry.getKey();
+                        List<com.pvtd.students.models.Student> list = entry.getValue();
+
+                        String sanitized = currentRegion.replace("/", "_").replace("\\", "_").replace(":", "_");
+                        String fn = "التقارير/تبييضة/راسبين/" + sanitized + ".pdf";
+
+                        updateStatus(100, 100,
+                                "جاري توليد تقرير منطقة: " + currentRegion + " (" + list.size() + " طالب)");
+
+                        com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+                        com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
+                        document.open();
+
+                        gradReportFailMixed report = new gradReportFailMixed(centerName, currentRegion, list, selMonth,
+                                admMonth);
+                        report.appendToDocument(document);
+                        report.appendToDocument(combinedDoc);
 
                         document.close();
                     }
+                    combinedDoc.close();
+
+                    // === نسخة جديدة: ترتيب الجدول (بدون تصنيف تلقائي) ===
+                    // Build region map preserving the selection order from the table
+                    java.util.LinkedHashMap<String, List<com.pvtd.students.models.Student>> orderedByRegion = new java.util.LinkedHashMap<>();
+                    for (String seatNo : orderedSeatNos) {
+                        com.pvtd.students.models.Student st = allSeatToStudent.get(seatNo);
+                        if (st != null) {
+                            String reg = seatToRegion.getOrDefault(seatNo, regionName);
+                            orderedByRegion.computeIfAbsent(reg, k -> new ArrayList<>()).add(st);
+                        }
+                    }
+
+                    java.io.File newFolder = new java.io.File("التقارير/تبييضة/راسبين/بدون تصنيف");
+                    if (!newFolder.exists())
+                        newFolder.mkdirs();
+
+                    String newCombinedFn = "التقارير/تبييضة/راسبين/بدون تصنيف/مجمع راسبين بدون تصنيف.pdf";
+                    com.itextpdf.text.Document newCombinedDoc = new com.itextpdf.text.Document();
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(newCombinedDoc,
+                            new java.io.FileOutputStream(newCombinedFn));
+                    newCombinedDoc.open();
+
+                    for (Map.Entry<String, List<com.pvtd.students.models.Student>> entry : orderedByRegion.entrySet()) {
+                        String currentRegion = entry.getKey();
+                        List<com.pvtd.students.models.Student> list = entry.getValue();
+
+                        String sanitized = currentRegion.replace("/", "_").replace("\\", "_").replace(":", "_");
+                        String fn = "التقارير/تبييضة/راسبين/بدون تصنيف/" + sanitized + ".pdf";
+
+                        updateStatus(100, 100, "[بدون تصنيف] جاري توليد تقرير منطقة: " + currentRegion);
+
+                        com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+                        com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(fn));
+                        document.open();
+
+                        gradReportFailMixed newReport = new gradReportFailMixed(centerName, currentRegion, list,
+                                selMonth, admMonth);
+                        newReport.appendToDocument(document);
+                        newReport.appendToDocument(newCombinedDoc);
+
+                        document.close();
+                    }
+                    newCombinedDoc.close();
                 }
 
-                java.awt.Desktop.getDesktop().open(new File("التقارير/تبييضة/راسبين"));
+                java.awt.Desktop.getDesktop().open(new java.io.File("التقارير/تبييضة/راسبين"));
                 return null;
             }
         };
@@ -183,6 +255,21 @@ public class FailedFramePage extends javax.swing.JFrame {
         setTitle("تقرير الراسبين");
         this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
+
+        this.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                String center = (String) cmdcenter.getSelectedItem();
+                String region = (String) cmdcenter1.getSelectedItem();
+                if (center != null && region != null && !center.startsWith("اختر") && !region.startsWith("اختر")) {
+                    loadStudents(center, region);
+                }
+            }
+
+            @Override
+            public void windowLostFocus(java.awt.event.WindowEvent e) {
+            }
+        });
 
         // jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         // jTable1.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -251,26 +338,33 @@ public class FailedFramePage extends javax.swing.JFrame {
 
         loadRegions();
         setupTableUi();
+
+        filterPanel = new com.pvtd.students.ui.utils.ReportFilterPanel();
+        filterPanel.addFilterChangeListener(e -> cmdcenterActionPerformed(null));
+        javax.swing.JPanel topContainer = new javax.swing.JPanel(new java.awt.BorderLayout());
+        topContainer.add(jPanel2, java.awt.BorderLayout.CENTER);
+        topContainer.add(filterPanel, java.awt.BorderLayout.SOUTH);
+        jPanel1.add(topContainer, java.awt.BorderLayout.PAGE_START);
     }
 
     private void setupTableUi() {
         if (jTable1 == null)
             return;
-        jTable1.setRowHeight(35);
+        jTable1.setRowHeight(120);
         jTable1.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 14));
         jTable1.setForeground(java.awt.Color.BLACK);
         jTable1.setSelectionBackground(new java.awt.Color(135, 206, 250)); // Light sky blue for better contrast
         jTable1.setSelectionForeground(java.awt.Color.BLACK);
-        
+
         // Set column widths to prevent clipping of subjects
         if (jTable1.getColumnCount() >= 7) {
-            jTable1.getColumnModel().getColumn(0).setPreferredWidth(350); // مواد الدور الثاني
-            jTable1.getColumnModel().getColumn(1).setPreferredWidth(80);  // حالة الطالب
+            jTable1.getColumnModel().getColumn(0).setPreferredWidth(650); // مواد الدور الثاني
+            jTable1.getColumnModel().getColumn(1).setPreferredWidth(80); // حالة الطالب
             jTable1.getColumnModel().getColumn(2).setPreferredWidth(100); // رقم الجلوس
             jTable1.getColumnModel().getColumn(3).setPreferredWidth(100); // رقم التسجيل
             jTable1.getColumnModel().getColumn(4).setPreferredWidth(180); // المهنة
             jTable1.getColumnModel().getColumn(5).setPreferredWidth(250); // الاسم
-            jTable1.getColumnModel().getColumn(6).setPreferredWidth(40);  // م
+            jTable1.getColumnModel().getColumn(6).setPreferredWidth(40); // م
         }
 
         jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
@@ -327,16 +421,17 @@ public class FailedFramePage extends javax.swing.JFrame {
                             AND sub.parent_subject_id IS NULL
                             AND (
                                 sub.id NOT IN (SELECT sg.subject_id FROM student_grades sg WHERE sg.student_id = st.id)
-                                OR 
+                                OR
                                 sub.id IN (SELECT sg.subject_id FROM student_grades sg WHERE sg.student_id = st.id AND sg.obtained_mark < sub.pass_mark)
                             )
                         ) as failed_subjects
                         FROM students st
-                        WHERE st.center_name = ? 
-                        AND st.region = ? 
+                        WHERE st.center_name = ?
+                        AND st.region = ?
                         AND st.status = 'راسب'
-                        ORDER BY CASE WHEN REGEXP_LIKE(st.seat_no, '^[0-9]+$') THEN TO_NUMBER(st.seat_no) ELSE 999999 END, st.id ASC
                         """;
+
+                sql += "ORDER BY CASE WHEN REGEXP_LIKE(st.seat_no, '^[0-9]+$') THEN TO_NUMBER(st.seat_no) ELSE 999999 END, st.id ASC";
 
                 PreparedStatement ps = con.prepareStatement(sql);
 
@@ -349,11 +444,12 @@ public class FailedFramePage extends javax.swing.JFrame {
 
                 while (rs.next()) {
                     String failedSubs = rs.getString("failed_subjects");
-                    if (failedSubs == null) failedSubs = "";
+                    if (failedSubs == null)
+                        failedSubs = "";
 
                     model.addRow(new Object[] {
                             failedSubs, // مواد الدور الثاني
-                            rs.getString("status"),
+                            "دور ثاني",
                             rs.getString("seat_no"),
                             rs.getString("registration_no"),
                             rs.getString("profession"),
@@ -550,15 +646,17 @@ public class FailedFramePage extends javax.swing.JFrame {
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         String regionName = cmdcenter1.getSelectedItem() != null ? cmdcenter1.getSelectedItem().toString() : "";
-        
-        String[] months = ReportUtils.chooseMonths(this);
-        if (months == null) return;
 
+        String[] filters = filterPanel != null ? filterPanel.getSelectedMonths()
+                : new String[] { "", "", "", "", "", "" };
+        if (filters == null || filters.length < 6)
+            return;
+        String selMonth = filters[4];
+        String admMonth = filters[5];
 
-        Failed report = new Failed(months[0], months[1]);
+        Failed report = new Failed(selMonth, admMonth);
         if (report.isCancelled)
             return;
-
 
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
 
@@ -573,7 +671,7 @@ public class FailedFramePage extends javax.swing.JFrame {
                 try (Connection con = DatabaseConnection.getConnection()) {
                     String sql = "SELECT name, exam_system FROM professions";
                     try (PreparedStatement ps = con.prepareStatement(sql);
-                         ResultSet rs = ps.executeQuery()) {
+                            ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
                             String pName = rs.getString("name");
                             String pSys = rs.getString("exam_system");
@@ -584,7 +682,8 @@ public class FailedFramePage extends javax.swing.JFrame {
                     }
 
                     for (int i = 0; i < selectedRows.length; i++) {
-                        // jTable1 has 7 cols matching Failed.jTable2: [مواد الدور الثاني(0), حالة الطالب(1), رقم الجلوس(2), رقم التسجيل(3), المهنه(4), الاسم(5), م(6)]
+                        // jTable1 has 7 cols matching Failed.jTable2: [مواد الدور الثاني(0), حالة
+                        // الطالب(1), رقم الجلوس(2), رقم التسجيل(3), المهنه(4), الاسم(5), م(6)]
                         java.util.Vector rowData = (java.util.Vector) model1.getDataVector().get(selectedRows[i]);
                         String prof = String.valueOf(model1.getValueAt(selectedRows[i], 4)).trim();
                         if (prof.startsWith("<html>")) {
@@ -605,7 +704,6 @@ public class FailedFramePage extends javax.swing.JFrame {
     }
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
-
 
         jTable1.selectAll();
     }

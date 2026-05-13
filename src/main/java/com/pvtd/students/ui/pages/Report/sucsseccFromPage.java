@@ -25,6 +25,7 @@ import com.pvtd.students.db.DatabaseConnection;
 public class sucsseccFromPage extends javax.swing.JFrame {
     private String currentImagePath;
     private String currentNationalId;
+    private com.pvtd.students.ui.utils.ReportFilterPanel filterPanel;
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(sucsseccFromPage.class.getName());
 
     
@@ -65,30 +66,36 @@ public class sucsseccFromPage extends javax.swing.JFrame {
      
       String j31=jLabel31.getText();
       jLabel31.setText(toArabicNumbers(j31));
-     
+      
+      // Add filterPanel at the top of the window
+      filterPanel = new com.pvtd.students.ui.utils.ReportFilterPanel();
+      javax.swing.JPanel wrapper = new javax.swing.JPanel(new java.awt.BorderLayout());
+      wrapper.add(filterPanel, java.awt.BorderLayout.NORTH);
+      wrapper.add(jPanel1, java.awt.BorderLayout.CENTER);
+      setContentPane(wrapper);
     }
     
     private String selectedMonth = null;
+    private String selectedYear = null;
 
 private String chooseMonth() {
-
     String[] months = {
         "يناير", "فبراير", "مارس", "أبريل",
         "مايو", "يونيو", "يوليو", "أغسطس",
         "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
     };
-
-    String choice = (String) JOptionPane.showInputDialog(
-            this,
-            "اختار الشهر:",
-            "اختيار الشهر",
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            months,
-            months[LocalDate.now().getMonthValue() - 1] // default
+    return (String) JOptionPane.showInputDialog(
+            this, "اختار الشهر:", "اختيار الشهر",
+            JOptionPane.QUESTION_MESSAGE, null, months, "يوليو"
     );
+}
 
-    return choice;
+private String chooseYear() {
+    String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
+    return (String) JOptionPane.showInputDialog(
+            this, "اختار السنة:", "اختيار السنة",
+            JOptionPane.QUESTION_MESSAGE, null, null, currentYear
+    );
 }
     
     
@@ -210,7 +217,7 @@ public void loadStudentImage(String imagePath) {
     try {
 
         String sql = "SELECT s.name, s.seat_no, s.national_id, s.coordination_no,"
-                + " s.professional_group, s.profession, s.center_name, s.governorate,"
+                + " s.professional_group, s.profession, s.center_name, s.region,"
                 + " s.image_path,"
                 + " sp.name specialization,"
 
@@ -238,7 +245,7 @@ public void loadStudentImage(String imagePath) {
                 + " WHERE s.seat_no = ?"
 
                 + " GROUP BY s.name,s.seat_no,s.national_id,s.coordination_no,"
-                + " s.professional_group,s.profession,s.center_name,s.governorate,sp.name,s.image_path";
+                + " s.professional_group,s.profession,s.center_name,s.region,sp.name,s.image_path";
 
         ps = con.prepareStatement(sql);
         ps.setString(1, seatNo);
@@ -254,7 +261,7 @@ public void loadStudentImage(String imagePath) {
             groupLbl.setText(rs.getString("professional_group"));
 
             centerLbl.setText(rs.getString("center_name"));
-            govLbl.setText(rs.getString("governorate"));
+            govLbl.setText(rs.getString("region"));
 
             // 🔥🔥 التعديل هنا
             double percent = rs.getDouble("percentage");
@@ -434,16 +441,23 @@ public void loadStudentImage(String imagePath) {
  
 public void printSuccessForms(List<String[]> studentsData, java.util.function.BiConsumer<Integer, Integer> progressCallback) {
 
-     // 👇 اختار الشهر الأول
-    selectedMonth = chooseMonth();
+    // إرجاع الاختيار اليدوي للشهر والسنة لضمان ظهوره للمستخدم
+    String selectedYear = null;
+    if (selectedMonth == null || selectedMonth.isEmpty()) {
+        selectedMonth = chooseMonth();
+        if (selectedMonth != null) {
+            selectedYear = chooseYear();
+        }
+    }
 
-    if (selectedMonth == null) {
-        JOptionPane.showMessageDialog(this, "لم يتم اختيار الشهر");
+    if (selectedMonth == null || selectedYear == null) {
+        JOptionPane.showMessageDialog(this, "لم يتم اختيار الموعد (الشهر أو السنة)");
         return;
     }
 
-    // 👇 حط الشهر بدل الحالي
+    // تحديث التسمية بالشهر والسنة المختارين
     roundLbl.setText(selectedMonth);
+    DateL.setText(toArabicNumbers(selectedYear));
 
     // باقي الكود زي ما هو...
     
@@ -462,9 +476,17 @@ public void printSuccessForms(List<String[]> studentsData, java.util.function.Bi
 
         // 🌟 تجهيز هيكل لتخزين الملفات المجمعة لكل مركز
         java.util.Map<String, Document> combinedDocs = new java.util.HashMap<>();
+        
+        // 🌟 ملف مجمع لكل الطلاب المختارين
+        Document allSelectedDoc = new Document(PageSize.A4);
+        String allSelectedPath = formFolder.getAbsolutePath() + File.separator + "استمارات الطلاب المختارين.pdf";
+        PdfWriter.getInstance(allSelectedDoc, new FileOutputStream(allSelectedPath));
+        allSelectedDoc.open();
+        
+        String lastSinglePath = "";
 
-        int width = jPanel1.getWidth();
-int height = 1300;
+        int width = 800;
+        int height = 1300;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2 = image.createGraphics();
 
@@ -524,6 +546,14 @@ int height = 1300;
             imgForSingle.setAbsolutePosition(0, 0);
             singleDoc.add(imgForSingle);
             singleDoc.close();
+            lastSinglePath = singlePath;
+            
+            // 2.5️⃣ إضافة للطالب للملف المجمع العام
+            if (i > 0) allSelectedDoc.newPage();
+            Image imgForAll = Image.getInstance(image, null);
+            imgForAll.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+            imgForAll.setAbsolutePosition(0, 0);
+            allSelectedDoc.add(imgForAll);
             
             // 3️⃣ إضافة الاستمارة إلى الملف المجمع الخاص بالمركز
             Document combinedDoc = combinedDocs.get(centerName);
@@ -551,15 +581,25 @@ int height = 1300;
                 doc.close();
             }
         }
+        
+        if (allSelectedDoc.isOpen()) {
+            allSelectedDoc.close();
+        }
 
         g2.dispose();
 
         // Desktop.getDesktop().open(new File(allPath));
 
+        String finalSinglePath = lastSinglePath;
         javax.swing.SwingUtilities.invokeLater(() -> {
             try {
-                Desktop.getDesktop().open(formFolder);
-                JOptionPane.showMessageDialog(this, "تم إنشاء كل الاستمارات");
+                if (total == 1 && !finalSinglePath.isEmpty()) {
+                    Desktop.getDesktop().open(new File(finalSinglePath));
+                } else {
+                    Desktop.getDesktop().open(formFolder);
+                    Desktop.getDesktop().open(new File(allSelectedPath));
+                }
+                JOptionPane.showMessageDialog(this, "تم إنشاء كل الاستمارات بنجاح");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }

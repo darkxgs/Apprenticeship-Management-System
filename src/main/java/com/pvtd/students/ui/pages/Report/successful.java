@@ -268,10 +268,10 @@ public class successful extends javax.swing.JFrame {
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel1.setBounds(rAlign, 10, 390, 25);
-        jLabel2.setBounds(rAlign, 35, 390, 25);
-        jLabel3.setBounds(rAlign, 60, 390, 25);
-        jLabel4.setBounds(rAlign, 85, 390, 25);
+        jLabel1.setBounds(890, 10, 500, 25);
+        jLabel2.setBounds(890, 35, 500, 25);
+        jLabel3.setBounds(890, 60, 500, 25);
+        jLabel4.setBounds(890, 85, 500, 25);
 
         // Region, Center, System below ministry
         jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
@@ -354,7 +354,7 @@ public class successful extends javax.swing.JFrame {
 
     public void createPDF() {
         try {
-            int rowsPerPage = 32;
+            int rowsPerPage = 10;
             DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
             Vector<Vector> originalData = new Vector<>(model.getDataVector());
             int totalRows = originalData.size();
@@ -419,7 +419,7 @@ public class successful extends javax.swing.JFrame {
             java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem,
             String centerName, String regionName, boolean isFirstCall) {
         try {
-            int rowsPerPage = 32;
+            int rowsPerPage = 10;
 
             String folderStr = "التقارير/بدون درجات/ناجحين";
             java.io.File folder2 = new java.io.File(folderStr);
@@ -580,7 +580,7 @@ public class successful extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel1.setText("وزارة الصناعة ");
+        jLabel1.setText("وزارة الصناعة");
         jPanel1.add(jLabel1);
         jLabel1.setBounds(850, 10, 140, 20);
 
@@ -592,7 +592,7 @@ public class successful extends javax.swing.JFrame {
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+        jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
         jPanel1.add(jLabel3);
         jLabel3.setBounds(770, 50, 290, 20);
 

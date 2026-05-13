@@ -35,6 +35,10 @@ public class Detailers extends javax.swing.JFrame {
             .getLogger(Detailers.class.getName());
 
     public Detailers() {
+        this(null, null);
+    }
+
+    public Detailers(String examMonth, String admissionMonth) {
         initComponents();
         // احسب الارتفاع الحقيقي
 
@@ -105,19 +109,19 @@ public class Detailers extends javax.swing.JFrame {
                 return c;
             }
         });
-        String month = chooseMonth();
 
-        if (month == null) {
-            this.isCancelled = true;
-            return;
+        if (examMonth == null || admissionMonth == null) {
+            String month = chooseMonth();
+            if (month == null) {
+                this.isCancelled = true;
+                return;
+            }
+            examMonth = month;
+            admissionMonth = "اكتوبر لسنة ٢٠٢٣"; // Fallback
         }
 
-        int year = java.time.Year.now().getValue();
-
-        String arabicYear = toArabicNumbers(String.valueOf(year));
-
-        jLabel10.setText("دفعة قبول : " + "اكتوبر" + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + "مايو" + " " + "لسنة " + toArabicNumbers("2026"));
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth);
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -276,7 +280,7 @@ public class Detailers extends javax.swing.JFrame {
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+        jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
         jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(750, 50, 290, -1));
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -378,34 +382,53 @@ public class Detailers extends javax.swing.JFrame {
 
         // Logo (Top Left)
         jLabel8.setBounds(30, 20, 100, 100);
-        // Ministry Info (Right Top)
-        int rAlign = 1000;
-        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setBounds(rAlign, 10, 390, 25);
-        jLabel2.setBounds(rAlign, 35, 390, 25);
-        jLabel3.setBounds(rAlign, 60, 390, 25);
-        jLabel4.setBounds(rAlign, 85, 390, 25);
 
-        // School Head Data (Right)
-        int dataX = 1050;
-        jLabel7.setBounds(dataX + 220, 120, 100, 30);
-        regoin.setBounds(dataX - 80, 120, 300, 30);
-        jLabel9.setBounds(dataX + 220, 150, 100, 30);
-        cent.setBounds(dataX - 80, 150, 300, 30);
-        jLabel12.setBounds(dataX + 220, 180, 100, 30);
-        system.setBounds(dataX - 80, 180, 300, 30);
+        // Ministry Info (Right Top) - Align to Far Right
+        int pageWidth = 1400;
+        int rightMargin = pageWidth - 530; // 1400 - 530 = 870
+        
+        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        
+        jLabel1.setBounds(rightMargin, 10, 500, 25);
+        jLabel2.setBounds(rightMargin, 35, 500, 25);
+        jLabel3.setBounds(rightMargin, 60, 500, 25);
+        jLabel4.setBounds(rightMargin, 85, 500, 25);
+
+        // School Head Data (Right) - Perfectly Aligned Under Ministry
+        int labelWidth = 100;
+        int valueWidth = 300;
+        int dataX_Right = pageWidth - 30 - labelWidth; // 1370 - 100 = 1270
+        int dataX_Value = dataX_Right - valueWidth - 5; // Left of the label
+        
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+
+        jLabel7.setBounds(dataX_Right, 120, labelWidth, 30);
+        regoin.setBounds(dataX_Value, 120, valueWidth, 30);
+        
+        jLabel9.setBounds(dataX_Right, 150, labelWidth, 30);
+        cent.setBounds(dataX_Value, 150, valueWidth, 30);
+        
+        jLabel12.setBounds(dataX_Right, 180, labelWidth, 30);
+        system.setBounds(dataX_Value, 180, valueWidth, 30);
 
         // Page & Dates (Left)
         jLabel13.setBounds(30, 200, 150, 30); // الصفحة
         jLabel10.setBounds(30, 130, 450, 30); // دفعة قبول
         jLabel11.setBounds(30, 165, 450, 30); // المنعقد في
 
-        // Center Title
-        jLabel5.setBounds(400, 80, 400, 35); // نتائج امتحان...
-        jLabel6.setBounds(450, 120, 300, 70); // كشوف تفصيلية
+        // Center Title - Exactly Centered
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel5.setBounds((pageWidth - 600)/2, 70, 600, 40); // نتائج امتحان...
+        jLabel6.setBounds((pageWidth - 400)/2, 110, 400, 60); // تلاميذ مفصولون
 
         // Table Content
         int tableY = 250;
@@ -475,11 +498,6 @@ public class Detailers extends javax.swing.JFrame {
                 int width = 1400;
                 int height = 1980;
 
-                jPanel1.setSize(width, height);
-                jTable2.setSize(jTable2.getPreferredSize());
-                jPanel1.validate();
-                jPanel1.doLayout();
-
                 BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g2d = img.createGraphics();
 
@@ -491,7 +509,22 @@ public class Detailers extends javax.swing.JFrame {
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
                         java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-                jPanel1.printAll(g2d);
+                g2d.setColor(Color.WHITE);
+                g2d.fillRect(0, 0, width, height);
+
+                try {
+                    javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                        public void run() {
+                            jPanel1.setSize(width, height);
+                            jTable2.setSize(jTable2.getPreferredSize());
+                            jPanel1.validate();
+                            jPanel1.doLayout();
+                            jPanel1.printAll(g2d);
+                        }
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
                 g2d.dispose();
 
                 Image pdfImg = Image.getInstance(img, null);
@@ -674,17 +707,28 @@ public class Detailers extends javax.swing.JFrame {
                     buildPagePanel(model.getRowCount());
 
                     int width = 1400, height = 1980;
-                    jPanel1.setSize(width, height);
-                    jPanel1.validate();
-                    jPanel1.doLayout();
-
                     BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
                     Graphics2D g2d = img.createGraphics();
                     g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                             java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                     g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
                             java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                    jPanel1.printAll(g2d);
+
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, width, height);
+
+                    try {
+                        javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                            public void run() {
+                                jPanel1.setSize(width, height);
+                                jPanel1.validate();
+                                jPanel1.doLayout();
+                                jPanel1.printAll(g2d);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     g2d.dispose();
 
                     Image pdfImg = Image.getInstance(img, null);

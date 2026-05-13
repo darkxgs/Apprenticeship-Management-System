@@ -67,13 +67,33 @@ jLabel15.setText(arabicYear);
 }
     
     public String convertYearToArabicWords(int year) {
-    if (year == 2022) return "سنة ألفان واثنان وعشرون";
-    if (year == 2023) return "سنة ألفان وثلاثة وعشرون";
-    if (year == 2024) return "سنة ألفان وأربعة وعشرون";
-    if (year == 2025) return "سنة ألفان وخمسة وعشرون";
-    
-    return "سنة " + year; // fallback
-}
+        if (year == 2022) return "سنة ألفان واثنان وعشرون";
+        if (year == 2023) return "سنة ألفان وثلاثة وعشرون";
+        if (year == 2024) return "سنة ألفان وأربعة وعشرون";
+        if (year == 2025) return "سنة ألفان وخمسة وعشرون";
+        if (year == 2026) return "سنة ألفان وستة وعشرون";
+        
+        return "سنة " + year; // fallback
+    }
+
+    private String chooseMonth() {
+        String[] months = {
+            "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+            "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        };
+        return (String) JOptionPane.showInputDialog(
+                this, "اختار الشهر:", "اختيار الشهر",
+                JOptionPane.QUESTION_MESSAGE, null, months, "يوليو"
+        );
+    }
+
+    private String chooseYear() {
+        String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
+        return (String) JOptionPane.showInputDialog(
+                this, "اختار السنة:", "اختيار السنة",
+                JOptionPane.QUESTION_MESSAGE, null, null, currentYear
+        );
+    }
     
     
     
@@ -240,6 +260,15 @@ if (specializationFromDB != null) {
     
 public void printCertificates(List<Student> students, java.util.function.BiConsumer<Integer, Integer> progressCallback) {
 
+    String selectedMonth = chooseMonth();
+    if (selectedMonth == null) return;
+    String selectedYear = chooseYear();
+    if (selectedYear == null) return;
+    
+    int yearInt = Integer.parseInt(selectedYear);
+    jLabel13.setText(selectedMonth + " " + yearInt + " م");
+    jLabel15.setText(convertYearToArabicWords(yearInt));
+
     try {
 
         // إنشاء الفولدرات
@@ -252,6 +281,17 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         // 🔥 نخلي الصفحة نفس مقاس الشهادة
         com.itextpdf.text.Rectangle pageSize = new com.itextpdf.text.Rectangle(934, 686);
 
+
+        // 🌟 تجهيز هيكل لتخزين الملفات المجمعة لكل مركز
+        java.util.Map<String, Document> combinedDocs = new java.util.HashMap<>();
+        
+        // 🌟 ملف مجمع لكل الطلاب المختارين
+        Document allSelectedDoc = new Document(pageSize);
+        String allSelectedPath = certFolder.getAbsolutePath() + File.separator + "شهادات الطلاب المختارين.pdf";
+        PdfWriter.getInstance(allSelectedDoc, new FileOutputStream(allSelectedPath));
+        allSelectedDoc.open();
+        
+        String lastSinglePath = "";
 
         int total = students.size();
         for (int i = 0; i < total; i++) {
@@ -287,8 +327,6 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
             img.scaleAbsolute(934, 686);
             img.setAbsolutePosition(0, 0);
 
-
-
             // -----------------------
             // 2️⃣ ملف لكل طالب (منظم داخل مجلد باسم المركز)
             // -----------------------
@@ -311,12 +349,54 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
             singleDoc.add(img2);
             singleDoc.close();
+            lastSinglePath = singlePath;
+
+            // 2.5️⃣ إضافة للطالب للملف المجمع العام
+            if (i > 0) allSelectedDoc.newPage();
+            Image imgForAll = Image.getInstance(image, null);
+            imgForAll.scaleAbsolute(934, 686);
+            imgForAll.setAbsolutePosition(0, 0);
+            allSelectedDoc.add(imgForAll);
+            
+            // 3️⃣ إضافة الشهادة إلى الملف المجمع الخاص بالمركز
+            Document combinedDoc = combinedDocs.get(centerName);
+            if (combinedDoc == null) {
+                combinedDoc = new Document(pageSize);
+                String combinedFileName = "شهادات طلاب مركز " + centerName + ".pdf";
+                String combinedPath = certFolder.getAbsolutePath() + File.separator + combinedFileName;
+                PdfWriter.getInstance(combinedDoc, new FileOutputStream(combinedPath));
+                combinedDoc.open();
+                combinedDocs.put(centerName, combinedDoc);
+            } else {
+                combinedDoc.newPage();
+            }
+            
+            Image imgForCombined = Image.getInstance(image, null);
+            imgForCombined.scaleAbsolute(934, 686);
+            imgForCombined.setAbsolutePosition(0, 0);
+            combinedDoc.add(imgForCombined);
         }
 
+        // إغلاق جميع الملفات المجمعة بعد انتهاء كل الطلاب
+        for (Document doc : combinedDocs.values()) {
+            if (doc.isOpen()) {
+                doc.close();
+            }
+        }
+        
+        if (allSelectedDoc.isOpen()) {
+            allSelectedDoc.close();
+        }
+
+        final String finalLastSinglePath = lastSinglePath;
         SwingUtilities.invokeLater(() -> {
             try {
-                Desktop.getDesktop().open(certFolder);
-                JOptionPane.showMessageDialog(null, "تم إنشاء الشهادات بنجاح");
+                if (total == 1 && !finalLastSinglePath.isEmpty()) {
+                    Desktop.getDesktop().open(new File(finalLastSinglePath));
+                } else {
+                    Desktop.getDesktop().open(certFolder);
+                    JOptionPane.showMessageDialog(null, "تم إنشاء الشهادات بنجاح وتجميعها في المجلدات");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }

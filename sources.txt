@@ -58,6 +58,7 @@
 .\src\main\java\com\pvtd\students\ui\pages\DictionarySetupPage.java
 .\src\main\java\com\pvtd\students\ui\pages\ImportPage.java
 .\src\main\java\com\pvtd\students\ui\pages\ReportsPage.java
+.\src\main\java\com\pvtd\students\ui\pages\ResultsPage.java
 .\src\main\java\com\pvtd\students\ui\pages\SecretNumberPage.java
 .\src\main\java\com\pvtd\students\ui\pages\SettingsPage.java
 .\src\main\java\com\pvtd\students\ui\pages\SpecializationsPage.java
@@ -84,7 +85,9 @@
 .\src\main\java\com\pvtd\students\ui\pages\Report\FailedFramePage.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReport.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportFail.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\gradReportFailMixed.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportGeneric.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSequential.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSucc.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportTasoeda.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradSecretReport.java
@@ -97,6 +100,8 @@
 .\src\main\java\com\pvtd\students\ui\utils\CleanCellRenderer.java
 .\src\main\java\com\pvtd\students\ui\utils\DropShadowBorder.java
 .\src\main\java\com\pvtd\students\ui\utils\ProgressDialog.java
+.\src\main\java\com\pvtd\students\ui\utils\ReportFilterPanel.java
+.\src\main\java\com\pvtd\students\ui\utils\ReportUtils.java
 .\src\main\java\com\pvtd\students\ui\utils\ReportWorker.java
 .\src\main\java\com\pvtd\students\ui\utils\StatusBadgeRenderer.java
 .\src\main\java\com\pvtd\students\ui\utils\UITheme.java

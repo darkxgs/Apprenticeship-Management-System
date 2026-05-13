@@ -181,13 +181,13 @@ public class gradReportGeneric extends JFrame {
 
         centerPanel.add(Box.createVerticalStrut(15));
 
-        JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " لسنة " + toArabicNumbers("2023") + " وما قبلها", 38, true);
+        JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " وما قبلها", 38, true);
 
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : " + selectedMonth + " لسنة " + toArabicNumbers(String.valueOf(java.time.LocalDate.now().getYear())), 38, true);
+        JLabel examDate = label("المنعقد في : " + selectedMonth, 38, true);
 
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
@@ -220,7 +220,7 @@ public class gradReportGeneric extends JFrame {
         leftPanel.add(Box.createVerticalStrut(15));
 
         JLabel l7 = label("إستمارة رقم ١٥ امتحانات", 28, false);
-        JLabel l8 = label("صفحة " + pageNum + " من " + totalPages, 28, false);
+        JLabel l8 = label("صفحة " + pageNum + " من " + totalPages, 140, true);
 
         l7.setHorizontalAlignment(SwingConstants.LEFT);
         l8.setHorizontalAlignment(SwingConstants.LEFT);
@@ -461,7 +461,7 @@ public class gradReportGeneric extends JFrame {
         table.getColumn("الاسم").setPreferredWidth(950);
         table.getColumn("رقم التسجيل").setPreferredWidth(250);
         table.getColumn("رقم الجلوس").setPreferredWidth(250);
-        table.getColumn("الحرفة").setPreferredWidth(900);
+        table.getColumn("الحرفة").setPreferredWidth(1200);
         table.getColumn("المجموعة المهنية").setPreferredWidth(700);
         table.getColumn("الرقم القومي").setPreferredWidth(450);
         table.getColumn("الرقم السري").setPreferredWidth(250);

@@ -137,12 +137,8 @@ public class absent extends javax.swing.JFrame {
             return;
         }
 
-        int year = java.time.Year.now().getValue();
-
-        String arabicYear = toArabicNumbers(String.valueOf(year));
-
-        jLabel10.setText("دفعة قبول : " + admissionMonth + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + examMonth + " " + "لسنة " + arabicYear);
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth);
 
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -243,41 +239,43 @@ public class absent extends javax.swing.JFrame {
     }
 
     public void buildPagePanel(int rowCount) {
-        jPanel1.setLayout(null);                jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
-                jPanel1.setSize(1400, 1980);
+        jPanel1.setLayout(null);
+        jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
+        jPanel1.setSize(1400, 1980);
         jPanel1.setBackground(java.awt.Color.WHITE);
 
         // Logo (Top Left)
-        jLabel8.setBounds(50, 20, 100, 100);
+        jLabel8.setBounds(50, 40, 120, 120);
 
         // Page Info (Left under logo)
-        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel13.setBounds(30, 160, 250, 25); // الصفحة
+        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel13.setBounds(50, 170, 250, 30);
 
         // Ministry Info (Right Top)
-        int rAlign = 1000;
-        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 18));
+        int rAlignX = 1000;
+        int rWidth = 380;
+        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 20));
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel1.setBounds(rAlign, 10, 390, 25);
-        jLabel2.setBounds(rAlign, 35, 390, 25);
-        jLabel3.setBounds(rAlign, 60, 390, 25);
-        jLabel4.setBounds(rAlign, 85, 390, 25);
+        jLabel1.setBounds(rAlignX, 10, rWidth, 30);
+        jLabel2.setBounds(rAlignX, 40, rWidth, 30);
+        jLabel3.setBounds(rAlignX, 70, rWidth, 30);
+        jLabel4.setBounds(rAlignX, 100, rWidth, 30);
 
         // Region, Center, System below ministry
-        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 18));
-        regoin.setFont(new Font("Tahoma", Font.BOLD, 18));
-        cent.setFont(new Font("Tahoma", Font.BOLD, 18));
-        system.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 20));
+        regoin.setFont(new Font("Tahoma", Font.BOLD, 20));
+        cent.setFont(new Font("Tahoma", Font.BOLD, 20));
+        system.setFont(new Font("Tahoma", Font.BOLD, 20));
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -286,48 +284,57 @@ public class absent extends javax.swing.JFrame {
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        int dataX = 1050;
-        jLabel7.setBounds(dataX + 220, 120, 100, 30); regoin.setBounds(dataX - 80, 120, 300, 30);
-        jLabel9.setBounds(dataX + 220, 150, 100, 30); cent.setBounds(dataX - 80, 150, 300, 30);
-        jLabel12.setBounds(dataX + 220, 180, 100, 30); system.setBounds(dataX - 80, 180, 300, 30);
+        int labelsX = 1250; 
+        int dataX = 900;
+        jLabel7.setBounds(labelsX, 140, 120, 30);
+        regoin.setBounds(dataX, 140, 350, 30);
+        jLabel9.setBounds(labelsX, 170, 120, 30);
+        cent.setBounds(dataX, 170, 350, 30);
+        jLabel12.setBounds(labelsX, 200, 120, 30);
+        system.setBounds(dataX, 200, 350, 30);
 
         // Center Titles
-        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel6.setFont(new Font("Tahoma", Font.BOLD, 28));
+        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 24));
+        jLabel6.setFont(new Font("Tahoma", Font.BOLD, 36));
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setBounds(400, 40, 600, 35);
-        jLabel6.setBounds(400, 80, 600, 50);
+        jLabel5.setBounds(400, 40, 550, 45);
+        jLabel6.setBounds(400, 90, 550, 60);
 
         // Dates
-        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 20));
+        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 20));
         jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel10.setBounds(400, 140, 600, 25);
-        jLabel11.setBounds(400, 170, 600, 25);
+        jLabel10.setBounds(400, 160, 550, 30);
+        jLabel11.setBounds(400, 190, 550, 30);
 
         // Table Content
-        int tableY = 220;
-        int rowH = 50; 
-        jTable2.setRowHeight(rowH);
-        int tableHeight = 1600;
-        jScrollPane2.setBounds(15, tableY, 1370, tableHeight);
+        int tableY = 260;
+        int tableWidth = 1350;
+        jScrollPane2.setBounds(25, tableY, tableWidth, 1550);
+        
+        // ضبط عرض الأعمدة للـ A3
+        jTable2.getColumnModel().getColumn(0).setPreferredWidth(150);
+        jTable2.getColumnModel().getColumn(1).setPreferredWidth(200);
+        jTable2.getColumnModel().getColumn(2).setPreferredWidth(200);
+        jTable2.getColumnModel().getColumn(3).setPreferredWidth(400);
+        jTable2.getColumnModel().getColumn(4).setPreferredWidth(350);
+        jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
 
         // Footer
-        int separatorY = tableY + tableHeight + 20;
-        jSeparator1.setBounds(15, separatorY, 1370, 10);
+        int footerY = 1850;
+        jSeparator1.setBounds(25, footerY - 10, tableWidth, 5);
+        
+        jLabel14.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel18.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel17.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel16.setFont(new Font("Tahoma", Font.BOLD, 22));
 
-        int labelsY = separatorY + 20;
-        jLabel16.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel17.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel18.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel14.setFont(new Font("Tahoma", Font.BOLD, 16));
-
-        jLabel14.setBounds(1150, labelsY, 200, 40); // كتبه (right)
-        jLabel18.setBounds(850, labelsY, 200, 40); // املاه
-        jLabel17.setBounds(550, labelsY, 200, 40); // راجعه
-        jLabel16.setBounds(50, labelsY, 300, 40);  // رئيس اللجنة (left)
+        jLabel14.setBounds(1150, footerY, 200, 40);
+        jLabel18.setBounds(850, footerY, 200, 40);
+        jLabel17.setBounds(550, footerY, 200, 40);
+        jLabel16.setBounds(50, footerY, 350, 40);
 
         jPanel1.doLayout();
         jPanel1.revalidate();
@@ -582,7 +589,7 @@ public class absent extends javax.swing.JFrame {
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+        jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(30, 60, 114));

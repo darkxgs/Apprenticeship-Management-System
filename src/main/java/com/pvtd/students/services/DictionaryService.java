@@ -16,6 +16,8 @@ public class DictionaryService {
     public static final String CAT_CENTER = "CENTER";
     public static final String CAT_PROF_GROUP = "PROF_GROUP";
     public static final String CAT_GOVERNORATE = "GOVERNORATE";
+    public static final String CAT_ACADEMIC_YEAR = "ACADEMIC_YEAR";
+    public static final String CAT_EXAM_MONTH = "EXAM_MONTH";
 
     /**
      * Gets a combined list of dictionary items explicitly added + whatever is distinct in the students table.
@@ -30,6 +32,8 @@ public class DictionaryService {
             case CAT_PROFESSION: query = "SELECT name FROM professions UNION SELECT profession FROM students WHERE profession IS NOT NULL"; break;
             case CAT_PROF_GROUP: query = "SELECT name FROM professional_groups UNION SELECT professional_group FROM students WHERE professional_group IS NOT NULL"; break;
             case CAT_GOVERNORATE: query = "SELECT governorate FROM students WHERE governorate IS NOT NULL"; break;
+            case CAT_ACADEMIC_YEAR: query = "SELECT value FROM system_dictionaries WHERE category = 'ACADEMIC_YEAR' UNION SELECT academic_year FROM students WHERE academic_year IS NOT NULL"; break;
+            case CAT_EXAM_MONTH: query = "SELECT value FROM system_dictionaries WHERE category = 'EXAM_MONTH'"; break;
             default: return items;
         }
 

@@ -157,20 +157,17 @@ public class Failed extends javax.swing.JFrame {
                         return;
                 }
 
-                int year = java.time.Year.now().getValue();
-                String arabicYear = toArabicNumbers(String.valueOf(year));
-
                 jLabel6.setText("تلاميذ راسبون ولهم حق دخول الدور الثاني");
                 jLabel6.setForeground(new Color(42, 82, 152)); // Blue color from image
 
-                jLabel10.setText("دفعة قبول : " + admissionMonth + " لسنة ٢٠١٩ وما قبلها"); // Fixed as per image
-                jLabel11.setText("المنعقد في : " + examMonth + " لسنة " + arabicYear);
+                jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها"); 
+                jLabel11.setText("المنعقد في : " + examMonth);
 
                 regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 
-                jLabel1.setText("وزارة التجارة والصناعة");
+                jLabel1.setText("وزارة الصناعة");
                 jLabel2.setText("مصلحة الكفاية الانتاجية والتدريب المهني");
                 jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
                 jLabel4.setText("لجنة النظام والمراقبة");
@@ -247,7 +244,7 @@ public class Failed extends javax.swing.JFrame {
 
                                 model.addRow(new Object[] {
                                                 "",                              // 0: مواد الدور الثاني (فارغ)
-                                                "راسب",                         // 1: حالة التلميذ
+                                                "دور ثاني",                         // 1: حالة التلميذ
                                                 rs.getString("seat_no"),        // 2: رقم الجلوس
                                                 rs.getString("registration_no"), // 3: رقم التسجيل
                                                 htmlProf,                        // 4: المهنة
@@ -300,10 +297,10 @@ public class Failed extends javax.swing.JFrame {
                 jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
                 jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-                jLabel1.setBounds(1000, 10,  390, 25);
-                jLabel2.setBounds(1000, 35,  390, 25);
-                jLabel3.setBounds(1000, 60,  390, 25);
-                jLabel4.setBounds(1000, 85,  390, 25);
+                jLabel1.setBounds(890, 10,  500, 25);
+                jLabel2.setBounds(890, 35,  500, 25);
+                jLabel3.setBounds(890, 60,  500, 25);
+                jLabel4.setBounds(890, 85,  500, 25);
 
                 // ── Region / Center / System (right block) ───────────────
                 jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
@@ -429,7 +426,22 @@ public class Failed extends javax.swing.JFrame {
                                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
                                                 java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-                                jPanel1.printAll(g2d);
+                                g2d.setColor(Color.WHITE);
+                                g2d.fillRect(0, 0, width, height);
+
+                                try {
+                                    javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                                        public void run() {
+                                            jPanel1.setSize(width, height);
+                                            jTable2.setSize(jTable2.getPreferredSize());
+                                            jPanel1.validate();
+                                            jPanel1.doLayout();
+                                            jPanel1.printAll(g2d);
+                                        }
+                                    });
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                }
                                 g2d.dispose();
 
                                 Image pdfImg = Image.getInstance(img, null);
@@ -533,10 +545,6 @@ public class Failed extends javax.swing.JFrame {
                                         buildPagePanel(model.getRowCount());
 
                                         int width = 1400, height = 1980;
-                                        jPanel1.setSize(width, height);
-                                        jPanel1.validate();
-                                        jPanel1.doLayout();
-
                                         BufferedImage img = new BufferedImage(width, height,
                                                         BufferedImage.TYPE_INT_RGB);
                                         Graphics2D g2d = img.createGraphics();
@@ -544,7 +552,22 @@ public class Failed extends javax.swing.JFrame {
                                                         java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                                         g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
                                                         java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                                        jPanel1.printAll(g2d);
+                                        
+                                        g2d.setColor(Color.WHITE);
+                                        g2d.fillRect(0, 0, width, height);
+
+                                        try {
+                                            javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                                                public void run() {
+                                                    jPanel1.setSize(width, height);
+                                                    jPanel1.validate();
+                                                    jPanel1.doLayout();
+                                                    jPanel1.printAll(g2d);
+                                                }
+                                            });
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                        }
                                         g2d.dispose();
 
                                         Image pdfImg = Image.getInstance(img, null);
@@ -657,7 +680,7 @@ public class Failed extends javax.swing.JFrame {
 
                 jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
                 jLabel3.setForeground(new java.awt.Color(30, 60, 114));
-                jLabel3.setText("الرئاسة العامه لامتحنات دبلوم التلمذة الصناعيه");
+                jLabel3.setText("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية");
 
                 jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
                 jLabel4.setForeground(new java.awt.Color(30, 60, 114));

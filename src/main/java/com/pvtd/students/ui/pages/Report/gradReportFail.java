@@ -92,8 +92,8 @@ public class gradReportFail extends JFrame {
         uiRootPanel.setBackground(Color.WHITE);
         uiRootPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        // Standardized to 50 rows per page like in successful report
-        int pageSize = 8;
+        // Standardized to 4 rows per page to allow more height for failed subjects
+        int pageSize = 3; // Reduced from 4 to increase row height for subject visibility
         int totalPages = (int) Math.ceil(students.size() / (double) pageSize);
         if (totalPages == 0)
             totalPages = 1;
@@ -111,7 +111,7 @@ public class gradReportFail extends JFrame {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(20, 50, 40, 50));
-        p.setPreferredSize(new Dimension(2800, 2500));
+        p.setPreferredSize(new Dimension(13000, 2500));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTH;
@@ -163,7 +163,7 @@ public class gradReportFail extends JFrame {
         mainTitle.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(mainTitle);
 
-        JLabel sub = label("طلاب راسبون ولهم الحق في الدور الثاني", 300, true);
+        JLabel sub = label("طلاب راسبون ولهم الحق في دخول الدور الثاني", 300, true);
         sub.setForeground(new Color(200, 50, 50));
         sub.setAlignmentX(Component.CENTER_ALIGNMENT);
         sub.setHorizontalAlignment(SwingConstants.CENTER);
@@ -171,15 +171,14 @@ public class gradReportFail extends JFrame {
 
         centerPanel.add(Box.createVerticalStrut(25));
 
-        JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " لسنة " + toArabicNumbers("2023") + " وما قبلها",
+        JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " وما قبلها",
                 150, true);
 
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : " + selectedMonth + " لسنة "
-                + toArabicNumbers(String.valueOf(java.time.LocalDate.now().getYear())), 150, true);
+        JLabel examDate = label("المنعقد في : " + selectedMonth, 150, true);
 
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
@@ -212,7 +211,7 @@ public class gradReportFail extends JFrame {
         leftPanel.add(Box.createVerticalStrut(40));
 
         JLabel l7 = label("إستمارة رقم ١٥ امتحانات", 60, false);
-        JLabel l8 = label("صفحة " + pageNum + " من " + totalPages, 60, false);
+        JLabel l8 = label("صفحة " + pageNum + " من " + totalPages, 140, true);
 
         l7.setHorizontalAlignment(SwingConstants.LEFT);
         l8.setHorizontalAlignment(SwingConstants.LEFT);
@@ -356,7 +355,7 @@ public class gradReportFail extends JFrame {
         model.addRow(minRow);
 
         // 3. Students Rows
-        for (int i_chunk = 0; i_chunk < 10; i_chunk++) {
+        for (int i_chunk = 0; i_chunk < 4; i_chunk++) {
             if (i_chunk < chunk.size()) {
                 Student st = chunk.get(i_chunk);
                 Object[] row = new Object[cols.length];
@@ -412,7 +411,7 @@ public class gradReportFail extends JFrame {
                 row[c++] = appliedMark;
                 row[c++] = (practicalMark + appliedMark);
                 row[c++] = (theorySum + practicalMark + appliedMark);
-                row[c++] = "راسب"; // حالة
+                row[c++] = "دور ثاني"; // حالة
 
                 // Build "مواد الدور الثاني" cell from failed subjects list
                 if (!failedSubjectNames.isEmpty()) {
@@ -509,7 +508,7 @@ public class gradReportFail extends JFrame {
         } catch (Exception e) {
         }
         try {
-            table.getColumn("حالة").setPreferredWidth(800);
+            table.getColumn("حالة التلميذ").setPreferredWidth(800);
         } catch (Exception e) {
         }
         try {
@@ -523,7 +522,7 @@ public class gradReportFail extends JFrame {
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(255, 102, 0))); // Thick orange line like in
                                                                                           // reference image
-        p.setPreferredSize(new Dimension(1450, 1000));
+        p.setPreferredSize(new Dimension(13000, 2000));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
@@ -615,7 +614,7 @@ public class gradReportFail extends JFrame {
 
         int headerH = 2500, footerH = 1000, tableHeaderH = 800;
         int available = panelHeight - headerH - footerH - tableHeaderH - 200;
-        int totalRows = 8 + 2; // 8 student rows + 2 header rows (max/min)
+        int totalRows = 4 + 2; // 4 student rows + 2 header rows (max/min)
         int calculatedH = available / totalRows;
         this.dynamicRowHeight = Math.min(1500, Math.max(250, calculatedH));
 
@@ -647,45 +646,74 @@ public class gradReportFail extends JFrame {
 
     public void appendToDocument(Document doc) {
         try {
-            int pageSizeCount = 8;
+            int pageSizeCount = 4;
             int totalCount = students.size();
             int totalPages = (int) Math.ceil(totalCount / (double) pageSizeCount);
             if (totalPages == 0)
                 totalPages = 1;
 
+            // استخدام Thread Pool لتسريع عملية التوليد عبر استغلال كافة الأنوية
+            int cores = Runtime.getRuntime().availableProcessors();
+            java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors
+                    .newFixedThreadPool(Math.max(2, cores / 2));
+            java.util.List<java.util.concurrent.Future<BufferedImage>> futures = new java.util.ArrayList<>();
+
             for (int pIdx = 0; pIdx < totalPages; pIdx++) {
+                final int pageIndex = pIdx;
+                final int totalP = totalPages;
                 int start = pIdx * pageSizeCount;
                 int end = Math.min(start + pageSizeCount, totalCount);
-                List<Student> chunk = students.subList(start, end);
+                final List<Student> chunk = students.subList(start, end);
 
-                JPanel pagePanel = buildPagePanel(chunk, pIdx + 1, totalPages);
-                doc.setPageSize(com.itextpdf.text.PageSize.A3.rotate());
+                futures.add(executor.submit(() -> {
+                    JPanel pagePanel = buildPagePanel(chunk, pageIndex + 1, totalP);
+
+                    double scale = 0.5;
+                    int imgW = (int) (13000 * scale);
+                    int imgH = (int) (9192 * scale);
+
+                    BufferedImage img = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_RGB);
+                    java.awt.Graphics2D g2 = img.createGraphics();
+                    g2.scale(scale, scale);
+
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                            java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                            java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
+                    g2.setPaint(Color.WHITE);
+                    g2.fillRect(0, 0, 13000, 9192);
+                    pagePanel.printAll(g2);
+                    g2.dispose();
+
+                    return img;
+                }));
+            }
+
+            int pagesAdded = 0;
+            for (java.util.concurrent.Future<BufferedImage> future : futures) {
+                try {
+                    BufferedImage bimg = future.get();
+                    if (bimg != null) {
+                        Image pImg = Image.getInstance(bimg, null);
+                        doc.setPageSize(com.itextpdf.text.PageSize.A3.rotate());
+                        doc.newPage();
+                        pImg.scaleAbsolute(doc.getPageSize().getWidth(), doc.getPageSize().getHeight());
+                        pImg.setAbsolutePosition(0, 0);
+                        doc.add(pImg);
+                        bimg.flush();
+                        pagesAdded++;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            executor.shutdown();
+            if (pagesAdded == 0) {
                 doc.newPage();
-
-                BufferedImage img = new BufferedImage(pagePanel.getWidth(), pagePanel.getHeight(),
-                        BufferedImage.TYPE_INT_RGB);
-                java.awt.Graphics2D g2 = img.createGraphics();
-
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
-                        java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_FRACTIONALMETRICS,
-                        java.awt.RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
-                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-
-                g2.setPaint(Color.WHITE);
-                g2.fillRect(0, 0, img.getWidth(), img.getHeight());
-                pagePanel.printAll(g2);
-                g2.dispose();
-
-                Image pImg = Image.getInstance(img, null);
-                pImg.scaleAbsolute(doc.getPageSize().getWidth(), doc.getPageSize().getHeight());
-                pImg.setAbsolutePosition(0, 0);
-                doc.add(pImg);
-
-                pagePanel.removeNotify();
+                doc.add(new com.itextpdf.text.Paragraph("No data or error during generation"));
             }
         } catch (Exception e) {
             e.printStackTrace();

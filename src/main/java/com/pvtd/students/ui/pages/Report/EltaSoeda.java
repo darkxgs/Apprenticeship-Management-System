@@ -426,6 +426,7 @@ public class EltaSoeda extends javax.swing.JFrame {
                                 })
                                 .collect(java.util.stream.Collectors.toList());
 
+                        int globalPageCounter = 1;
                         for (String prof : sortedProfessions) {
                             java.util.List<Student> list = grouped.get(prof);
                             processed += list.size();
@@ -449,7 +450,7 @@ public class EltaSoeda extends javax.swing.JFrame {
                             String rName = list.get(0).getRegion() != null ? list.get(0).getRegion() : regionName;
                             gradReportTasoeda report = new gradReportTasoeda(prof, currentCenterName, rName, list, false,
                                     selectedMonth, currentYear, admissionMonth);
-                            report.createPDF(combinedDoc);
+                            globalPageCounter = report.createPDF(combinedDoc, globalPageCounter);
                         }
 
                         combinedDoc.close();
