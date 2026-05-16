@@ -82,6 +82,22 @@ public class gradReportSequential extends JFrame {
         setBackground(Color.WHITE);
     }
 
+    private Integer secondRoundCode = null;
+    private boolean codeLoaded = false;
+
+    private Integer getSecondRoundCode() {
+        if (!codeLoaded) {
+            try {
+                java.util.Map<String, Integer> codes = com.pvtd.students.services.StatusesService.getAllStatusesWithCodes();
+                secondRoundCode = codes.get("دور ثاني");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            codeLoaded = true;
+        }
+        return secondRoundCode;
+    }
+
     private List<Subject> subjectsFor(String profession) {
         return subjectCache.computeIfAbsent(
             profession == null ? "" : profession,
@@ -90,6 +106,10 @@ public class gradReportSequential extends JFrame {
     }
 
     private int[] calcTotals(Student st) {
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) return new int[]{0, 0, 0};
+
         List<Subject> allSubs = subjectsFor(st.getProfession());
         Map<Integer, List<Subject>> childMap = new HashMap<>();
         List<Subject> parents = new ArrayList<>();
@@ -113,7 +133,7 @@ public class gradReportSequential extends JFrame {
     }
 
     private String failedSubjects(Student st) {
-        if (!"راسب".equals(st.getStatus())) return "";
+        if (!"راسب".equals(st.getStatus()) && !"دور ثاني".equals(st.getStatus())) return "";
         List<Subject> allSubs = subjectsFor(st.getProfession());
         Map<Integer, List<Subject>> childMap = new HashMap<>();
         List<Subject> parents = new ArrayList<>();
@@ -132,10 +152,67 @@ public class gradReportSequential extends JFrame {
             int pass = (ch != null && !ch.isEmpty())
                 ? ch.stream().mapToInt(Subject::getPassMark).sum()
                 : s.getPassMark();
-            if (mark < pass && s.getName() != null && !s.getName().isBlank())
+            
+            boolean isFailed = (mark < pass && mark >= 0);
+            Integer srCode = getSecondRoundCode();
+            if (srCode != null && mark == srCode) isFailed = true;
+
+            if (isFailed && s.getName() != null && !s.getName().isBlank())
                 failed.add(s.getName());
         }
         return failed.isEmpty() ? "" : String.join("<br/>", failed);
+    }
+
+    private String[] getFailedSubjectsArray(Student st) {
+        List<Subject> allSubs = subjectsFor(st.getProfession());
+        Map<Integer, List<Subject>> childMap = new HashMap<>();
+        List<Subject> parents = new ArrayList<>();
+        for (Subject s : allSubs) {
+            if (s.getParentSubjectId() == null) parents.add(s);
+            else childMap.computeIfAbsent(s.getParentSubjectId(), k -> new ArrayList<>()).add(s);
+        }
+
+        List<String> theoryFailed = new ArrayList<>();
+        boolean failedPractical = false;
+        boolean failedApplied = false;
+
+        Map<Integer, Integer> grades = st.getGrades();
+        for (Subject s : parents) {
+            List<Subject> ch = childMap.get(s.getId());
+            int mark = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(c -> grades != null ? grades.getOrDefault(c.getId(), 0) : 0).sum()
+                : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+            int pass = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(Subject::getPassMark).sum()
+                : s.getPassMark();
+            
+            boolean isFailed = (mark < pass && mark >= 0);
+            Integer srCode = getSecondRoundCode();
+            if (srCode != null && mark == srCode) isFailed = true;
+
+            if (isFailed && s.getName() != null && !s.getName().isBlank()) {
+                if ("نظري".equals(s.getType())) theoryFailed.add(s.getName());
+                else if ("تطبيقي".equals(s.getType())) failedApplied = true;
+                else failedPractical = true;
+            }
+        }
+
+        String[] res = new String[6];
+        java.util.Arrays.fill(res, "");
+        
+        java.util.List<String> allFailed = new java.util.ArrayList<>();
+        allFailed.addAll(theoryFailed);
+        if (failedPractical) allFailed.add("عملي");
+        if (failedApplied)   allFailed.add("تطبيقي");
+
+        for (int i = 0; i < 6 && i < allFailed.size(); i++) {
+            res[i] = allFailed.get(i);
+        }
+        if (allFailed.size() > 6) {
+            res[5] = String.join("/", allFailed.subList(5, allFailed.size()));
+        }
+
+        return res;
     }
 
     public void appendToDocument(Document doc) {
@@ -198,14 +275,14 @@ public class gradReportSequential extends JFrame {
         page.setBackground(Color.WHITE);
         page.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        int W = 26000;
-        int H = (int) (W / 1.4142);
+        int panelWidth = 26000;
+        int panelHeight = (int) (panelWidth / 1.4142);
 
         page.add(buildHeader(chunk, pageNum, totalPages));
         page.add(buildTable(chunk, pageNum));
         page.add(buildFooter());
 
-        page.setSize(new Dimension(W, H));
+        page.setSize(new Dimension(panelWidth, panelHeight));
         page.addNotify();
         page.validate();
         return page;
@@ -284,11 +361,9 @@ public class gradReportSequential extends JFrame {
     }
 
     private static final String[] COLS = {
-        "م", "الاسم", "رقم التسجيل", "الحرفة", "المجموعة المهنية",
-        "الرقم القومي", "رقم الجلوس", "الرقم السري",
-        "تكنولوجيا", "رسم", "ميكانيكا عامة", "لغة انجليزية",
-        "مجموع النظري", "العملي", "التطبيقي", "مجموع عملي وتطبيقي",
-        "المجموع الكلي", "حالة التلميذ", "الملاحظات"
+            "م", "الاسم", "رقم التسجيل", "الحرفة", "المجموعة المهنية", "الرقم القومي", "رقم الجلوس", "الرقم السري",
+            "تكنولوجيا", "رسم", "ميكانيكا عامة", "لغة انجليزية",
+            "مجموع النظري", "العملي", "التطبيقي", "مجموع عملي وتطبيقي", "المجموع الكلي", "حالة التلميذ", "مواد الدور الثاني", "الملاحظات"
     };
 
     private String getTheorySubjectMark(Student st, int subjectIndex) {
@@ -315,7 +390,7 @@ public class gradReportSequential extends JFrame {
             mark = grades != null ? grades.getOrDefault(sub.getId(), 0) : 0;
         }
 
-        // إذا كانت الدرجة صفر ولكن حالة الطالب العامة لها كود معين
+        // إذا كانت الدرجة صفر ولكن حالة الطالب العامة لها كود معين (للحالات التي لم ترصد درجاتها بعد)
         if (mark == 0 && st.getStatus() != null) {
             String s = st.getStatus();
             if (s.contains("غائب")) mark = -1;
@@ -324,14 +399,47 @@ public class gradReportSequential extends JFrame {
             else if (s.contains("معتذر")) mark = -4;
             else if (s.contains("مؤجل")) mark = -5;
         }
+
+        if (mark < 0) {
+            return "0";
+        }
         
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) return "0";
+
         return String.valueOf(mark);
     }
 
+    private boolean isSuccessReport() {
+        return "تلاميذ ناجحون".equals(statusTitle);
+    }
+
+    private boolean shouldHideSecondRoundColumn() {
+        return !"تلاميذ راسبون ولهم حق دخول الدور الثاني".equals(statusTitle);
+    }
+
     private JPanel buildTable(List<Student> chunk, int pageNum) {
-        DefaultTableModel model = new DefaultTableModel(COLS, 0);
+        String[] effectiveCols = COLS;
+        int[] widths = { 500, 5000, 2000, 5000, 4000, 3500, 1800, 1800, 1500, 1500, 1500, 1500, 1800, 1500, 1500, 1800, 1800, 1800, 4500, 2000 };
+        
+        if (shouldHideSecondRoundColumn()) {
+            List<String> list = new ArrayList<>(Arrays.asList(COLS));
+            list.remove("مواد الدور الثاني");
+            effectiveCols = list.toArray(new String[0]);
+            
+            int[] filteredWidths = new int[widths.length - 1];
+            int j = 0;
+            for (int i = 0; i < widths.length; i++) {
+                if (i == 18) continue; // index of "مواد الدور الثاني"
+                filteredWidths[j++] = widths[i];
+            }
+            widths = filteredWidths;
+        }
+
+        DefaultTableModel model = new DefaultTableModel(effectiveCols, 0);
         for (int i = 0; i < PAGE_SIZE; i++) {
-            Object[] row = new Object[COLS.length];
+            Object[] row = new Object[effectiveCols.length];
             Arrays.fill(row, " ");
             if (i < chunk.size()) {
                 Student st = chunk.get(i);
@@ -355,9 +463,12 @@ public class gradReportSequential extends JFrame {
                 row[c++] = prac;
                 row[c++] = appl;
                 row[c++] = (prac + appl);
-                row[c++] = (theory + prac + appl);
+                row[c++] = theory + prac + appl;
                 row[c++] = st.getStatus();
-                row[c++] = "<html>" + failedSubjects(st) + "</html>";
+                if (!shouldHideSecondRoundColumn()) {
+                    row[c++] = getFailedSubjectsArray(st); // مواد الدور الثاني
+                }
+                row[c]   = ""; // الملاحظات
             }
             model.addRow(row);
         }
@@ -366,8 +477,7 @@ public class gradReportSequential extends JFrame {
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         // م، الاسم، رقم التسجيل، الحرفة، المجموعة المهنية، الرقم القومي، رقم الجلوس، الرقم السري،
         // تكنولوجيا، رسم، ميكانيكا عامة، لغة انجليزية،
-        // مجموع النظري، العملي، التطبيقي، مجموع عملي وتطبيقي، المجموع الكلي، حالة التلميذ، الملاحظات
-        int[] widths = { 400, 3500, 1500, 3500, 3000, 2500, 1200, 1200, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1200, 1200, 1200, 1500 };
+        // مجموع النظري، العملي، التطبيقي، مجموع عملي وتطبيقي، المجموع الكلي، حالة التلميذ، مواد الدور الثاني، الملاحظات
         for (int i = 0; i < widths.length && i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -375,19 +485,51 @@ public class gradReportSequential extends JFrame {
         table.setRowHeight(900);
         table.setFont(new Font("Tahoma", Font.PLAIN, 180));
         table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 2500));
+        table.setShowGrid(true);
+        table.setGridColor(Color.BLACK);
+        table.setIntercellSpacing(new Dimension(0, 0));
 
-        // Renderer for table cells to support multi-line and centering
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                if ("مواد الدور الثاني".equals(t.getColumnName(col))) {
+                    String[] arr = val instanceof String[] ? (String[]) val : new String[0];
+                    java.util.List<String> list = new java.util.ArrayList<>();
+                    if (arr != null) {
+                        for (String s : arr) {
+                            if (s != null && !s.trim().isEmpty()) {
+                                String cleaned = s.replaceAll("\\(اضغط للتعديل\\)", "").trim();
+                                if (!cleaned.isEmpty()) list.add(cleaned);
+                            }
+                        }
+                    }
+                    int count = Math.max(1, list.size());
+                    JPanel dynamicPanel = new JPanel(new java.awt.GridLayout(1, count, 0, 0));
+                    dynamicPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+                    dynamicPanel.setBackground(Color.WHITE);
+                    for (int i = 0; i < count; i++) {
+                        JLabel lbl = new JLabel();
+                        lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                        lbl.setFont(new Font("Tahoma", Font.BOLD, 140));
+                        lbl.setOpaque(true);
+                        lbl.setBackground(Color.WHITE);
+                        lbl.setForeground(Color.BLACK);
+                        String text = (i < list.size()) ? list.get(i) : "";
+                        lbl.setText("<html><center>" + text + "</center></html>");
+                        int left = (i < count - 1) ? 5 : 0;
+                        lbl.setBorder(BorderFactory.createMatteBorder(0, left, 0, 0, Color.BLACK));
+                        dynamicPanel.add(lbl);
+                    }
+                    dynamicPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3));
+                    return dynamicPanel;
+                }
                 String txt = (val == null) ? "" : val.toString();
                 if (!txt.toLowerCase().startsWith("<html>")) {
                     txt = "<html><div align='center' style='padding:10px;'>" + txt + "</div></html>";
                 }
-                Component c = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
+                Component c = super.getTableCellRendererComponent(t, val, sel, foc, row, col);
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 5));
                 setHorizontalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
                 return c;
             }
         });
@@ -403,7 +545,7 @@ public class gradReportSequential extends JFrame {
                 c.setForeground(new Color(10, 30, 60));
                 c.setFont(new Font("Tahoma", Font.BOLD, 180));
                 setHorizontalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 5));
                 return c;
             }
         });

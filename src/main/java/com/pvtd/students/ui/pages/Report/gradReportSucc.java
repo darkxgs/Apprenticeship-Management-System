@@ -368,6 +368,9 @@ public class gradReportSucc extends JFrame {
                 int theorySum = 0, practicalMark = 0, appliedMark = 0;
                 Map<Integer, Integer> grades = st.getGrades();
 
+                String status = st.getStatus();
+                boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+
                 boolean tRowAdded = false;
 
                 for (Subject s : parentSubjects) {
@@ -376,6 +379,8 @@ public class gradReportSucc extends JFrame {
                             ? children.stream()
                                     .mapToInt(child -> grades != null ? grades.getOrDefault(child.getId(), 0) : 0).sum()
                             : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+
+                    if (!isAllowed || mark < 0) mark = 0;
 
                     row[c++] = mark;
                     if ("نظري".equals(s.getType()))

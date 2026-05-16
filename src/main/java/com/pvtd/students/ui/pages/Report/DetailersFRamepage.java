@@ -384,8 +384,8 @@ public class DetailersFRamepage extends javax.swing.JFrame {
 
         // الحصول على الشهور من الفلتر
         String[] filters = filterPanel.getSelectedMonths();
-        String selMonth = "يوليو لسنة ٢٠٢٦"; // Default
-        String admMonth = "اكتوبر لسنة ٢٠٢٣"; // Default
+        String selMonth = "يوليو"; // Default
+        String admMonth = "اكتوبر"; // Default
         if (filters != null && filters.length >= 6) {
             selMonth = filters[4]; // الشهر المنعقد فيه
             admMonth = filters[5]; // دفعة قبول

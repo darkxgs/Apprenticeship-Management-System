@@ -291,20 +291,28 @@ public class gradSecretReport extends JFrame {
 
                 int theorySum = 0, practicalMark = 0, appliedMark = 0;
                 Map<Integer, Integer> grades = st.getGrades();
+
+                String status = st.getStatus();
+                boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+
                 for (Subject sub : subjects) {
                     int mark = grades != null ? grades.getOrDefault(sub.getId(), 0) : 0;
+                    if (!isAllowed || mark < 0) mark = 0;
+
                     if ("نظري".equals(sub.getType()))
-                        theorySum += (mark > 0 ? mark : 0);
+                        theorySum += mark;
                     else if ("تطبيقي".equals(sub.getType()))
-                        appliedMark += (mark > 0 ? mark : 0);
+                        appliedMark += mark;
                     else
-                        practicalMark += (mark > 0 ? mark : 0);
+                        practicalMark += mark;
                 }
 
                 boolean theoryRowAdded = false;
                 for (Subject sub : subjects) {
                     int mark = grades != null ? grades.getOrDefault(sub.getId(), 0) : 0;
-                    row[colIdx++] = mark > 0 ? mark : "0";
+                    if (!isAllowed || mark < 0) mark = 0;
+                    
+                    row[colIdx++] = mark;
                     if (sub.getName() != null && sub.getName().contains("لغة انجليزية")) {
                         row[colIdx++] = theorySum;
                         theoryRowAdded = true;

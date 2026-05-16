@@ -23,8 +23,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Vector;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -68,20 +71,23 @@ public class SecondRound extends javax.swing.JFrame {
         };
 
         for (int col = 0; col < jTable2.getColumnCount(); col++) {
+            if (col == 1) continue; // Skip custom renderer column
             jTable2.getColumnModel().getColumn(col).setCellRenderer(centerCellRenderer);
         }
 
-        if (jTable2.getColumnCount() >= 6) {
+        if (jTable2.getColumnCount() >= 7) {
             jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
-            jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
-            jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
+            jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>مواد الدور الثاني</center></html>");
+            jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
+            jTable2.getColumnModel().getColumn(3).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
 
-            jTable2.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة التلميذ
-            jTable2.getColumnModel().getColumn(1).setPreferredWidth(140); // رقم الجلوس
-            jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم التسجيل
-            jTable2.getColumnModel().getColumn(3).setPreferredWidth(520); // المهنة
-            jTable2.getColumnModel().getColumn(4).setPreferredWidth(430); // الاسم
-            jTable2.getColumnModel().getColumn(5).setPreferredWidth(50); // م
+            jTable2.getColumnModel().getColumn(0).setPreferredWidth(100); // حالة التلميذ
+            jTable2.getColumnModel().getColumn(1).setPreferredWidth(350); // مواد الدور الثاني
+            jTable2.getColumnModel().getColumn(2).setPreferredWidth(150); // رقم الجلوس
+            jTable2.getColumnModel().getColumn(3).setPreferredWidth(150); // رقم التسجيل
+            jTable2.getColumnModel().getColumn(4).setPreferredWidth(300); // المهنة
+            jTable2.getColumnModel().getColumn(5).setPreferredWidth(250); // الاسم
+            jTable2.getColumnModel().getColumn(6).setPreferredWidth(50); // م
         }
 
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
@@ -109,7 +115,7 @@ public class SecondRound extends javax.swing.JFrame {
                 return;
             }
             examMonth = month;
-            admissionMonth = "اكتوبر لسنة ٢٠٢٣"; // Fallback
+            admissionMonth = "اكتوبر"; // Fallback
         }
 
         jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
@@ -188,13 +194,17 @@ public class SecondRound extends javax.swing.JFrame {
                 String htmlName = "<html><center>" + name.trim() + "</center></html>";
                 String htmlProf = "<html><center>" + prof.trim() + "</center></html>";
 
+                String seatNo = rs.getString("seat_no");
+                String[] failedArr = getFailedSubjectsForSeat(seatNo);
+
                 model.addRow(new Object[] {
-                        "دور ثاني", // 0: حالة التلميذ (تظهر في اليسار)
-                        rs.getString("seat_no"), // 1: رقم الجلوس
-                        rs.getString("registration_no"), // 2: رقم التسجيل
-                        htmlProf, // 3: المهنة
-                        htmlName, // 4: الاسم
-                        i++ // 5: م (يظهر في اليمين)
+                        "دور ثاني", // 0: حالة التلميذ
+                        failedArr,   // 1: مواد الدور الثاني
+                        seatNo,      // 2: رقم الجلوس
+                        rs.getString("registration_no"), // 3: رقم التسجيل
+                        htmlProf, // 4: المهنة
+                        htmlName, // 5: الاسم
+                        i++ // 6: م
                 });
             }
 
@@ -271,7 +281,7 @@ public class SecondRound extends javax.swing.JFrame {
         // Center Titles - التوسيع والتوسيط بدون تداخل
         jLabel5.setFont(new Font("Tahoma", Font.BOLD, 24));
         jLabel6.setFont(new Font("Tahoma", Font.BOLD, 36));
-        jLabel6.setText("تلاميذ دور ثاني"); // الالتزام بتعديل المستخدم
+        jLabel6.setText("تلاميذ راسبون ولهم حق دخول الدور الثاني");
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel5.setBounds(400, 40, 550, 45);
@@ -294,12 +304,53 @@ public class SecondRound extends javax.swing.JFrame {
         jTable2.setGridColor(new java.awt.Color(150, 150, 150));
         
         // ضبط عرض الأعمدة
-        jTable2.getColumnModel().getColumn(0).setPreferredWidth(150);
-        jTable2.getColumnModel().getColumn(1).setPreferredWidth(200);
-        jTable2.getColumnModel().getColumn(2).setPreferredWidth(200);
-        jTable2.getColumnModel().getColumn(3).setPreferredWidth(400);
-        jTable2.getColumnModel().getColumn(4).setPreferredWidth(350);
-        jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
+        jTable2.getColumnModel().getColumn(0).setPreferredWidth(100);
+        jTable2.getColumnModel().getColumn(1).setPreferredWidth(350);
+        jTable2.getColumnModel().getColumn(2).setPreferredWidth(150);
+        jTable2.getColumnModel().getColumn(3).setPreferredWidth(150);
+        jTable2.getColumnModel().getColumn(4).setPreferredWidth(300);
+        jTable2.getColumnModel().getColumn(5).setPreferredWidth(250);
+        jTable2.getColumnModel().getColumn(6).setPreferredWidth(50);
+
+        // Custom renderer for مواد الدور الثاني column
+        jTable2.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                String[] arr = val instanceof String[] ? (String[]) val : new String[0];
+                java.util.List<String> list = new java.util.ArrayList<>();
+                if (arr != null) {
+                    for (String s : arr) {
+                        if (s != null && !s.trim().isEmpty()) {
+                            // Clean up text if it contains UI placeholders
+                            String cleaned = s.replaceAll("\\(اضغط للتعديل\\)", "").trim();
+                            if (!cleaned.isEmpty()) list.add(cleaned);
+                        }
+                    }
+                }
+                
+                int count = Math.max(1, list.size());
+                JPanel panel = new JPanel(new java.awt.GridLayout(1, count, 0, 0));
+                panel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+                panel.setBackground(Color.WHITE);
+                
+                for (int i = 0; i < count; i++) {
+                    JLabel lbl = new JLabel();
+                    lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                    lbl.setFont(new Font("Tahoma", Font.BOLD, 14));
+                    lbl.setOpaque(true);
+                    lbl.setBackground(Color.WHITE);
+                    lbl.setForeground(Color.BLACK);
+                    String text = (i < list.size()) ? list.get(i) : "";
+                    lbl.setText("<html><center>" + text + "</center></html>");
+                    // Add borders between boxes (on the left of each box except the last one in RTL)
+                    int leftBorder = (i < count - 1) ? 1 : 0;
+                    lbl.setBorder(javax.swing.BorderFactory.createMatteBorder(0, leftBorder, 0, 0, Color.BLACK));
+                    panel.add(lbl);
+                }
+                panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 1, 1, 1, Color.BLACK));
+                return panel;
+            }
+        });
 
         // Footer
         int footerY = 1850;
@@ -343,15 +394,22 @@ public class SecondRound extends javax.swing.JFrame {
                 int end = Math.min(start + rowsPerPage, totalRows);
 
                 for (int i = start; i < end; i++) {
-                    Vector row = new Vector(allData.get(i));
-                    row.set(0, "دور ثاني"); // 0: حالة التلميذ
-                    row.set(5, globalIndex++); // 5: م
-                    model.addRow(row);
+                    java.util.Vector row = allData.get(i);
+                    String seatNo = String.valueOf(row.get(1)); // index 1 is seat_no in ScoundRoundFramePage model
+                    String[] failedArr = getFailedSubjectsForSeat(seatNo);
+                    java.util.Vector newRow = new java.util.Vector();
+                    newRow.add("دور ثاني"); // 0
+                    newRow.add(failedArr);   // 1
+                    newRow.add(seatNo);      // 2
+                    newRow.add(row.get(2));  // 3: registration_no
+                    newRow.add(row.get(3));  // 4: profession
+                    newRow.add(row.get(4));  // 5: name
+                    newRow.add(globalIndex++); // 6: م
+                    model.addRow(newRow);
                 }
 
-                // Fill remaining rows up to 32 to ensure consistent full-page table appearance
                 while (model.getRowCount() < 32) {
-                    model.addRow(new Object[] { "", "", "", "", "", "" });
+                    model.addRow(new Object[] { "", new String[6], "", "", "", "", "" });
                 }
 
                 // Apply A4 standardization
@@ -443,6 +501,88 @@ public class SecondRound extends javax.swing.JFrame {
         }
     }
 
+    private Integer secondRoundCode = null;
+    private boolean codeLoaded = false;
+
+    private Integer getSecondRoundCode() {
+        if (!codeLoaded) {
+            try {
+                java.util.Map<String, Integer> codes = com.pvtd.students.services.StatusesService.getAllStatusesWithCodes();
+                secondRoundCode = codes.get("دور ثاني");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            codeLoaded = true;
+        }
+        return secondRoundCode;
+    }
+
+    private String[] getFailedSubjectsForSeat(String seatNo) {
+        String[] res = new String[6];
+        java.util.Arrays.fill(res, "");
+        if (seatNo == null || seatNo.trim().isEmpty() || seatNo.equals("null")) return res;
+        
+        Integer srCode = getSecondRoundCode();
+
+        try (Connection con = DatabaseConnection.getConnection()) {
+            int studentId = -1;
+            try (PreparedStatement ps = con.prepareStatement("SELECT id FROM students WHERE seat_no = ?")) {
+                ps.setString(1, seatNo);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) studentId = rs.getInt("id");
+                }
+            }
+            if (studentId == -1) return res;
+
+            java.util.List<String> theoryFailed = new java.util.ArrayList<>();
+            boolean failedPractical = false;
+            boolean failedApplied = false;
+
+            String sql = """
+                SELECT sub.name, sub.type, sub.pass_mark, NVL(sg.obtained_mark, 0) as mark
+                FROM subjects sub
+                JOIN specializations sp ON sp.id = sub.specialization_id
+                JOIN students st ON TRIM(st.profession) = TRIM(sp.name)
+                LEFT JOIN student_grades sg ON sg.subject_id = sub.id AND sg.student_id = st.id
+                WHERE st.id = ? AND sub.subject_type IS NULL
+                ORDER BY sub.id
+                """;
+            try (PreparedStatement ps2 = con.prepareStatement(sql)) {
+                ps2.setInt(1, studentId);
+                try (ResultSet rs2 = ps2.executeQuery()) {
+                    while (rs2.next()) {
+                        String sName = rs2.getString("name");
+                        String sType = rs2.getString("type");
+                        int mark = rs2.getInt("mark");
+                        int passMark = rs2.getInt("pass_mark");
+                        
+                        boolean isSecondRound = (mark < passMark && mark >= 0);
+                        if (srCode != null && mark == srCode) isSecondRound = true;
+
+                        if (isSecondRound && sName != null && !sName.isBlank()) {
+                            if ("نظري".equals(sType)) theoryFailed.add(sName);
+                            else if ("تطبيقي".equals(sType)) failedApplied = true;
+                            else failedPractical = true;
+                        }
+                    }
+                }
+            }
+            java.util.List<String> allFailed = new java.util.ArrayList<>();
+            allFailed.addAll(theoryFailed);
+            if (failedPractical) allFailed.add("عملي");
+            if (failedApplied)   allFailed.add("تطبيقي");
+
+            for (int i = 0; i < 6 && i < allFailed.size(); i++) {
+                res[i] = allFailed.get(i);
+            }
+            // If more than 6, join the rest in the last box
+            if (allFailed.size() > 6) {
+                res[5] = String.join("/", allFailed.subList(5, allFailed.size()));
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return res;
+    }
+
     public void createPDFGroupedBySystem(
             java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystem,
             String centerName, String regionName, boolean isFirstCall) {
@@ -489,12 +629,21 @@ public class SecondRound extends javax.swing.JFrame {
                     int end = Math.min(start + rowsPerPage, totalRows);
                     for (int i = start; i < end; i++) {
                         java.util.Vector row = new java.util.Vector(rows.get(i));
-                        row.set(0, "دور ثان");
-                        row.set(5, globalIndex++);
-                        model.addRow(row);
+                        String seatNo = String.valueOf(row.get(1)); // index 1 in ScoundRoundFramePage model
+                        String[] failedArr = getFailedSubjectsForSeat(seatNo);
+                        
+                        java.util.Vector newRow = new java.util.Vector();
+                        newRow.add("دور ثاني"); // 0
+                        newRow.add(failedArr);   // 1
+                        newRow.add(seatNo);      // 2
+                        newRow.add(row.get(2));  // 3: registration_no
+                        newRow.add(row.get(3));  // 4: profession
+                        newRow.add(row.get(4));  // 5: name
+                        newRow.add(globalIndex++); // 6: م
+                        model.addRow(newRow);
                     }
                     while (model.getRowCount() < 32) {
-                        model.addRow(new Object[] { "", "", "", "", "", "" });
+                        model.addRow(new Object[] { "", new String[6], "", "", "", "", "" });
                     }
 
                     jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1))
@@ -606,13 +755,13 @@ public class SecondRound extends javax.swing.JFrame {
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel10.setText("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها");
+        jLabel10.setText("دفعة قبول : أكتوبر وما قبلها");
         jPanel1.add(jLabel10);
         jLabel10.setBounds(0, 70, 250, 20);
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel11.setText("المنعقد فى : مايو لسنة ٢٠٢٦");
+        jLabel11.setText("المنعقد فى : مايو");
         jPanel1.add(jLabel11);
         jLabel11.setBounds(20, 90, 210, 20);
 
@@ -668,7 +817,7 @@ public class SecondRound extends javax.swing.JFrame {
                         { null, null, null, null, null, null }
                 },
                 new String[] {
-                        "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
+                        "حالة التلميذ", "مواد الدور الثاني", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
                 }));
         jScrollPane1.setViewportView(jTable2);
 

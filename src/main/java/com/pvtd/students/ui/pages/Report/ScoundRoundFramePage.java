@@ -19,7 +19,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
 
     public ScoundRoundFramePage() {
         initComponents();
-        setTitle("تقرير دور ثاني");
+        setTitle("تقرير راسبون ولهم حق دخول الدور الثاني");
         this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
 
@@ -105,7 +105,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
             DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
             model.setRowCount(0);
             try (Connection con = DatabaseConnection.getConnection()) {
-                String sql = "SELECT name, profession, registration_no, seat_no, status FROM students " +
+                String sql = "SELECT id, name, profession, registration_no, seat_no, status FROM students " +
                              "WHERE center_name = ? AND region = ? AND status = 'دور ثاني' ";
                 sql += "ORDER BY CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC";
                 PreparedStatement ps = con.prepareStatement(sql);
@@ -125,6 +125,29 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
                 }
             }
         } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    private String getFailedSubjectsSummary(Connection con, int studentId, String profession) {
+        java.util.List<String> failed = new java.util.ArrayList<>();
+        String sql = """
+            SELECT sub.name, sub.pass_mark, NVL(sg.obtained_mark, 0) as mark
+            FROM subjects sub
+            JOIN specializations sp ON sp.id = sub.specialization_id
+            JOIN students st ON TRIM(st.profession) = TRIM(sp.name)
+            LEFT JOIN student_grades sg ON sg.subject_id = sub.id AND sg.student_id = st.id
+            WHERE st.id = ? AND sub.subject_type IS NULL
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getInt("mark") < rs.getInt("pass_mark")) {
+                        failed.add(rs.getString("name"));
+                    }
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return failed.isEmpty() ? "-" : String.join(" / ", failed);
     }
 
     @SuppressWarnings("unchecked")
@@ -151,7 +174,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 24));
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel1.setText("كشف التلاميذ الدور ثاني");
+        jLabel1.setText("كشف التلاميذ راسبون ولهم حق دخول الدور الثاني");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0; gridBagConstraints.gridy = 0; gridBagConstraints.gridwidth = 4;
         gridBagConstraints.insets = new java.awt.Insets(10, 0, 10, 0);
@@ -352,7 +375,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
                     com.itextpdf.text.pdf.PdfWriter.getInstance(doc, new java.io.FileOutputStream(fn));
                     doc.open();
 
-                    gradReportSequential report = new gradReportSequential("تلاميذ دور ثاني", new java.awt.Color(0, 0, 255), center, region, entry.getValue(), selM, admM);
+                    gradReportSequential report = new gradReportSequential("تلاميذ راسبون ولهم حق دخول الدور الثاني", new java.awt.Color(0, 0, 255), center, region, entry.getValue(), selM, admM);
                     report.appendToDocument(doc);
                     report.appendToDocument(combinedDoc);
 

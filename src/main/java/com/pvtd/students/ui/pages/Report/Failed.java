@@ -81,24 +81,23 @@ public class Failed extends javax.swing.JFrame {
 
                 jTable2.setShowVerticalLines(true);
 
-                // 7-column model
-                DefaultTableModel model7 = new DefaultTableModel(
-                    new String[] { "مواد الدور الثاني", "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م" }, 0
+                // 7-column model (مواد الرسوب rightmost, then حالة التلميذ)
+                DefaultTableModel model6 = new DefaultTableModel(
+                    new String[] { "مواد الرسوب", "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م" }, 0
                 );
-                jTable2.setModel(model7);
+                jTable2.setModel(model6);
 
-                jTable2.getColumnModel().getColumn(0).setHeaderValue("<html><center>مواد الدور<br>الثاني</center></html>");
                 jTable2.getColumnModel().getColumn(1).setHeaderValue("<html><center>حالة<br>التلميذ</center></html>");
                 jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
                 jTable2.getColumnModel().getColumn(3).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
 
-                jTable2.getColumnModel().getColumn(0).setPreferredWidth(500); // مواد الدور الثاني
-                jTable2.getColumnModel().getColumn(1).setPreferredWidth(90);  // حالة التلميذ
-                jTable2.getColumnModel().getColumn(2).setPreferredWidth(120); // رقم الجلوس
-                jTable2.getColumnModel().getColumn(3).setPreferredWidth(120); // رقم التسجيل
-                jTable2.getColumnModel().getColumn(4).setPreferredWidth(210); // المهنة
-                jTable2.getColumnModel().getColumn(5).setPreferredWidth(270); // الاسم
-                jTable2.getColumnModel().getColumn(6).setPreferredWidth(60);  // م
+                jTable2.getColumnModel().getColumn(0).setPreferredWidth(350); // مواد الرسوب
+                jTable2.getColumnModel().getColumn(1).setPreferredWidth(70);  // حالة التلميذ
+                jTable2.getColumnModel().getColumn(2).setPreferredWidth(110); // رقم الجلوس
+                jTable2.getColumnModel().getColumn(3).setPreferredWidth(110); // رقم التسجيل
+                jTable2.getColumnModel().getColumn(4).setPreferredWidth(150); // المهنة
+                jTable2.getColumnModel().getColumn(5).setPreferredWidth(200); // الاسم
+                jTable2.getColumnModel().getColumn(6).setPreferredWidth(40);  // م
 
                 javax.swing.table.DefaultTableCellRenderer centerCellRenderer = new javax.swing.table.DefaultTableCellRenderer() {
                         @Override
@@ -113,19 +112,7 @@ public class Failed extends javax.swing.JFrame {
                                                 row, column);
                                 c.setBackground(java.awt.Color.WHITE);
                                 setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-                                // col 0 = مواد الدور الثاني: scale font by content length
-                                if (column == 0) {
-                                    int lineCount = txt.split("<br/>|<br>").length;
-                                    if (lineCount > 5) {
-                                        c.setFont(new Font("Tahoma", Font.BOLD, 16));
-                                    } else if (lineCount > 3) {
-                                        c.setFont(new Font("Tahoma", Font.BOLD, 19));
-                                    } else {
-                                        c.setFont(new Font("Tahoma", Font.BOLD, 23));
-                                    }
-                                } else {
-                                    c.setFont(new Font("Tahoma", Font.PLAIN, 21));
-                                }
+                                c.setFont(new Font("Tahoma", Font.PLAIN, 21));
                                 return c;
                         }
                 };
@@ -157,7 +144,7 @@ public class Failed extends javax.swing.JFrame {
                         return;
                 }
 
-                jLabel6.setText("تلاميذ راسبون ولهم حق دخول الدور الثاني");
+                jLabel6.setText("تلاميذ راسبون");
                 jLabel6.setForeground(new Color(42, 82, 152)); // Blue color from image
 
                 jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها"); 
@@ -243,13 +230,12 @@ public class Failed extends javax.swing.JFrame {
                                 String htmlProf = "<html><RIGHT>" + prof.trim() + "</RIGHT></html>";
 
                                 model.addRow(new Object[] {
-                                                "",                              // 0: مواد الدور الثاني (فارغ)
-                                                "دور ثاني",                         // 1: حالة التلميذ
-                                                rs.getString("seat_no"),        // 2: رقم الجلوس
-                                                rs.getString("registration_no"), // 3: رقم التسجيل
-                                                htmlProf,                        // 4: المهنة
-                                                htmlName,                        // 5: الاسم
-                                                i++                              // 6: م
+                                                "راسب",                         // 0: حالة التلميذ
+                                                rs.getString("seat_no"),        // 1: رقم الجلوس
+                                                rs.getString("registration_no"), // 2: رقم التسجيل
+                                                htmlProf,                        // 3: المهنة
+                                                htmlName,                        // 4: الاسم
+                                                i++                              // 5: م
                                 });
                         }
 
@@ -267,6 +253,83 @@ public class Failed extends javax.swing.JFrame {
                 jPanel1.revalidate();
                 jPanel1.repaint();
         }
+
+    /**
+     * Queries the DB for a student's failed subjects based on seat_no.
+     * Returns a String[6]: positions 0-3 = theory subjects, 4 = "عملي" if failed, 5 = "تطبيقي" if failed.
+     */
+    private String[] getFailedSubjectsForSeat(String seatNo) {
+        String[] res = new String[6];
+        java.util.Arrays.fill(res, "");
+        try (Connection con = DatabaseConnection.getConnection()) {
+            // Get student id and profession from seat_no
+            int studentId = -1;
+            String profession = null;
+            try (PreparedStatement ps = con.prepareStatement(
+                    "SELECT id, profession FROM students WHERE seat_no = ?")) {
+                ps.setString(1, seatNo);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        studentId = rs.getInt("id");
+                        profession = rs.getString("profession");
+                    }
+                }
+            }
+            if (studentId == -1 || profession == null) return res;
+
+            // Get subjects for this profession (parent subjects only, with pass_mark and type)
+            java.util.List<String> theoryFailed = new java.util.ArrayList<>();
+            boolean failedPractical = false;
+            boolean failedApplied = false;
+
+            // Query: join subjects with student_grades to find failed ones
+            String sql = """
+                SELECT s.name, s.type,
+                       NVL(sg.obtained_mark, 0) as obtained_mark,
+                       s.pass_mark,
+                       s.id as subject_id,
+                       s.subject_type
+                FROM subjects s
+                LEFT JOIN student_grades sg ON sg.subject_id = s.id AND sg.student_id = ?
+                WHERE s.subject_type IS NULL OR s.subject_type != 'child'
+                ORDER BY s.id
+                """;
+            // Simpler approach: get all top-level subjects linked to specialization of this student
+            String sql2 = """
+                SELECT sub.id, sub.name, sub.type, sub.pass_mark,
+                       NVL(sg.obtained_mark, 0) as mark
+                FROM subjects sub
+                JOIN specializations sp ON sp.id = sub.specialization_id
+                JOIN students st ON TRIM(st.profession) = TRIM(sp.name)
+                LEFT JOIN student_grades sg ON sg.subject_id = sub.id AND sg.student_id = st.id
+                WHERE st.id = ? AND sub.subject_type IS NULL
+                ORDER BY sub.id
+                """;
+            try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                ps2.setInt(1, studentId);
+                try (ResultSet rs2 = ps2.executeQuery()) {
+                    while (rs2.next()) {
+                        String sName = rs2.getString("name");
+                        String sType = rs2.getString("type");
+                        int mark = rs2.getInt("mark");
+                        int passMark = rs2.getInt("pass_mark");
+                        if (mark < passMark && sName != null && !sName.isBlank()) {
+                            if ("نظري".equals(sType)) theoryFailed.add(sName);
+                            else if ("تطبيقي".equals(sType)) failedApplied = true;
+                            else failedPractical = true;
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < 4 && i < theoryFailed.size(); i++) res[i] = theoryFailed.get(i);
+            if (theoryFailed.size() > 4) res[3] = String.join("/", theoryFailed.subList(3, theoryFailed.size()));
+            if (failedPractical) res[4] = "عملي";
+            if (failedApplied)   res[5] = "تطبيقي";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
 
         public void buildPagePanel(int rowCount) {
                 // A4 portrait canvas: 1400 x 1980 px
@@ -344,6 +407,40 @@ public class Failed extends javax.swing.JFrame {
                 jTable2.setRowHeight(rowH);
                 jScrollPane2.setBounds(MARGIN, tableY, PANEL_W - MARGIN * 2, tableHeight);
 
+                // Custom renderer for مواد الرسوب column (col 0 - rightmost)
+                jTable2.getColumnModel().getColumn(0).setCellRenderer(new DefaultTableCellRenderer() {
+                    private javax.swing.JPanel failedPanel;
+                    private javax.swing.JLabel[] failedLabels;
+                    {
+                        failedPanel = new javax.swing.JPanel(new java.awt.GridLayout(1, 6, 0, 0));
+                        failedPanel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+                        failedLabels = new javax.swing.JLabel[6];
+                        for (int i = 0; i < 6; i++) {
+                            failedLabels[i] = new javax.swing.JLabel();
+                            failedLabels[i].setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                            failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 12));
+                            failedLabels[i].setOpaque(true);
+                            if (i > 0) failedLabels[i].setBorder(javax.swing.BorderFactory.createMatteBorder(0,0,0,1,Color.BLACK));
+                            failedPanel.add(failedLabels[i]);
+                        }
+                    }
+                    @Override
+                    public Component getTableCellRendererComponent(JTable t, Object val,
+                            boolean sel, boolean foc, int row, int col) {
+                        String[] arr = val instanceof String[] ? (String[]) val : new String[6];
+                        for (int i = 0; i < 6; i++) {
+                            String text = (arr.length > i && arr[i] != null) ? arr[i] : "";
+                            failedLabels[i].setText("<html><center>" + text + "</center></html>");
+                            failedLabels[i].setBackground(Color.WHITE);
+                            failedLabels[i].setForeground(Color.BLACK);
+                        }
+                        failedPanel.setBackground(Color.WHITE);
+                        // top=0, left=1, bottom=1, right=1 — right side faces حالة التلميذ in RTL table
+                        failedPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 1, 1, 1, Color.GRAY));
+                        return failedPanel;
+                    }
+                });
+
                 // ── Footer ───────────────────────────────────────────────
                 int separatorY = PANEL_H - FOOTER_H - MARGIN;
                 jSeparator1.setBounds(MARGIN, separatorY, PANEL_W - MARGIN * 2, 3);
@@ -388,14 +485,14 @@ public class Failed extends javax.swing.JFrame {
 
                                 for (int i = start; i < end; i++) {
                                         Vector row = new Vector(originalData.get(i));
-                                        row.set(1, "راسب"); // 1: حالة التلميذ
-                                        row.set(6, globalIndex++); // 6: م
+                                        row.set(0, "راسب"); // 0: حالة التلميذ
+                                        row.set(5, globalIndex++); // 5: م
                                         model.addRow(row);
                                 }
 
                                 // Fill remaining rows to 10 so table always fills the page
                                 while (model.getRowCount() < 10) {
-                                        model.addRow(new Object[] { "", "", "", "", "", "", "" });
+                                        model.addRow(new Object[] { "", "", "", "", "", "" });
                                 }
 
                                 // Apply A4 standardization
@@ -528,16 +625,24 @@ public class Failed extends javax.swing.JFrame {
                                         int end = Math.min(start + rowsPerPage, totalRows);
 
                                         for (int i = start; i < end; i++) {
-                                                java.util.Vector row = new java.util.Vector(rows.get(i));
-                                                // Ensure 7 columns
-                                                while (row.size() < 7) row.add("");
-                                                if (row.size() > 7) row.setSize(7);
-                                                row.set(1, "راسب");      // 1: حالة التلميذ
-                                                row.set(6, globalIndex++); // 6: م
-                                                model.addRow(row);
+                                                java.util.Vector origRow = rows.get(i);
+                                                // origRow from jTable1: [حالة(0), جلوس(1), تسجيل(2), مهنة(3), اسم(4), م(5)]
+                                                String seatNo = origRow.size() > 1 ? String.valueOf(origRow.get(1)) : "";
+                                                String[] failedArr = getFailedSubjectsForSeat(seatNo);
+                                                // Order: مواد الرسوب, حالة, جلوس, تسجيل, مهنة, اسم, م
+                                                Object[] newRow = new Object[7];
+                                                newRow[0] = failedArr; // مواد الرسوب
+                                                newRow[1] = "راسب"; // حالة
+                                                newRow[2] = origRow.size() > 1 ? origRow.get(1) : ""; // جلوس
+                                                newRow[3] = origRow.size() > 2 ? origRow.get(2) : ""; // تسجيل
+                                                newRow[4] = origRow.size() > 3 ? origRow.get(3) : ""; // مهنة
+                                                newRow[5] = origRow.size() > 4 ? origRow.get(4) : ""; // اسم
+                                                newRow[6] = globalIndex++; // م
+                                                model.addRow(newRow);
                                         }
                                         while (model.getRowCount() < 10) {
-                                                model.addRow(new Object[] { "", "", "", "", "", "", "" });
+                                                // index 0 = مواد الرسوب must be String[] for the renderer
+                                                model.addRow(new Object[] { new String[6], "", "", "", "", "", "" });
                                         }
 
                                         jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1))
@@ -692,11 +797,11 @@ public class Failed extends javax.swing.JFrame {
 
                 jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
                 jLabel10.setForeground(new java.awt.Color(30, 60, 114));
-                jLabel10.setText("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها");
+                jLabel10.setText("دفعة قبول : أكتوبر وما قبلها");
 
                 jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
                 jLabel11.setForeground(new java.awt.Color(30, 60, 114));
-                jLabel11.setText("المنعقد فى : يوليو لسنة ٢٠٢٦");
+                jLabel11.setText("المنعقد فى : يوليو");
 
                 jLabel8.setIcon(new javax.swing.ImageIcon(
                                 getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N

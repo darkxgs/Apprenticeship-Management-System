@@ -713,8 +713,25 @@ public class StudentService {
             conn.setAutoCommit(false);
             try {
                 saveStudentGrades(conn, studentId, grades);
+                
+                // Recalculate and update status automatically
+                String prof = "";
+                try (PreparedStatement ps = conn.prepareStatement("SELECT profession FROM students WHERE id = ?")) {
+                    ps.setInt(1, studentId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) prof = rs.getString("profession");
+                    }
+                }
+                
+                String newStatus = calculateStatus(prof, grades);
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE students SET status = ? WHERE id = ?")) {
+                    ps.setString(1, newStatus);
+                    ps.setInt(2, studentId);
+                    ps.executeUpdate();
+                }
+
                 conn.commit();
-                LogService.logAction(username, "UPDATE_GRADES", "تم تحديث درجات الطالب ذو المعرف: " + studentId);
+                LogService.logAction(username, "UPDATE_GRADES", "تم تحديث درجات وحالة الطالب (ID: " + studentId + ") إلى: " + newStatus);
                 return true;
             } catch (SQLException e) {
                 conn.rollback();

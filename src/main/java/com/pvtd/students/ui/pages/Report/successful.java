@@ -138,8 +138,8 @@ public class successful extends javax.swing.JFrame {
         int year = java.time.Year.now().getValue();
         String arabicYear = toArabicNumbers(String.valueOf(year));
 
-        jLabel10.setText("دفعة قبول : " + admissionMonth + " " + "لسنة " + toArabicNumbers("2023") + " وما قبلها");
-        jLabel11.setText("المنعقد في : " + examMonth + " " + "لسنة " + arabicYear);
+        jLabel10.setText("دفعة قبول : " + admissionMonth + " وما قبلها");
+        jLabel11.setText("المنعقد في : " + examMonth);
 
 
         regoin.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -628,13 +628,13 @@ public class successful extends javax.swing.JFrame {
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel10.setText("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها");
+        jLabel10.setText("دفعة قبول : أكتوبر وما قبلها");
         jPanel1.add(jLabel10);
         jLabel10.setBounds(110, 10, 250, 20);
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel11.setText("المنعقد فى : يوليو لسنة ٢٠٢٦");
+        jLabel11.setText("المنعقد فى : يوليو");
         jPanel1.add(jLabel11);
         jLabel11.setBounds(130, 30, 210, 20);
 

@@ -66,6 +66,10 @@ public class gradReportFailMixed extends JFrame {
 
     /** حساب مجاميع الطالب: [نظري, عملي, تطبيقي] */
     private int[] calcTotals(Student st) {
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) return new int[]{0, 0, 0};
+
         List<Subject> allSubs = subjectsFor(st.getProfession());
         Map<Integer, List<Subject>> childMap = new HashMap<>();
         List<Subject> parents = new ArrayList<>();
@@ -90,6 +94,10 @@ public class gradReportFailMixed extends JFrame {
 
     /** مواد الدور الثاني للطالب */
     private String failedSubjects(Student st) {
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) return "";
+
         List<Subject> allSubs = subjectsFor(st.getProfession());
         Map<Integer, List<Subject>> childMap = new HashMap<>();
         List<Subject> parents = new ArrayList<>();
@@ -112,6 +120,62 @@ public class gradReportFailMixed extends JFrame {
                 failed.add(s.getName());
         }
         return failed.isEmpty() ? "" : String.join("<br/>", failed);
+    }
+
+    private String[] getFailedSubjectsArray(Student st) {
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) {
+            String[] empty = new String[6];
+            Arrays.fill(empty, "");
+            return empty;
+        }
+
+        List<Subject> allSubs = subjectsFor(st.getProfession());
+        Map<Integer, List<Subject>> childMap = new HashMap<>();
+        List<Subject> parents = new ArrayList<>();
+        for (Subject s : allSubs) {
+            if (s.getParentSubjectId() == null) parents.add(s);
+            else childMap.computeIfAbsent(s.getParentSubjectId(), k -> new ArrayList<>()).add(s);
+        }
+
+        List<String> theoryFailed = new ArrayList<>();
+        boolean failedPractical = false;
+        boolean failedApplied = false;
+
+        Map<Integer, Integer> grades = st.getGrades();
+        for (Subject s : parents) {
+            List<Subject> ch = childMap.get(s.getId());
+            int mark = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(c -> grades != null ? grades.getOrDefault(c.getId(), 0) : 0).sum()
+                : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+            int pass = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(Subject::getPassMark).sum()
+                : s.getPassMark();
+            
+            if (mark < pass && s.getName() != null && !s.getName().isBlank()) {
+                if ("نظري".equals(s.getType())) {
+                    theoryFailed.add(s.getName());
+                } else if ("تطبيقي".equals(s.getType())) {
+                    failedApplied = true;
+                } else {
+                    failedPractical = true;
+                }
+            }
+        }
+        
+        String[] res = new String[6];
+        Arrays.fill(res, "");
+        for (int i = 0; i < 4 && i < theoryFailed.size(); i++) {
+            res[i] = theoryFailed.get(i);
+        }
+        if (theoryFailed.size() > 4) {
+            res[3] = String.join("<br>", theoryFailed.subList(3, theoryFailed.size()));
+        }
+        if (failedPractical) res[4] = "عملي";
+        if (failedApplied) res[5] = "تطبيقي";
+        
+        return res;
     }
 
     // ─── PDF public API ────────────────────────────────────────────────────────
@@ -168,7 +232,7 @@ public class gradReportFailMixed extends JFrame {
         int rowCnt  = PAGE_SIZE + 0; // no max/min rows in mixed mode
         this.dynamicRowHeight = Math.min(1800, Math.max(250, avail / rowCnt));
 
-        page.add(buildHeader(pageNum, totalPages));
+        page.add(buildHeader(chunk, pageNum, totalPages));
         page.add(buildTable(chunk));
         page.add(buildFooter());
 
@@ -188,7 +252,7 @@ public class gradReportFailMixed extends JFrame {
 
     // ─── Header ────────────────────────────────────────────────────────────────
 
-    private JPanel buildHeader(int pageNum, int totalPages) {
+    private JPanel buildHeader(List<Student> chunk, int pageNum, int totalPages) {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(20, 50, 40, 50));
@@ -211,9 +275,33 @@ public class gradReportFailMixed extends JFrame {
             JLabel l = lbl(t, 150, true); l.setAlignmentX(Component.RIGHT_ALIGNMENT); right.add(l);
         }
         right.add(Box.createVerticalStrut(30));
+        
+        String systemStr = "";
+        if (chunk != null && !chunk.isEmpty()) {
+            String profName = chunk.get(0).getProfession();
+            if (profName != null && !profName.trim().isEmpty()) {
+                try (java.sql.Connection con = com.pvtd.students.db.DatabaseConnection.getConnection();
+                     java.sql.PreparedStatement ps = con.prepareStatement("SELECT exam_system FROM professions WHERE name = ?")) {
+                    ps.setString(1, profName);
+                    try (java.sql.ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            systemStr = rs.getString("exam_system");
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (systemStr == null || systemStr.trim().isEmpty()) {
+                systemStr = chunk.get(0).getExamSystem();
+            }
+        }
+        if (systemStr == null) systemStr = "";
+
         for (String t : new String[]{
             "المنطقة /" + (region != null ? region.trim() : ""),
-            "مركز /"   + (center != null ? center.trim() : "")}) {
+            "مركز /"   + (center != null ? center.trim() : ""),
+            "النظام /" + systemStr}) {
             JLabel l = lbl(t, 150, true); l.setAlignmentX(Component.RIGHT_ALIGNMENT); right.add(l);
         }
         p.add(right, gbc);
@@ -227,7 +315,7 @@ public class gradReportFailMixed extends JFrame {
         t1.setAlignmentX(Component.CENTER_ALIGNMENT);
         t1.setHorizontalAlignment(SwingConstants.CENTER);
         ctr.add(t1);
-        JLabel t2 = lbl("طلاب راسبون ولهم الحق في دخول الدور الثاني", 300, true);
+        JLabel t2 = lbl("تلاميذ راسبون", 300, true);
         t2.setForeground(new Color(200, 50, 50));
         t2.setAlignmentX(Component.CENTER_ALIGNMENT);
         t2.setHorizontalAlignment(SwingConstants.CENTER);
@@ -271,7 +359,7 @@ public class gradReportFailMixed extends JFrame {
         "م", "الاسم", "رقم التسجيل", "الحرفة", "المجموعة المهنية",
         "الرقم القومي", "رقم الجلوس", "الرقم السري",
         "مجموع النظري", "العملي", "التطبيقي", "مجموع عملي وتطبيقي",
-        "المجموع الكلي", "حالة التلميذ", "مواد الدور الثاني"
+        "المجموع الكلي", "حالة التلميذ", "مواد الرسوب"
     };
 
     private JPanel buildTable(List<Student> chunk) {
@@ -303,9 +391,8 @@ public class gradReportFailMixed extends JFrame {
                 row[c++] = appl;
                 row[c++] = prac + appl;
                 row[c++] = total;
-                row[c++] = "دور ثاني";
-                row[c]   = failed.isEmpty() ? "" :
-                    "<html><div align='right' style='padding:4px;'>" + failed + "</div></html>";
+                row[c++] = "راسب";
+                row[c++] = getFailedSubjectsArray(st);
             }
             model.addRow(row);
         }
@@ -314,9 +401,42 @@ public class gradReportFailMixed extends JFrame {
         styleTable(table, dynamicRowHeight);
 
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            private JPanel failedSubjectsPanel;
+            private JLabel[] failedLabels;
+
+            {
+                failedSubjectsPanel = new JPanel(new java.awt.GridLayout(1, 6, 0, 0));
+                failedSubjectsPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+                failedLabels = new JLabel[6];
+                for (int i = 0; i < 6; i++) {
+                    failedLabels[i] = new JLabel();
+                    failedLabels[i].setHorizontalAlignment(SwingConstants.CENTER);
+                    failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 65));
+                    failedLabels[i].setOpaque(true);
+                    if (i > 0) {
+                        failedLabels[i].setBorder(BorderFactory.createMatteBorder(0, 0, 0, 3, Color.BLACK));
+                    }
+                    failedSubjectsPanel.add(failedLabels[i]);
+                }
+            }
+
             @Override
             public Component getTableCellRendererComponent(JTable t, Object val,
                     boolean sel, boolean foc, int row, int col) {
+                
+                if ("مواد الرسوب".equals(t.getColumnName(col))) {
+                    String[] failedArr = val instanceof String[] ? (String[]) val : new String[6];
+                    for (int i = 0; i < 6; i++) {
+                        String text = (failedArr.length > i && failedArr[i] != null) ? failedArr[i] : "";
+                        failedLabels[i].setText("<html><center style='padding:2px;'>" + text + "</center></html>");
+                        failedLabels[i].setBackground(Color.WHITE);
+                        failedLabels[i].setForeground(Color.BLACK);
+                    }
+                    failedSubjectsPanel.setBackground(Color.WHITE);
+                    failedSubjectsPanel.setBorder(BorderFactory.createLineBorder(new Color(210, 210, 210)));
+                    return failedSubjectsPanel;
+                }
+
                 String txt = val == null ? "" : val.toString();
                 if (!txt.toLowerCase().startsWith("<html>"))
                     txt = "<html><div align='right' style='padding:15px 20px;'>" + txt + "</div></html>";
@@ -352,7 +472,7 @@ public class gradReportFailMixed extends JFrame {
                 if (!txt.toLowerCase().startsWith("<html>"))
                     txt = "<html><div align='center' style='padding:10px 5px;'><b>" + txt + "</b></div></html>";
                 Component c = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
-                c.setBackground(new Color(240, 248, 255));
+                c.setBackground(new Color(204, 255, 255)); // Light cyan
                 c.setForeground(new Color(10, 30, 60));
                 c.setFont(new Font("Tahoma", Font.BOLD, 65));
                 setHorizontalAlignment(SwingConstants.CENTER);
@@ -378,7 +498,7 @@ public class gradReportFailMixed extends JFrame {
         try { table.getColumn("مجموع عملي وتطبيقي").setPreferredWidth(550); } catch (Exception ignored) {}
         table.getColumn("المجموع الكلي").setPreferredWidth(600);
         table.getColumn("حالة التلميذ").setPreferredWidth(700);
-        table.getColumn("مواد الدور الثاني").setPreferredWidth(3000);
+        table.getColumn("مواد الرسوب").setPreferredWidth(2400);
     }
 
     // ─── Footer ────────────────────────────────────────────────────────────────

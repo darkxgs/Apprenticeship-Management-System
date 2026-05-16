@@ -601,11 +601,11 @@ public class absent extends javax.swing.JFrame {
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel10.setText("دفعة قبول : أكتوبر لسنة ٢٠٢٣ وما قبلها");
+        jLabel10.setText("دفعة قبول : أكتوبر وما قبلها");
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(30, 60, 114));
-        jLabel11.setText("المنعقد فى : يوليو لسنة ٢٠٢٦");
+        jLabel11.setText("المنعقد فى : يوليو");
 
         jLabel8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/unnamed-removebg-preview (3).png"))); // NOI18N
 

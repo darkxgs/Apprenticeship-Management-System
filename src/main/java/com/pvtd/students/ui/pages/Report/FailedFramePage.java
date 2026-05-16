@@ -61,7 +61,7 @@ public class FailedFramePage extends javax.swing.JFrame {
         // Collect all selected seat numbers (no grouping by profession)
         List<String> selectedSeatNos = new ArrayList<>();
         for (int row : selectedRows) {
-            selectedSeatNos.add(String.valueOf(model1.getValueAt(row, 2)));
+            selectedSeatNos.add(String.valueOf(model1.getValueAt(row, 1))); // index 1 is seat_no
         }
 
         String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
@@ -357,14 +357,13 @@ public class FailedFramePage extends javax.swing.JFrame {
         jTable1.setSelectionForeground(java.awt.Color.BLACK);
 
         // Set column widths to prevent clipping of subjects
-        if (jTable1.getColumnCount() >= 7) {
-            jTable1.getColumnModel().getColumn(0).setPreferredWidth(650); // مواد الدور الثاني
-            jTable1.getColumnModel().getColumn(1).setPreferredWidth(80); // حالة الطالب
-            jTable1.getColumnModel().getColumn(2).setPreferredWidth(100); // رقم الجلوس
-            jTable1.getColumnModel().getColumn(3).setPreferredWidth(100); // رقم التسجيل
-            jTable1.getColumnModel().getColumn(4).setPreferredWidth(180); // المهنة
-            jTable1.getColumnModel().getColumn(5).setPreferredWidth(250); // الاسم
-            jTable1.getColumnModel().getColumn(6).setPreferredWidth(40); // م
+        if (jTable1.getColumnCount() >= 6) {
+            jTable1.getColumnModel().getColumn(0).setPreferredWidth(80); // حالة الطالب
+            jTable1.getColumnModel().getColumn(1).setPreferredWidth(100); // رقم الجلوس
+            jTable1.getColumnModel().getColumn(2).setPreferredWidth(100); // رقم التسجيل
+            jTable1.getColumnModel().getColumn(3).setPreferredWidth(180); // المهنة
+            jTable1.getColumnModel().getColumn(4).setPreferredWidth(250); // الاسم
+            jTable1.getColumnModel().getColumn(5).setPreferredWidth(40); // م
         }
 
         jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
@@ -448,8 +447,7 @@ public class FailedFramePage extends javax.swing.JFrame {
                         failedSubs = "";
 
                     model.addRow(new Object[] {
-                            failedSubs, // مواد الدور الثاني
-                            "دور ثاني",
+                            "راسب",
                             rs.getString("seat_no"),
                             rs.getString("registration_no"),
                             rs.getString("profession"),
@@ -594,7 +592,7 @@ public class FailedFramePage extends javax.swing.JFrame {
                         { null, null, null, null, null, null }
                 },
                 new String[] {
-                        "مواد الدور الثاني", "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
+                        "حالة الطالب", "رقم الجلوس ", "رقم التسجيل", "المهنه", "الاسم", "م"
                 }));
         jScrollPane1.setViewportView(jTable1);
 
@@ -682,10 +680,9 @@ public class FailedFramePage extends javax.swing.JFrame {
                     }
 
                     for (int i = 0; i < selectedRows.length; i++) {
-                        // jTable1 has 7 cols matching Failed.jTable2: [مواد الدور الثاني(0), حالة
-                        // الطالب(1), رقم الجلوس(2), رقم التسجيل(3), المهنه(4), الاسم(5), م(6)]
+                        // jTable1 has 6 cols matching Failed.jTable2: [حالة الطالب(0), رقم الجلوس(1), رقم التسجيل(2), المهنه(3), الاسم(4), م(5)]
                         java.util.Vector rowData = (java.util.Vector) model1.getDataVector().get(selectedRows[i]);
-                        String prof = String.valueOf(model1.getValueAt(selectedRows[i], 4)).trim();
+                        String prof = String.valueOf(model1.getValueAt(selectedRows[i], 3)).trim();
                         if (prof.startsWith("<html>")) {
                             prof = prof.replaceAll("<[^>]*>", "");
                         }
