@@ -122,6 +122,37 @@ public class gradReportFailMixed extends JFrame {
         return failed.isEmpty() ? "" : String.join("<br/>", failed);
     }
 
+    /** مواد الرسوب بالدرجات للطالب */
+    private String failedSubjectsWithGrades(Student st) {
+        String status = st.getStatus();
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        if (!isAllowed) return "";
+
+        List<Subject> allSubs = subjectsFor(st.getProfession());
+        Map<Integer, List<Subject>> childMap = new HashMap<>();
+        List<Subject> parents = new ArrayList<>();
+        for (Subject s : allSubs) {
+            if (s.getParentSubjectId() == null) parents.add(s);
+            else childMap.computeIfAbsent(s.getParentSubjectId(), k -> new ArrayList<>()).add(s);
+        }
+
+        List<String> failed = new ArrayList<>();
+        Map<Integer, Integer> grades = st.getGrades();
+        for (Subject s : parents) {
+            List<Subject> ch = childMap.get(s.getId());
+            int mark = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(c -> grades != null ? grades.getOrDefault(c.getId(), 0) : 0).sum()
+                : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+            int pass = (ch != null && !ch.isEmpty())
+                ? ch.stream().mapToInt(Subject::getPassMark).sum()
+                : s.getPassMark();
+            if (mark < pass && s.getName() != null && !s.getName().isBlank()) {
+                failed.add(s.getName() + " (" + mark + ")");
+            }
+        }
+        return failed.isEmpty() ? "" : String.join("<br/>", failed);
+    }
+
     private String[] getFailedSubjectsArray(Student st) {
         String status = st.getStatus();
         boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
@@ -358,6 +389,7 @@ public class gradReportFailMixed extends JFrame {
     private static final String[] COLS = {
         "م", "الاسم", "رقم التسجيل", "الحرفة", "المجموعة المهنية",
         "الرقم القومي", "رقم الجلوس", "الرقم السري",
+        "المواد الراسب فيها ودرجاتها",
         "مجموع النظري", "العملي", "التطبيقي", "مجموع عملي وتطبيقي",
         "المجموع الكلي", "حالة التلميذ", "مواد الرسوب"
     };
@@ -375,7 +407,6 @@ public class gradReportFailMixed extends JFrame {
                 int[] totals = calcTotals(st);          // [theory, practical, applied]
                 int theory = totals[0], prac = totals[1], appl = totals[2];
                 int total  = theory + prac + appl;
-                String failed = failedSubjects(st);
 
                 int c = 0;
                 row[c++] = students.indexOf(st) + 1;
@@ -386,6 +417,7 @@ public class gradReportFailMixed extends JFrame {
                 row[c++] = st.getNationalId();
                 row[c++] = st.getSeatNo();
                 row[c++] = st.getSecretNo();
+                row[c++] = failedSubjectsWithGrades(st);
                 row[c++] = theory;
                 row[c++] = prac;
                 row[c++] = appl;
@@ -492,6 +524,7 @@ public class gradReportFailMixed extends JFrame {
         table.getColumn("الرقم القومي").setPreferredWidth(1200);
         table.getColumn("رقم الجلوس").setPreferredWidth(800);
         table.getColumn("الرقم السري").setPreferredWidth(700);
+        table.getColumn("المواد الراسب فيها ودرجاتها").setPreferredWidth(1600);
         table.getColumn("مجموع النظري").setPreferredWidth(600);
         table.getColumn("العملي").setPreferredWidth(500);
         table.getColumn("التطبيقي").setPreferredWidth(500);
