@@ -387,22 +387,34 @@ public class Detailers extends javax.swing.JFrame {
         int pageWidth = 1400;
         int rightMargin = pageWidth - 530; // 1400 - 530 = 870
         
+        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 22));
+
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         
-        jLabel1.setBounds(rightMargin, 10, 500, 25);
-        jLabel2.setBounds(rightMargin, 35, 500, 25);
-        jLabel3.setBounds(rightMargin, 60, 500, 25);
-        jLabel4.setBounds(rightMargin, 85, 500, 25);
+        jLabel1.setBounds(rightMargin, 10, 500, 30);
+        jLabel2.setBounds(rightMargin, 40, 500, 30);
+        jLabel3.setBounds(rightMargin, 70, 500, 30);
+        jLabel4.setBounds(rightMargin, 100, 500, 30);
 
         // School Head Data (Right) - Perfectly Aligned Under Ministry
-        int labelWidth = 100;
-        int valueWidth = 300;
-        int dataX_Right = pageWidth - 30 - labelWidth; // 1370 - 100 = 1270
+        int labelWidth = 120;
+        int valueWidth = 350;
+        int dataX_Right = pageWidth - 30 - labelWidth; // 1370 - 120 = 1250
         int dataX_Value = dataX_Right - valueWidth - 5; // Left of the label
         
+        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 22));
+        regoin.setFont(new Font("Tahoma", Font.BOLD, 22));
+        cent.setFont(new Font("Tahoma", Font.BOLD, 22));
+        system.setFont(new Font("Tahoma", Font.BOLD, 22));
+
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -410,21 +422,27 @@ public class Detailers extends javax.swing.JFrame {
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel7.setBounds(dataX_Right, 120, labelWidth, 30);
-        regoin.setBounds(dataX_Value, 120, valueWidth, 30);
+        jLabel7.setBounds(dataX_Right, 135, labelWidth, 30);
+        regoin.setBounds(dataX_Value, 135, valueWidth, 30);
         
-        jLabel9.setBounds(dataX_Right, 150, labelWidth, 30);
-        cent.setBounds(dataX_Value, 150, valueWidth, 30);
+        jLabel9.setBounds(dataX_Right, 170, labelWidth, 30);
+        cent.setBounds(dataX_Value, 170, valueWidth, 30);
         
-        jLabel12.setBounds(dataX_Right, 180, labelWidth, 30);
-        system.setBounds(dataX_Value, 180, valueWidth, 30);
+        jLabel12.setBounds(dataX_Right, 205, labelWidth, 30);
+        system.setBounds(dataX_Value, 205, valueWidth, 30);
 
         // Page & Dates (Left)
-        jLabel13.setBounds(30, 200, 150, 30); // الصفحة
+        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 18));
+
+        jLabel13.setBounds(30, 200, 250, 30); // الصفحة
         jLabel10.setBounds(30, 130, 450, 30); // دفعة قبول
         jLabel11.setBounds(30, 165, 450, 30); // المنعقد في
 
         // Center Title - Exactly Centered
+        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel6.setFont(new Font("Tahoma", Font.BOLD, 28));
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel5.setBounds((pageWidth - 600)/2, 70, 600, 40); // نتائج امتحان...
