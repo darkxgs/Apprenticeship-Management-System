@@ -228,36 +228,39 @@ public class Deprived extends javax.swing.JFrame {
         jPanel1.setBackground(java.awt.Color.WHITE);
 
         // Logo (Top Left)
-        jLabel8.setBounds(50, 20, 100, 100);
+        jLabel8.setBounds(30, 20, 100, 100);
 
-        // Page Info (Left under logo)
-        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel13.setBounds(30, 160, 250, 25); // الصفحة
-
-        // Ministry Info (Right Top)
-        int rAlign = 1000;
-        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 18));
+        // Ministry Info (Right Top) - Align to Far Right
+        int pageWidth = 1400;
+        int rightMargin = pageWidth - 530; // 1400 - 530 = 870
+        
+        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 22));
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        
+        jLabel1.setBounds(rightMargin, 10, 500, 30);
+        jLabel2.setBounds(rightMargin, 40, 500, 30);
+        jLabel3.setBounds(rightMargin, 70, 500, 30);
+        jLabel4.setBounds(rightMargin, 100, 500, 30);
 
-        jLabel1.setBounds(890, 10, 500, 25);
-        jLabel2.setBounds(890, 35, 500, 25);
-        jLabel3.setBounds(890, 60, 500, 25);
-        jLabel4.setBounds(890, 85, 500, 25);
-
-        // Region, Center, System below ministry
-        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 18));
-        regoin.setFont(new Font("Tahoma", Font.BOLD, 18));
-        cent.setFont(new Font("Tahoma", Font.BOLD, 18));
-        system.setFont(new Font("Tahoma", Font.BOLD, 18));
+        // School Head Data (Right) - Perfectly Aligned Under Ministry
+        int labelWidth = 120;
+        int valueWidth = 350;
+        int dataX_Right = pageWidth - 30 - labelWidth; // 1370 - 120 = 1250
+        int dataX_Value = dataX_Right - valueWidth - 5; // Left of the label
+        
+        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 22));
+        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 22));
+        regoin.setFont(new Font("Tahoma", Font.BOLD, 22));
+        cent.setFont(new Font("Tahoma", Font.BOLD, 22));
+        system.setFont(new Font("Tahoma", Font.BOLD, 22));
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -266,46 +269,45 @@ public class Deprived extends javax.swing.JFrame {
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        int dataX = 1050;
-        jLabel7.setBounds(dataX + 220, 120, 100, 30);
-        regoin.setBounds(dataX - 80, 120, 300, 30);
-        jLabel9.setBounds(dataX + 220, 150, 100, 30);
-        cent.setBounds(dataX - 80, 150, 300, 30);
-        jLabel12.setBounds(dataX + 220, 180, 100, 30);
-        system.setBounds(dataX - 80, 180, 300, 30);
+        jLabel7.setBounds(dataX_Right, 135, labelWidth, 30);
+        regoin.setBounds(dataX_Value, 135, valueWidth, 30);
+        
+        jLabel9.setBounds(dataX_Right, 170, labelWidth, 30);
+        cent.setBounds(dataX_Value, 170, valueWidth, 30);
+        
+        jLabel12.setBounds(dataX_Right, 205, labelWidth, 30);
+        system.setBounds(dataX_Value, 205, valueWidth, 30);
 
-        // Center Titles
-        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 18));
+        // Page & Dates (Left)
+        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 18));
+
+        jLabel13.setBounds(30, 200, 250, 30); // الصفحة
+        jLabel10.setBounds(30, 130, 450, 30); // دفعة قبول
+        jLabel11.setBounds(30, 165, 450, 30); // المنعقد في
+
+        // Center Title - Exactly Centered
+        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 22));
         jLabel6.setFont(new Font("Tahoma", Font.BOLD, 28));
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setBounds(400, 40, 600, 35);
-        jLabel6.setBounds(400, 80, 600, 50);
-
-        // Dates
-        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel10.setBounds(400, 140, 600, 25);
-        jLabel11.setBounds(400, 170, 600, 25);
+        jLabel5.setBounds((pageWidth - 600)/2, 70, 600, 40); // نتائج امتحان...
+        jLabel6.setBounds((pageWidth - 400)/2, 110, 400, 60); // تلاميذ محرومون
 
         // Table Content
-        int tableY = 220;
+        int tableY = 250;
         int rowH = 50;
         jTable2.setRowHeight(rowH);
+
+        // Fixed full-page height for 32 rows (32*50 = 1600)
         int tableHeight = 1600;
         jScrollPane2.setBounds(15, tableY, 1370, tableHeight);
 
         // Footer
         int separatorY = tableY + tableHeight + 20;
-        jSeparator1.setBounds(15, separatorY, 1370, 10);
-
         int labelsY = separatorY + 20;
-        jLabel16.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel17.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel18.setFont(new Font("Tahoma", Font.BOLD, 16));
-        jLabel14.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jSeparator1.setBounds(15, separatorY, 1370, 10);
 
         jLabel14.setBounds(1150, labelsY, 200, 40); // كتبه (right)
         jLabel18.setBounds(850, labelsY, 200, 40); // املاه
@@ -361,11 +363,6 @@ public class Deprived extends javax.swing.JFrame {
                 int width = 1400;
                 int height = 1980;
 
-                jPanel1.setSize(width, height);
-                jTable2.setSize(jTable2.getPreferredSize());
-                jPanel1.validate();
-                jPanel1.doLayout();
-
                 BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g2d = img.createGraphics();
 
@@ -377,7 +374,22 @@ public class Deprived extends javax.swing.JFrame {
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
                         java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-                jPanel1.printAll(g2d);
+                g2d.setColor(Color.WHITE);
+                g2d.fillRect(0, 0, width, height);
+
+                try {
+                    javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                        public void run() {
+                            jPanel1.setSize(width, height);
+                            jTable2.setSize(jTable2.getPreferredSize());
+                            jPanel1.validate();
+                            jPanel1.doLayout();
+                            jPanel1.printAll(g2d);
+                        }
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
                 g2d.dispose();
 
                 Image pdfImg = Image.getInstance(img, null);
@@ -658,7 +670,6 @@ public class Deprived extends javax.swing.JFrame {
             String centerName, String regionName, boolean isFirstCall) {
         try {
             int rowsPerPage = 32;
-            int totalPdfPages = 0;
 
             String folderStr = "التقارير/بدون درجات/محرومين";
             java.io.File folder = new java.io.File(folderStr);
@@ -667,76 +678,87 @@ public class Deprived extends javax.swing.JFrame {
             String sanitizedRegion = (regionName != null && !regionName.trim().isEmpty())
                     ? regionName.replace("/", "_").replace("\\", "_").replace(":", "_")
                     : "غير_محدد";
-            String baseFn = folderStr + "/" + sanitizedRegion + ".pdf";
+            String filePath = folderStr + "/" + sanitizedRegion + ".pdf";
 
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document(
-                    com.itextpdf.text.PageSize.A4);
-            com.itextpdf.text.pdf.PdfWriter writer = com.itextpdf.text.pdf.PdfWriter.getInstance(document,
-                    new java.io.FileOutputStream(baseFn));
+            Document document = new Document(PageSize.A4, 0, 0, 0, 0);
+            PdfWriter.getInstance(document, new FileOutputStream(filePath));
             document.open();
 
-            boolean isFirstSystem = true;
-            for (java.util.Map.Entry<String, java.util.List<java.util.Vector>> entry : bySystem.entrySet()) {
-                String systemName = entry.getKey();
-                java.util.List<java.util.Vector> systemData = entry.getValue();
+            boolean firstSystem = true;
+            DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
 
-                int systemTotalRows = systemData.size();
-                int systemPages = (int) Math.ceil((double) systemTotalRows / rowsPerPage);
+            for (java.util.Map.Entry<String, java.util.List<java.util.Vector>> sysEntry : bySystem.entrySet()) {
+                String sysName = sysEntry.getKey();
+                java.util.List<java.util.Vector> rows = sysEntry.getValue();
 
-                for (int p = 0; p < systemPages; p++) {
-                    if (!isFirstSystem || p > 0) {
+                system.setText(sysName);
+                cent.setText(centerName);
+                regoin.setText(regionName);
+
+                int totalRows = rows.size();
+                int pageCount = (int) Math.ceil((double) totalRows / rowsPerPage);
+                if (pageCount == 0)
+                    pageCount = 1;
+
+                int globalIndex = 1;
+                for (int page = 0; page < pageCount; page++) {
+                    if (!firstSystem || page > 0)
                         document.newPage();
-                        int width = 1400, height = 1980;
-                    }
-                    isFirstSystem = false;
+                    firstSystem = false;
 
-                    int start = p * rowsPerPage;
-                    int end = Math.min(start + rowsPerPage, systemTotalRows);
+                    model.setRowCount(0);
+                    int start = page * rowsPerPage;
+                    int end = Math.min(start + rowsPerPage, totalRows);
 
-                    DefaultTableModel tempModel = (DefaultTableModel) jTable2.getModel();
-                    tempModel.setRowCount(0);
                     for (int i = start; i < end; i++) {
-                        tempModel.addRow(systemData.get(i));
+                        java.util.Vector row = new java.util.Vector(rows.get(i));
+                        row.set(0, "محروم");
+                        row.set(5, globalIndex++);
+                        model.addRow(row);
+                    }
+                    while (model.getRowCount() < 32) {
+                        model.addRow(new Object[] { "", "", "", "", "", "" });
                     }
 
-                    // Pad with empty rows to reach 32
-                    while (tempModel.getRowCount() < 32) {
-                        tempModel.addRow(new Object[] { "", "", "", "", "", "" });
-                    }
+                    jLabel13.setText("صفحة " + toArabicNumbers(String.valueOf(page + 1))
+                            + " من " + toArabicNumbers(String.valueOf(pageCount)));
+                    buildPagePanel(model.getRowCount());
 
-                    this.cent.setText(centerName);
-                    this.regoin.setText(regionName);
-                    this.system.setText(systemName);
-
-                    this.jPanel1.validate();
-                    this.jPanel1.repaint();
-
-                    java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
-                            1300, 1840, java.awt.image.BufferedImage.TYPE_INT_RGB);
-                    java.awt.Graphics2D g2 = image.createGraphics();
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    int width = 1400, height = 1980;
+                    BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g2d = img.createGraphics();
+                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                             java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
                             java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                    jPanel1.setSize(1300, 1840);
-                    jPanel1.validate();
-                    jPanel1.doLayout();
-                    jPanel1.printAll(g2);
-                    g2.dispose();
 
-                    com.itextpdf.text.Image pdfImg = com.itextpdf.text.Image.getInstance(image, null);
-                    pdfImg.scaleToFit(document.getPageSize().getWidth() - 20, document.getPageSize().getHeight() - 20);
-                    pdfImg.setAlignment(com.itextpdf.text.Image.ALIGN_CENTER);
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, width, height);
+
+                    try {
+                        javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                            public void run() {
+                                jPanel1.setSize(width, height);
+                                jPanel1.validate();
+                                jPanel1.doLayout();
+                                jPanel1.printAll(g2d);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                    g2d.dispose();
+
+                    Image pdfImg = Image.getInstance(img, null);
+                    pdfImg.scaleAbsolute(document.getPageSize().getWidth(), document.getPageSize().getHeight());
+                    pdfImg.setAbsolutePosition(0, 0);
                     document.add(pdfImg);
                 }
             }
-
             document.close();
-            java.awt.Desktop.getDesktop().open(new java.io.File(folderStr));
-
+            Desktop.getDesktop().open(new java.io.File(folderStr));
         } catch (Exception e) {
             e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(null, "خطأ في إنشاء PDF: " + e.getMessage());
         }
     }
 }

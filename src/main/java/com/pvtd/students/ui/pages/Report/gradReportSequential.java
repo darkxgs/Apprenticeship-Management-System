@@ -306,14 +306,11 @@ public class gradReportSequential extends JFrame {
 
         // RIGHT
         gbc.gridx = 2; gbc.gridy = 0; gbc.weightx = 0.33;
-        JPanel right = new JPanel(new GridLayout(5, 1, 0, 10)); // Changed from 4 to 5
+        JPanel right = new JPanel();
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setOpaque(false);
         right.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        right.add(lbl("وزارة الصناعة", 250, true));
-        right.add(lbl("مصلحة الكفاية الإنتاجية والتدريب المهني", 250, true));
-        right.add(lbl("المنطقة / " + (region != null ? region : ""), 250, true));
-        right.add(lbl("مركز / " + (center != null ? center : ""), 250, true));
-        
+
         // جلب النظام من جدول المهن بناءً على اسم مهنة أول طالب
         String systemStr = "";
         if (chunk != null && !chunk.isEmpty()) {
@@ -337,9 +334,33 @@ public class gradReportSequential extends JFrame {
                 systemStr = chunk.get(0).getExamSystem();
             }
         }
-        
         if (systemStr == null) systemStr = "";
-        right.add(lbl("النظام / " + systemStr, 250, true));
+
+        JLabel l1 = lbl("وزارة الصناعة", 350, true);
+        JLabel l2 = lbl("مصلحة الكفاية الإنتاجية والتدريب المهني", 350, true);
+        JLabel l2_5 = lbl("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 350, true);
+        JLabel l3 = lbl("لجنة النظام والمراقبة", 350, true);
+
+        JLabel l4 = lbl("المنطقة / " + (region != null ? region.trim() : ""), 350, true);
+        JLabel l5 = lbl("مركز / " + (center != null ? center.trim() : ""), 350, true);
+        JLabel l6 = lbl("النظام / " + systemStr.trim(), 350, true);
+
+        l1.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l2.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l2_5.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l3.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l4.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l5.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l6.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        right.add(l1);
+        right.add(l2);
+        right.add(l2_5);
+        right.add(l3);
+        right.add(Box.createVerticalStrut(30));
+        right.add(l4);
+        right.add(l5);
+        right.add(l6);
         p.add(right, gbc);
 
         // CENTER
