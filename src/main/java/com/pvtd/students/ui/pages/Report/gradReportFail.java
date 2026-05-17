@@ -111,7 +111,7 @@ public class gradReportFail extends JFrame {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(new EmptyBorder(20, 50, 40, 50));
-        p.setPreferredSize(new Dimension(13000, 2500));
+        p.setPreferredSize(new Dimension(13000, 3500));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTH;
@@ -126,14 +126,14 @@ public class gradReportFail extends JFrame {
         rightPanel.setOpaque(false);
         rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        JLabel l1 = label("وزارة الصناعة", 400, true);
-        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 400, true);
-        JLabel l2_5 = label("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 400, true);
-        JLabel l3 = label("لجنة النظام والمراقبة", 400, true);
+        JLabel l1 = label("وزارة الصناعة", 350, true);
+        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 350, true);
+        JLabel l2_5 = label("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 350, true);
+        JLabel l3 = label("لجنة النظام والمراقبة", 350, true);
 
-        JLabel l4 = label("المنطقة / " + (region != null ? region.trim() : ""), 400, true);
-        JLabel l5 = label("مركز / " + (center != null ? center.trim() : ""), 400, true);
-        JLabel l6 = label("النظام / " + (system != null ? system.trim() : ""), 400, true);
+        JLabel l4 = label("المنطقة / " + (region != null ? region.trim() : ""), 350, true);
+        JLabel l5 = label("مركز / " + (center != null ? center.trim() : ""), 350, true);
+        JLabel l6 = label("النظام / " + (system != null ? system.trim() : ""), 350, true);
 
         l1.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l2.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -161,12 +161,12 @@ public class gradReportFail extends JFrame {
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setOpaque(false);
 
-        JLabel mainTitle = label("نتائج أمتحان دبلوم التلمذة الصناعية", 350, true);
+        JLabel mainTitle = label("نتائج أمتحان دبلوم التلمذة الصناعية", 220, true);
         mainTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainTitle.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(mainTitle);
 
-        JLabel sub = label("تلاميذ راسبون", 400, true);
+        JLabel sub = label("تلاميذ راسبون", 300, true);
         sub.setForeground(new Color(200, 50, 50));
         sub.setAlignmentX(Component.CENTER_ALIGNMENT);
         sub.setHorizontalAlignment(SwingConstants.CENTER);
@@ -175,13 +175,13 @@ public class gradReportFail extends JFrame {
         centerPanel.add(Box.createVerticalStrut(25));
 
         JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " وما قبلها",
-                280, true);
+                150, true);
 
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : " + selectedMonth, 280, true);
+        JLabel examDate = label("المنعقد في : " + selectedMonth, 150, true);
 
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
@@ -664,7 +664,7 @@ public class gradReportFail extends JFrame {
         int panelWidth = 13000;
         int panelHeight = (int) (panelWidth / 1.4142);
 
-        int headerH = 2500, footerH = 1000, tableHeaderH = 800;
+        int headerH = 3500, footerH = 1000, tableHeaderH = 800;
         int available = panelHeight - headerH - footerH - tableHeaderH - 200;
         int totalRows = 4 + 2; // 4 student rows + 2 header rows (max/min)
         int calculatedH = available / totalRows;
