@@ -376,7 +376,13 @@ public class DeprivedFramePage extends javax.swing.JFrame {
         }
         final String centerName = cmdcenter.getSelectedItem() != null ? cmdcenter.getSelectedItem().toString() : "";
         final String regionName = cn.getSelectedItem() != null ? cn.getSelectedItem().toString() : "";
-        Deprived report = new Deprived();
+
+        String[] filters = filterPanel.getSelectedMonths();
+        if (filters == null || filters.length < 6) return;
+        String selMonth = filters[4];
+        String admMonth = filters[5];
+
+        Deprived report = new Deprived(selMonth, admMonth);
         if (report.isCancelled) return;
         DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
         ReportWorker worker = new ReportWorker(this, "كشف طلاب محرومين (أساسي)", null) {
