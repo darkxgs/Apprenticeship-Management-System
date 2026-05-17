@@ -126,16 +126,18 @@ public class gradReportFail extends JFrame {
         rightPanel.setOpaque(false);
         rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        JLabel l1 = label("وزارة الصناعة", 150, true);
-        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 150, true);
-        JLabel l3 = label("لجنة النظام والمراقبة", 150, true);
+        JLabel l1 = label("وزارة الصناعة", 250, true);
+        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 250, true);
+        JLabel l2_5 = label("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 250, true);
+        JLabel l3 = label("لجنة النظام والمراقبة", 250, true);
 
-        JLabel l4 = label("المنطقة /" + (region != null ? region.trim() : ""), 150, true);
-        JLabel l5 = label("مركز /" + (center != null ? center.trim() : ""), 150, true);
-        JLabel l6 = label("النظام /" + (system != null ? system.trim() : ""), 150, true);
+        JLabel l4 = label("المنطقة / " + (region != null ? region.trim() : ""), 250, true);
+        JLabel l5 = label("مركز / " + (center != null ? center.trim() : ""), 250, true);
+        JLabel l6 = label("النظام / " + (system != null ? system.trim() : ""), 250, true);
 
         l1.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l2.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l2_5.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l3.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l4.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l5.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -143,6 +145,7 @@ public class gradReportFail extends JFrame {
 
         rightPanel.add(l1);
         rightPanel.add(l2);
+        rightPanel.add(l2_5);
         rightPanel.add(l3);
         rightPanel.add(Box.createVerticalStrut(30));
         rightPanel.add(l4);
