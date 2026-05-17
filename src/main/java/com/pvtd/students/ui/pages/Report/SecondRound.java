@@ -87,13 +87,13 @@ public class SecondRound extends javax.swing.JFrame {
             jTable2.getColumnModel().getColumn(2).setHeaderValue("<html><center>رقم<br>الجلوس</center></html>");
             jTable2.getColumnModel().getColumn(3).setHeaderValue("<html><center>رقم<br>التسجيل</center></html>");
 
-            jTable2.getColumnModel().getColumn(0).setPreferredWidth(350); // مواد الدور الثاني
-            jTable2.getColumnModel().getColumn(1).setPreferredWidth(100); // حالة التلميذ
-            jTable2.getColumnModel().getColumn(2).setPreferredWidth(140); // رقم الجلوس
-            jTable2.getColumnModel().getColumn(3).setPreferredWidth(150); // رقم التسجيل
-            jTable2.getColumnModel().getColumn(4).setPreferredWidth(310); // المهنة
-            jTable2.getColumnModel().getColumn(5).setPreferredWidth(270); // الاسم
-            jTable2.getColumnModel().getColumn(6).setPreferredWidth(50); // م
+            jTable2.getColumnModel().getColumn(0).setPreferredWidth(550); // مواد الدور الثاني
+            jTable2.getColumnModel().getColumn(1).setPreferredWidth(80);  // حالة التلميذ
+            jTable2.getColumnModel().getColumn(2).setPreferredWidth(110); // رقم الجلوس
+            jTable2.getColumnModel().getColumn(3).setPreferredWidth(120); // رقم التسجيل
+            jTable2.getColumnModel().getColumn(4).setPreferredWidth(260); // المهنة
+            jTable2.getColumnModel().getColumn(5).setPreferredWidth(210); // الاسم
+            jTable2.getColumnModel().getColumn(6).setPreferredWidth(40);  // م
         }
 
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
@@ -344,7 +344,7 @@ public class SecondRound extends javax.swing.JFrame {
                 for (int i = 0; i < count; i++) {
                     JLabel lbl = new JLabel();
                     lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-                    lbl.setFont(new Font("Tahoma", Font.BOLD, 15));
+                    lbl.setFont(new Font("Tahoma", Font.BOLD, 14));
                     lbl.setOpaque(true);
                     lbl.setBackground(Color.WHITE);
                     lbl.setForeground(Color.BLACK);
