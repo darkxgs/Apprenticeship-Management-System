@@ -342,12 +342,14 @@ public class SecondRound extends javax.swing.JFrame {
                     lbl.setForeground(Color.BLACK);
                     String text = (i < list.size()) ? list.get(i) : "";
                     lbl.setText("<html><center>" + text + "</center></html>");
-                    // Add borders between boxes (on the left of each box except the last one in RTL)
-                    int leftBorder = (i < count - 1) ? 1 : 0;
-                    lbl.setBorder(javax.swing.BorderFactory.createMatteBorder(0, leftBorder, 0, 0, Color.BLACK));
+                    
+                    // Pixel-perfect borders for each label inside the grid
+                    int rightBorder = (i == 0) ? 1 : 0;
+                    lbl.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 1, 1, rightBorder, Color.BLACK));
+                    
                     panel.add(lbl);
                 }
-                panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 1, 1, 1, Color.BLACK));
+                panel.setBorder(null);
                 return panel;
             }
         });

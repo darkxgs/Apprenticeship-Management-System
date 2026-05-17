@@ -516,11 +516,14 @@ public class gradReportSequential extends JFrame {
                         lbl.setForeground(Color.BLACK);
                         String text = (i < list.size()) ? list.get(i) : "";
                         lbl.setText("<html><center>" + text + "</center></html>");
-                        int left = (i < count - 1) ? 5 : 0;
-                        lbl.setBorder(BorderFactory.createMatteBorder(0, left, 0, 0, Color.BLACK));
+                        
+                        // Pixel-perfect borders for each label inside the grid
+                        int right = (i == 0) ? 5 : 0;
+                        lbl.setBorder(BorderFactory.createMatteBorder(5, 5, 5, right, Color.BLACK));
+                        
                         dynamicPanel.add(lbl);
                     }
-                    dynamicPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3));
+                    dynamicPanel.setBorder(null);
                     return dynamicPanel;
                 }
                 String txt = (val == null) ? "" : val.toString();
