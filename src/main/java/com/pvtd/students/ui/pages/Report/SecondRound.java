@@ -54,6 +54,12 @@ public class SecondRound extends javax.swing.JFrame {
 
         jTable2.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         jTable2.setFillsViewportHeight(true);
+
+        jTable2.setShowGrid(true);
+        jTable2.setGridColor(Color.GRAY);
+        jTable2.setShowHorizontalLines(true);
+        jTable2.setShowVerticalLines(true);
+
         JTableHeader header = jTable2.getTableHeader();
 
         // إنشاء منسق خلايا لضبط النص في المنتصف واختيار الخط مع خلفية بيضاء ثابتة
@@ -305,6 +311,11 @@ public class SecondRound extends javax.swing.JFrame {
         int tableY = 250;
         int rowH = 50;
         jTable2.setRowHeight(rowH);
+
+        jTable2.setShowGrid(true);
+        jTable2.setGridColor(Color.GRAY);
+        jTable2.setShowHorizontalLines(true);
+        jTable2.setShowVerticalLines(true);
 
         // Fixed full-page height for 32 rows (32*50 = 1600)
         int tableHeight = 1600;
