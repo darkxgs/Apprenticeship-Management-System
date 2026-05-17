@@ -421,7 +421,7 @@ public class gradReportSequential extends JFrame {
 
     private JPanel buildTable(List<Student> chunk, int pageNum) {
         String[] effectiveCols = COLS;
-        int[] widths = { 500, 5000, 2000, 5000, 4000, 3500, 1800, 1800, 1500, 1500, 1500, 1500, 1800, 1500, 1500, 1800, 1800, 1800, 4500, 2000 };
+        int[] widths = { 500, 4500, 2000, 4000, 2500, 3000, 1800, 1800, 1500, 1500, 1500, 1500, 1800, 1500, 1500, 1800, 1800, 1800, 8500, 2000 };
         
         if (shouldHideSecondRoundColumn()) {
             List<String> list = new ArrayList<>(Arrays.asList(COLS));
@@ -510,7 +510,7 @@ public class gradReportSequential extends JFrame {
                     for (int i = 0; i < count; i++) {
                         JLabel lbl = new JLabel();
                         lbl.setHorizontalAlignment(SwingConstants.CENTER);
-                        lbl.setFont(new Font("Tahoma", Font.BOLD, 140));
+                        lbl.setFont(new Font("Tahoma", Font.BOLD, 90));
                         lbl.setOpaque(true);
                         lbl.setBackground(Color.WHITE);
                         lbl.setForeground(Color.BLACK);
