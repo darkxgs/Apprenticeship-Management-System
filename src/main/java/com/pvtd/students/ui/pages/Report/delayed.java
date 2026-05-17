@@ -246,43 +246,42 @@ public class delayed extends javax.swing.JFrame {
      * scaling.
      */
     public void buildPagePanel(int rowCount) {
-        jPanel1.setLayout(null);
+        jPanel1.setLayout(null); // Force absolute layout to prevent GroupLayout clipping
         jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
         jPanel1.setSize(1400, 1980);
         jPanel1.setBackground(java.awt.Color.WHITE);
 
         // Logo (Top Left)
-        jLabel8.setBounds(50, 40, 120, 120);
+        jLabel8.setBounds(50, 20, 100, 100);
 
         // Page Info (Left under logo)
-        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 18));
-        jLabel13.setBounds(50, 170, 250, 30);
+        jLabel13.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel13.setBounds(30, 160, 250, 25); // الصفحة
 
-        // Ministry Info (Far Right Top) - Fixed Coordinates
-        int rightSideX = 900;
-        int rightSideWidth = 480; // Stretch to 1380
-        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 20));
+        // Ministry Info (Right Top)
+        int rAlign = 1000;
+        jLabel1.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel2.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel3.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel4.setFont(new Font("Tahoma", Font.BOLD, 18));
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        jLabel1.setBounds(rightSideX, 10, rightSideWidth, 30);
-        jLabel2.setBounds(rightSideX, 40, rightSideWidth, 30);
-        jLabel3.setBounds(rightSideX, 70, rightSideWidth, 30);
-        jLabel4.setBounds(rightSideX, 100, rightSideWidth, 30);
+        jLabel1.setBounds(890, 10, 500, 25);
+        jLabel2.setBounds(890, 35, 500, 25);
+        jLabel3.setBounds(890, 60, 500, 25);
+        jLabel4.setBounds(890, 85, 500, 25);
 
-        // Region, Center, System below ministry - Far Right
-        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 20));
-        regoin.setFont(new Font("Tahoma", Font.BOLD, 20));
-        cent.setFont(new Font("Tahoma", Font.BOLD, 20));
-        system.setFont(new Font("Tahoma", Font.BOLD, 20));
+        // Region, Center, System below ministry
+        jLabel7.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel9.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel12.setFont(new Font("Tahoma", Font.BOLD, 18));
+        regoin.setFont(new Font("Tahoma", Font.BOLD, 18));
+        cent.setFont(new Font("Tahoma", Font.BOLD, 18));
+        system.setFont(new Font("Tahoma", Font.BOLD, 18));
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -291,56 +290,48 @@ public class delayed extends javax.swing.JFrame {
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        int labelsX = 1260; 
-        int dataX = 850;
-        jLabel7.setBounds(labelsX, 140, 120, 30);
-        regoin.setBounds(dataX, 140, 410, 30);
-        jLabel9.setBounds(labelsX, 170, 120, 30);
-        cent.setBounds(dataX, 170, 410, 30);
-        jLabel12.setBounds(labelsX, 200, 120, 30);
-        system.setBounds(dataX, 200, 410, 30);
+        int dataX = 1050;
+        jLabel7.setBounds(dataX + 220, 120, 100, 30); regoin.setBounds(dataX - 80, 120, 300, 30);
+        jLabel9.setBounds(dataX + 220, 150, 100, 30); cent.setBounds(dataX - 80, 150, 300, 30);
+        jLabel12.setBounds(dataX + 220, 180, 100, 30); system.setBounds(dataX - 80, 180, 300, 30);
 
-        // Center Titles - Cover full width (1400) for absolute centering
-        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 24));
-        jLabel6.setFont(new Font("Tahoma", Font.BOLD, 36));
+        // Center Titles
+        jLabel5.setFont(new Font("Tahoma", Font.BOLD, 18));
+        jLabel6.setFont(new Font("Tahoma", Font.BOLD, 28));
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setBounds(0, 40, 1400, 45);
-        jLabel6.setBounds(0, 90, 1400, 60);
+        jLabel5.setBounds(400, 40, 600, 35);
+        jLabel6.setBounds(400, 80, 600, 50);
 
-        // Dates - Absolute Centering
-        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 20));
-        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 20));
+        // Dates
+        jLabel10.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel11.setFont(new Font("Tahoma", Font.BOLD, 16));
         jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel10.setBounds(0, 160, 1400, 30);
-        jLabel11.setBounds(0, 190, 1400, 30);
+        jLabel10.setBounds(400, 140, 600, 25);
+        jLabel11.setBounds(400, 170, 600, 25);
 
         // Table Content
-        int tableY = 260;
-        int tableWidth = 1350;
-        jScrollPane2.setBounds(25, tableY, tableWidth, 1550);
-        
-        jTable2.getColumnModel().getColumn(0).setPreferredWidth(150);
-        jTable2.getColumnModel().getColumn(1).setPreferredWidth(200);
-        jTable2.getColumnModel().getColumn(2).setPreferredWidth(200);
-        jTable2.getColumnModel().getColumn(3).setPreferredWidth(400);
-        jTable2.getColumnModel().getColumn(4).setPreferredWidth(350);
-        jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
+        int tableY = 220;
+        int rowH = 50; 
+        jTable2.setRowHeight(rowH);
+        int tableHeight = 1600;
+        jScrollPane2.setBounds(15, tableY, 1370, tableHeight);
 
         // Footer
-        int footerY = 1850;
-        jSeparator1.setBounds(25, footerY - 10, tableWidth, 5);
-        
-        jLabel14.setFont(new Font("Tahoma", Font.BOLD, 22));
-        jLabel18.setFont(new Font("Tahoma", Font.BOLD, 22));
-        jLabel17.setFont(new Font("Tahoma", Font.BOLD, 22));
-        jLabel16.setFont(new Font("Tahoma", Font.BOLD, 22));
+        int separatorY = tableY + tableHeight + 20;
+        jSeparator1.setBounds(15, separatorY, 1370, 10);
 
-        jLabel14.setBounds(1150, footerY, 200, 40);
-        jLabel18.setBounds(850, footerY, 200, 40);
-        jLabel17.setBounds(550, footerY, 200, 40);
-        jLabel16.setBounds(50, footerY, 350, 40);
+        int labelsY = separatorY + 20;
+        jLabel16.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel17.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel18.setFont(new Font("Tahoma", Font.BOLD, 16));
+        jLabel14.setFont(new Font("Tahoma", Font.BOLD, 16));
+
+        jLabel14.setBounds(1150, labelsY, 200, 40); // كتبه (right)
+        jLabel18.setBounds(850, labelsY, 200, 40); // املاه
+        jLabel17.setBounds(550, labelsY, 200, 40); // راجعه
+        jLabel16.setBounds(50, labelsY, 300, 40);  // رئيس اللجنة (left)
 
         jPanel1.doLayout();
         jPanel1.revalidate();
@@ -377,18 +368,31 @@ public class delayed extends javax.swing.JFrame {
                         + toArabicNumbers(String.valueOf(pageCount)));
                 buildPagePanel(model.getRowCount());
 
-                int width = 1400, height = 1980;
-                jPanel1.setSize(width, height);
-                jPanel1.validate();
-                jPanel1.doLayout();
+                int width = 1400;
+                int height = 1980;
 
                 BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g2d = img.createGraphics();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
-                        java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                jPanel1.printAll(g2d);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
+                g2d.setColor(Color.WHITE);
+                g2d.fillRect(0, 0, width, height);
+
+                try {
+                    javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                        public void run() {
+                            jPanel1.setSize(width, height);
+                            jTable2.setSize(jTable2.getPreferredSize());
+                            jPanel1.validate();
+                            jPanel1.doLayout();
+                            jPanel1.printAll(g2d);
+                        }
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
                 g2d.dispose();
 
                 Image pdfImg = Image.getInstance(img, null);
@@ -843,7 +847,6 @@ public class delayed extends javax.swing.JFrame {
             String centerName, String regionName, boolean isFirstCall) {
         try {
             int rowsPerPage = 32;
-            int totalPdfPages = 0;
 
             String folderStr = "التقارير/بدون درجات/مؤجلين";
             java.io.File folder = new java.io.File(folderStr);
@@ -854,7 +857,7 @@ public class delayed extends javax.swing.JFrame {
                     : "غير_محدد";
             String baseFn = folderStr + "/" + sanitizedRegion + ".pdf";
 
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A4);
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A4, 0, 0, 0, 0);
             com.itextpdf.text.pdf.PdfWriter writer = com.itextpdf.text.pdf.PdfWriter.getInstance(document,
                     new java.io.FileOutputStream(baseFn));
             document.open();
@@ -873,41 +876,51 @@ public class delayed extends javax.swing.JFrame {
                     }
                     isFirstSystem = false;
 
-                    int dataX = 1050;
                     int start = p * rowsPerPage;
                     int end = Math.min(start + rowsPerPage, systemTotalRows);
 
                     DefaultTableModel tempModel = (DefaultTableModel) jTable2.getModel();
                     tempModel.setRowCount(0);
-                    javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) jTable2.getModel();
-                    model.setRowCount(0);
                     for (int i = start; i < end; i++) {
-                        model.addRow(systemData.get(i));
+                        tempModel.addRow(systemData.get(i));
                     }
 
                     // Pad with empty rows to reach 32
-                    while (model.getRowCount() < 32) {
-                        model.addRow(new Object[] { "", "", "", "", "", "" });
+                    while (tempModel.getRowCount() < 32) {
+                        tempModel.addRow(new Object[] { "", "", "", "", "", "" });
                     }
 
                     this.cent.setText(centerName);
                     this.regoin.setText(regionName);
                     this.system.setText(systemName);
+                    jLabel13.setText("صفحة " + (p + 1) + " من " + systemPages);
 
-                    this.jPanel1.validate();
-                    this.jPanel1.repaint();
+                    buildPagePanel(tempModel.getRowCount());
+                    int width = 1400;
+                    int height = 1980;
 
-                    java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
-                            1300, 1840, java.awt.image.BufferedImage.TYPE_INT_RGB);
+                    java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
                     java.awt.Graphics2D g2 = image.createGraphics();
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
-                            java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                    jPanel1.setSize(1300, 1840);
-                    jPanel1.validate();
-                    jPanel1.doLayout();
-                    jPanel1.printAll(g2);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
+                    g2.setColor(java.awt.Color.WHITE);
+                    g2.fillRect(0, 0, width, height);
+
+                    try {
+                        javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                            public void run() {
+                                jPanel1.setSize(width, height);
+                                jTable2.setSize(jTable2.getPreferredSize());
+                                jPanel1.validate();
+                                jPanel1.doLayout();
+                                jPanel1.printAll(g2);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     g2.dispose();
 
                     com.itextpdf.text.Image pdfImg = com.itextpdf.text.Image.getInstance(image, null);
