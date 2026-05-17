@@ -122,37 +122,6 @@ public class gradReportFailMixed extends JFrame {
         return failed.isEmpty() ? "" : String.join("<br/>", failed);
     }
 
-    /** مواد الرسوب بالدرجات للطالب */
-    private String failedSubjectsWithGrades(Student st) {
-        String status = st.getStatus();
-        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
-        if (!isAllowed) return "";
-
-        List<Subject> allSubs = subjectsFor(st.getProfession());
-        Map<Integer, List<Subject>> childMap = new HashMap<>();
-        List<Subject> parents = new ArrayList<>();
-        for (Subject s : allSubs) {
-            if (s.getParentSubjectId() == null) parents.add(s);
-            else childMap.computeIfAbsent(s.getParentSubjectId(), k -> new ArrayList<>()).add(s);
-        }
-
-        List<String> failed = new ArrayList<>();
-        Map<Integer, Integer> grades = st.getGrades();
-        for (Subject s : parents) {
-            List<Subject> ch = childMap.get(s.getId());
-            int mark = (ch != null && !ch.isEmpty())
-                ? ch.stream().mapToInt(c -> grades != null ? grades.getOrDefault(c.getId(), 0) : 0).sum()
-                : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
-            int pass = (ch != null && !ch.isEmpty())
-                ? ch.stream().mapToInt(Subject::getPassMark).sum()
-                : s.getPassMark();
-            if (mark < pass && s.getName() != null && !s.getName().isBlank()) {
-                failed.add(s.getName() + " (" + mark + ")");
-            }
-        }
-        return failed.isEmpty() ? "" : String.join("<br/>", failed);
-    }
-
     private String[] getFailedSubjectsArray(Student st) {
         String status = st.getStatus();
         boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
@@ -207,6 +176,46 @@ public class gradReportFailMixed extends JFrame {
         if (failedApplied) res[5] = "تطبيقي";
         
         return res;
+    }
+
+    private String getTheorySubjectMark(Student st, int subjectIndex) {
+        // subjectIndex: 0=تكنولوجيا, 1=رسم, 2=ميكانيكا عامة, 3=لغة انجليزية
+        List<Subject> allSubs = subjectsFor(st.getProfession());
+        List<Subject> theoryParents = new java.util.ArrayList<>();
+        Map<Integer, List<Subject>> childMap = new HashMap<>();
+        for (Subject s : allSubs) {
+            if (s.getParentSubjectId() == null) {
+                if ("نظري".equals(s.getType())) theoryParents.add(s);
+            } else {
+                childMap.computeIfAbsent(s.getParentSubjectId(), k -> new java.util.ArrayList<>()).add(s);
+            }
+        }
+        if (subjectIndex >= theoryParents.size()) return "0";
+        Subject sub = theoryParents.get(subjectIndex);
+        List<Subject> ch = childMap.get(sub.getId());
+        Map<Integer, Integer> grades = st.getGrades();
+        
+        int mark;
+        if (ch != null && !ch.isEmpty()) {
+            mark = ch.stream().mapToInt(c2 -> grades != null ? grades.getOrDefault(c2.getId(), 0) : 0).sum();
+        } else {
+            mark = grades != null ? grades.getOrDefault(sub.getId(), 0) : 0;
+        }
+
+        // Handle specific status codes
+        if (mark == 0 && st.getStatus() != null) {
+            String s = st.getStatus();
+            if (s.contains("غائب")) mark = -1;
+            else if (s.contains("محروم")) mark = -2;
+            else if (s.contains("مفصول")) mark = -3;
+            else if (s.contains("معتذر")) mark = -4;
+            else if (s.contains("مؤجل")) mark = -5;
+        }
+
+        if (mark < 0) {
+            return "0";
+        }
+        return String.valueOf(mark);
     }
 
     // ─── PDF public API ────────────────────────────────────────────────────────
@@ -389,7 +398,7 @@ public class gradReportFailMixed extends JFrame {
     private static final String[] COLS = {
         "م", "الاسم", "رقم التسجيل", "الحرفة", "المجموعة المهنية",
         "الرقم القومي", "رقم الجلوس", "الرقم السري",
-        "المواد الراسب فيها ودرجاتها",
+        "تكنولوجيا", "رسم", "ميكانيكا عامة", "لغة انجليزية",
         "مجموع النظري", "العملي", "التطبيقي", "مجموع عملي وتطبيقي",
         "المجموع الكلي", "حالة التلميذ", "مواد الرسوب"
     };
@@ -407,6 +416,7 @@ public class gradReportFailMixed extends JFrame {
                 int[] totals = calcTotals(st);          // [theory, practical, applied]
                 int theory = totals[0], prac = totals[1], appl = totals[2];
                 int total  = theory + prac + appl;
+                String failed = failedSubjects(st);
 
                 int c = 0;
                 row[c++] = students.indexOf(st) + 1;
@@ -417,7 +427,10 @@ public class gradReportFailMixed extends JFrame {
                 row[c++] = st.getNationalId();
                 row[c++] = st.getSeatNo();
                 row[c++] = st.getSecretNo();
-                row[c++] = failedSubjectsWithGrades(st);
+                row[c++] = getTheorySubjectMark(st, 0); // تكنولوجيا
+                row[c++] = getTheorySubjectMark(st, 1); // رسم
+                row[c++] = getTheorySubjectMark(st, 2); // ميكانيكا عامة
+                row[c++] = getTheorySubjectMark(st, 3); // لغة انجليزية
                 row[c++] = theory;
                 row[c++] = prac;
                 row[c++] = appl;
@@ -524,7 +537,10 @@ public class gradReportFailMixed extends JFrame {
         table.getColumn("الرقم القومي").setPreferredWidth(1200);
         table.getColumn("رقم الجلوس").setPreferredWidth(800);
         table.getColumn("الرقم السري").setPreferredWidth(700);
-        table.getColumn("المواد الراسب فيها ودرجاتها").setPreferredWidth(1600);
+        table.getColumn("تكنولوجيا").setPreferredWidth(500);
+        table.getColumn("رسم").setPreferredWidth(450);
+        table.getColumn("ميكانيكا عامة").setPreferredWidth(600);
+        table.getColumn("لغة انجليزية").setPreferredWidth(600);
         table.getColumn("مجموع النظري").setPreferredWidth(600);
         table.getColumn("العملي").setPreferredWidth(500);
         table.getColumn("التطبيقي").setPreferredWidth(500);
