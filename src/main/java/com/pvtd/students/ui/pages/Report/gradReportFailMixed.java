@@ -83,8 +83,14 @@ public class gradReportFailMixed extends JFrame {
         for (Subject s : parents) {
             List<Subject> ch = childMap.get(s.getId());
             int mark = (ch != null && !ch.isEmpty())
-                ? ch.stream().mapToInt(c -> grades != null ? grades.getOrDefault(c.getId(), 0) : 0).sum()
+                ? ch.stream().mapToInt(c -> {
+                      int val = grades != null ? grades.getOrDefault(c.getId(), 0) : 0;
+                      return val < 0 ? 0 : val;
+                  }).sum()
                 : (grades != null ? grades.getOrDefault(s.getId(), 0) : 0);
+            
+            if (mark < 0) mark = 0;
+
             if ("نظري".equals(s.getType()))       theory     += mark;
             else if ("تطبيقي".equals(s.getType())) applied    += mark;
             else                                    practical  += mark;
