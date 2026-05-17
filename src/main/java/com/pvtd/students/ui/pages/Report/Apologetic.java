@@ -707,17 +707,31 @@ public void loadCenterData(String centerName) {
                     jLabel13.setText("صفحة " + (p + 1) + " من " + systemPages);
                     
                     buildPagePanel(tempModel.getRowCount());
-                                        int width = 1400;
-                                int height = 1980;
-jPanel1.setSize(width, height);
-                    jPanel1.validate();
-                    jPanel1.doLayout();
-                    
+                    int width = 1400;
+                    int height = 1980;
+
                     java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
                     java.awt.Graphics2D g2 = image.createGraphics();
                     g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                     g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                    jPanel1.printAll(g2);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
+                    g2.setColor(java.awt.Color.WHITE);
+                    g2.fillRect(0, 0, width, height);
+
+                    try {
+                        javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+                            public void run() {
+                                jPanel1.setSize(width, height);
+                                jTable2.setSize(jTable2.getPreferredSize());
+                                jPanel1.validate();
+                                jPanel1.doLayout();
+                                jPanel1.printAll(g2);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     g2.dispose();
                     
                     com.itextpdf.text.Image pdfImg = com.itextpdf.text.Image.getInstance(image, null);
