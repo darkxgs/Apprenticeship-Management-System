@@ -198,8 +198,8 @@ public class SecondRound extends javax.swing.JFrame {
                 String[] failedArr = getFailedSubjectsForSeat(seatNo);
 
                 model.addRow(new Object[] {
-                        "دور ثاني", // 0: حالة التلميذ
-                        failedArr,   // 1: مواد الدور الثاني
+                        failedArr,   // 0: مواد الدور الثاني
+                        "دور ثاني", // 1: حالة التلميذ
                         seatNo,      // 2: رقم الجلوس
                         rs.getString("registration_no"), // 3: رقم التسجيل
                         htmlProf, // 4: المهنة
@@ -229,15 +229,15 @@ public class SecondRound extends javax.swing.JFrame {
      */
     public void buildPagePanel(int rowCount) {
         jPanel1.setLayout(null);
-        jPanel1.setPreferredSize(new java.awt.Dimension(1400, 1980));
-        jPanel1.setSize(1400, 1980);
+        jPanel1.setPreferredSize(new java.awt.Dimension(2800, 1980));
+        jPanel1.setSize(2800, 1980);
         jPanel1.setBackground(java.awt.Color.WHITE);
 
         // Logo (Top Left)
         jLabel8.setBounds(50, 40, 120, 120);
 
         // Ministry Info (Right Top) - محاذاة أقصى اليمين لتجنب التداخل
-        int rAlignX = 1000; // تم تحريكه لليمين أكثر
+        int rAlignX = 2370; // تم تحريكه لليمين أكثر
         int rWidth = 380;
         jLabel1.setFont(new Font("Tahoma", Font.BOLD, 20));
         jLabel2.setFont(new Font("Tahoma", Font.BOLD, 20));
@@ -269,8 +269,8 @@ public class SecondRound extends javax.swing.JFrame {
         cent.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         system.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        int labelsX = 1250; 
-        int dataX = 900;
+        int labelsX = 2650; 
+        int dataX = 2300;
         jLabel7.setBounds(labelsX, 140, 120, 30);
         regoin.setBounds(dataX, 140, 350, 30);
         jLabel9.setBounds(labelsX, 170, 120, 30);
@@ -284,36 +284,36 @@ public class SecondRound extends javax.swing.JFrame {
         jLabel6.setText("تلاميذ راسبون ولهم حق دخول الدور الثاني");
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setBounds(400, 40, 550, 45);
-        jLabel6.setBounds(400, 90, 550, 60);
+        jLabel5.setBounds(1125, 40, 550, 45);
+        jLabel6.setBounds(1125, 90, 550, 60);
 
         // Dates
         jLabel10.setFont(new Font("Tahoma", Font.BOLD, 20));
         jLabel11.setFont(new Font("Tahoma", Font.BOLD, 20));
         jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel10.setBounds(400, 160, 550, 30);
-        jLabel11.setBounds(400, 190, 550, 30);
+        jLabel10.setBounds(1125, 160, 550, 30);
+        jLabel11.setBounds(1125, 190, 550, 30);
 
         // Table Content - تفعيل الخطوط (Grid)
         int tableY = 260;
-        int tableWidth = 1350;
+        int tableWidth = 2750;
         jScrollPane1.setBounds(25, tableY, tableWidth, 1550);
         
         jTable2.setShowGrid(true);
         jTable2.setGridColor(new java.awt.Color(150, 150, 150));
         
         // ضبط عرض الأعمدة
-        jTable2.getColumnModel().getColumn(0).setPreferredWidth(100);
-        jTable2.getColumnModel().getColumn(1).setPreferredWidth(350);
-        jTable2.getColumnModel().getColumn(2).setPreferredWidth(150);
-        jTable2.getColumnModel().getColumn(3).setPreferredWidth(150);
-        jTable2.getColumnModel().getColumn(4).setPreferredWidth(300);
-        jTable2.getColumnModel().getColumn(5).setPreferredWidth(250);
-        jTable2.getColumnModel().getColumn(6).setPreferredWidth(50);
+        jTable2.getColumnModel().getColumn(0).setPreferredWidth(900); // مواد الدور الثاني
+        jTable2.getColumnModel().getColumn(1).setPreferredWidth(150); // حالة التلميذ
+        jTable2.getColumnModel().getColumn(2).setPreferredWidth(200); // رقم الجلوس
+        jTable2.getColumnModel().getColumn(3).setPreferredWidth(250); // رقم التسجيل
+        jTable2.getColumnModel().getColumn(4).setPreferredWidth(650); // المهنة
+        jTable2.getColumnModel().getColumn(5).setPreferredWidth(500); // الاسم
+        jTable2.getColumnModel().getColumn(6).setPreferredWidth(100); // م
 
         // Custom renderer for مواد الدور الثاني column
-        jTable2.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
+        jTable2.getColumnModel().getColumn(0).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
                 String[] arr = val instanceof String[] ? (String[]) val : new String[0];
@@ -336,7 +336,7 @@ public class SecondRound extends javax.swing.JFrame {
                 for (int i = 0; i < count; i++) {
                     JLabel lbl = new JLabel();
                     lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-                    lbl.setFont(new Font("Tahoma", Font.BOLD, 14));
+                    lbl.setFont(new Font("Tahoma", Font.BOLD, 22));
                     lbl.setOpaque(true);
                     lbl.setBackground(Color.WHITE);
                     lbl.setForeground(Color.BLACK);
@@ -363,9 +363,9 @@ public class SecondRound extends javax.swing.JFrame {
         jLabel17.setFont(new Font("Tahoma", Font.BOLD, 22));
         jLabel16.setFont(new Font("Tahoma", Font.BOLD, 22));
 
-        jLabel14.setBounds(1150, footerY, 200, 40);
-        jLabel18.setBounds(850, footerY, 200, 40);
-        jLabel17.setBounds(550, footerY, 200, 40);
+        jLabel14.setBounds(2550, footerY, 200, 40);
+        jLabel18.setBounds(1750, footerY, 200, 40);
+        jLabel17.setBounds(950, footerY, 200, 40);
         jLabel16.setBounds(50, footerY, 350, 40);
 
         jPanel1.doLayout();
@@ -383,7 +383,7 @@ public class SecondRound extends javax.swing.JFrame {
             int totalRows = allData.size();
             int pageCount = (int) Math.ceil((double) totalRows / rowsPerPage);
 
-            Document document = new Document(PageSize.A4, 0, 0, 0, 0);
+            Document document = new Document(PageSize.A3.rotate(), 0, 0, 0, 0);
             PdfWriter.getInstance(document, new FileOutputStream("report.pdf"));
             document.open();
 
@@ -400,8 +400,8 @@ public class SecondRound extends javax.swing.JFrame {
                     String seatNo = String.valueOf(row.get(1)); // index 1 is seat_no in ScoundRoundFramePage model
                     String[] failedArr = getFailedSubjectsForSeat(seatNo);
                     java.util.Vector newRow = new java.util.Vector();
-                    newRow.add("دور ثاني"); // 0
-                    newRow.add(failedArr);   // 1
+                    newRow.add(failedArr);   // 0
+                    newRow.add("دور ثاني"); // 1
                     newRow.add(seatNo);      // 2
                     newRow.add(row.get(2));  // 3: registration_no
                     newRow.add(row.get(3));  // 4: profession
@@ -419,7 +419,7 @@ public class SecondRound extends javax.swing.JFrame {
                 // + toArabicNumbers(String.valueOf(pageCount)));
                 buildPagePanel(model.getRowCount());
 
-                int width = 1400;
+                int width = 2800;
                 int height = 1980;
 
                 jPanel1.setSize(width, height);
@@ -600,7 +600,7 @@ public class SecondRound extends javax.swing.JFrame {
                     : "غير_محدد";
             String filePath = folderStr + "/" + sanitizedRegion + ".pdf";
 
-            Document document = new Document(PageSize.A4, 0, 0, 0, 0);
+            Document document = new Document(PageSize.A3.rotate(), 0, 0, 0, 0);
             PdfWriter.getInstance(document, new FileOutputStream(filePath));
             document.open();
 
@@ -635,8 +635,8 @@ public class SecondRound extends javax.swing.JFrame {
                         String[] failedArr = getFailedSubjectsForSeat(seatNo);
                         
                         java.util.Vector newRow = new java.util.Vector();
-                        newRow.add("دور ثاني"); // 0
-                        newRow.add(failedArr);   // 1
+                        newRow.add(failedArr);   // 0
+                        newRow.add("دور ثاني"); // 1
                         newRow.add(seatNo);      // 2
                         newRow.add(row.get(2));  // 3: registration_no
                         newRow.add(row.get(3));  // 4: profession
@@ -652,7 +652,7 @@ public class SecondRound extends javax.swing.JFrame {
                             + " من " + toArabicNumbers(String.valueOf(pageCount)));
                     buildPagePanel(model.getRowCount());
 
-                    int width = 1400, height = 1980;
+                    int width = 2800, height = 1980;
                     jPanel1.setSize(width, height);
                     jTable2.setSize(jTable2.getPreferredSize());
                     jPanel1.validate();
@@ -819,7 +819,7 @@ public class SecondRound extends javax.swing.JFrame {
                         { null, null, null, null, null, null }
                 },
                 new String[] {
-                        "حالة التلميذ", "مواد الدور الثاني", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
+                        "مواد الدور الثاني", "حالة التلميذ", "رقم الجلوس", "رقم التسجيل", "المهنة", "الاسم", "م"
                 }));
         jScrollPane1.setViewportView(jTable2);
 
