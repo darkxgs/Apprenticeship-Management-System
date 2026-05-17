@@ -126,14 +126,14 @@ public class gradReportFail extends JFrame {
         rightPanel.setOpaque(false);
         rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
-        JLabel l1 = label("وزارة الصناعة", 250, true);
-        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 250, true);
-        JLabel l2_5 = label("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 250, true);
-        JLabel l3 = label("لجنة النظام والمراقبة", 250, true);
+        JLabel l1 = label("وزارة الصناعة", 450, true);
+        JLabel l2 = label("مصلحة الكفاية الإنتاجية والتدريب المهني", 450, true);
+        JLabel l2_5 = label("الرئاسة العامة للامتحانات لدبلوم التلمذة الصناعية", 450, true);
+        JLabel l3 = label("لجنة النظام والمراقبة", 450, true);
 
-        JLabel l4 = label("المنطقة / " + (region != null ? region.trim() : ""), 250, true);
-        JLabel l5 = label("مركز / " + (center != null ? center.trim() : ""), 250, true);
-        JLabel l6 = label("النظام / " + (system != null ? system.trim() : ""), 250, true);
+        JLabel l4 = label("المنطقة / " + (region != null ? region.trim() : ""), 450, true);
+        JLabel l5 = label("مركز / " + (center != null ? center.trim() : ""), 450, true);
+        JLabel l6 = label("النظام / " + (system != null ? system.trim() : ""), 450, true);
 
         l1.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l2.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -161,12 +161,12 @@ public class gradReportFail extends JFrame {
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setOpaque(false);
 
-        JLabel mainTitle = label("نتائج أمتحان دبلوم التلمذة الصناعية", 220, true);
+        JLabel mainTitle = label("نتائج أمتحان دبلوم التلمذة الصناعية", 380, true);
         mainTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainTitle.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(mainTitle);
 
-        JLabel sub = label("تلاميذ راسبون", 300, true);
+        JLabel sub = label("تلاميذ راسبون", 500, true);
         sub.setForeground(new Color(200, 50, 50));
         sub.setAlignmentX(Component.CENTER_ALIGNMENT);
         sub.setHorizontalAlignment(SwingConstants.CENTER);
@@ -175,13 +175,13 @@ public class gradReportFail extends JFrame {
         centerPanel.add(Box.createVerticalStrut(25));
 
         JLabel batchInfo = label("دفعة قبول : " + admissionMonth + " وما قبلها",
-                150, true);
+                300, true);
 
         batchInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
         batchInfo.setHorizontalAlignment(SwingConstants.CENTER);
         centerPanel.add(batchInfo);
 
-        JLabel examDate = label("المنعقد في : " + selectedMonth, 150, true);
+        JLabel examDate = label("المنعقد في : " + selectedMonth, 300, true);
 
         examDate.setAlignmentX(Component.CENTER_ALIGNMENT);
         examDate.setHorizontalAlignment(SwingConstants.CENTER);
