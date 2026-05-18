@@ -694,7 +694,7 @@ public class Failed extends javax.swing.JFrame {
         public void loadCenterData(String centerName) {
                 try (Connection con = DatabaseConnection.getConnection()) {
                         String sql = """
-                                        SELECT DISTINCT s.region, NVL(p.exam_system, 'نظامي') as exam_system
+                                        SELECT DISTINCT s.region, p.exam_system as exam_system
                                         FROM students s
                                         LEFT JOIN professions p ON TRIM(p.name) = TRIM(s.profession)
                                         WHERE s.center_name = ?
@@ -707,12 +707,13 @@ public class Failed extends javax.swing.JFrame {
                                         if (rs.next()) {
                                                 String regio = rs.getString("region");
                                                 String syste = rs.getString("exam_system");
+                                                if (syste != null && syste.trim().equals("نظامي")) syste = "";
 
                                                 regoin.setText(regio != null ? regio : "—");
-                                                system.setText(syste != null ? syste : "نظامي");
+                                                system.setText(syste != null ? syste : "");
                                         } else {
                                                 regoin.setText("—");
-                                                system.setText("نظامي");
+                                                system.setText("");
                                         }
                                 }
                         }

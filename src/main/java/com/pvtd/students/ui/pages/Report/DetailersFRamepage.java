@@ -406,14 +406,15 @@ public class DetailersFRamepage extends javax.swing.JFrame {
                         while (rs.next()) {
                             String pName = rs.getString("name");
                             String pSys = rs.getString("exam_system");
-                            if (pName != null) profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
+                            if (pName != null) profToSystem.put(pName.trim(), pSys != null ? pSys : "");
                         }
                     }
                     for (int i = 0; i < selectedRows.length; i++) {
                         java.util.Vector rowData = (java.util.Vector) model1.getDataVector().get(selectedRows[i]);
                         String prof = String.valueOf(model1.getValueAt(selectedRows[i], 3)).trim();
                         if (prof.startsWith("<html>")) prof = prof.replaceAll("<[^>]*>", "");
-                        String systemName = profToSystem.getOrDefault(prof, "نظامي");
+                        String systemName = profToSystem.getOrDefault(prof, "");
+                        if (systemName.equals("نظامي")) systemName = "";
                         bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
                     }
                 }

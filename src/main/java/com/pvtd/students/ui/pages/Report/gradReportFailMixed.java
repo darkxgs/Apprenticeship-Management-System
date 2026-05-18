@@ -343,6 +343,7 @@ public class gradReportFailMixed extends JFrame {
             }
         }
         if (systemStr == null) systemStr = "";
+        if (systemStr.trim().equals("نظامي")) systemStr = "";
 
         for (String t : new String[]{
             "المنطقة /" + (region != null ? region.trim() : ""),

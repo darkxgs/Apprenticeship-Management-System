@@ -335,6 +335,7 @@ public class gradReportSequential extends JFrame {
             }
         }
         if (systemStr == null) systemStr = "";
+        if (systemStr.trim().equals("نظامي")) systemStr = "";
 
         JLabel l1 = lbl("وزارة الصناعة", 350, true);
         JLabel l2 = lbl("مصلحة الكفاية الإنتاجية والتدريب المهني", 350, true);

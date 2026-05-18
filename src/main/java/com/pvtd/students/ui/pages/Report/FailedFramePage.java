@@ -674,7 +674,7 @@ public class FailedFramePage extends javax.swing.JFrame {
                             String pName = rs.getString("name");
                             String pSys = rs.getString("exam_system");
                             if (pName != null) {
-                                profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
+                                profToSystem.put(pName.trim(), pSys != null ? pSys : "");
                             }
                         }
                     }
@@ -687,7 +687,8 @@ public class FailedFramePage extends javax.swing.JFrame {
                             prof = prof.replaceAll("<[^>]*>", "");
                         }
 
-                        String systemName = profToSystem.getOrDefault(prof, "نظامي");
+                        String systemName = profToSystem.getOrDefault(prof, "");
+                        if (systemName.equals("نظامي")) systemName = "";
                         bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
                     }
                 }

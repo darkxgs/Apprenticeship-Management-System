@@ -30,7 +30,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SucssfullPageEdit.class.getName());
 
     /** Caches the exam_system fetched from loadStudents — used by both reports */
-    private String loadedSystemName = "نظامي";
+    private String loadedSystemName = "";
 
     private void buttonSecretReportActionPerformed(java.awt.event.ActionEvent evt) {
         int[] selectedRows = jTable1.getSelectedRows();
@@ -160,7 +160,9 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                                 for (int j = 0; j < batch.size(); j++) psSys.setString(j + 1, batch.get(j));
                                 try (ResultSet rsSys = psSys.executeQuery()) {
                                     while (rsSys.next()) {
-                                        allStudentSystems.put(rsSys.getString("name").trim(), rsSys.getString("exam_system") != null ? rsSys.getString("exam_system").trim() : systemName);
+                                        String fetchedSys = rsSys.getString("exam_system");
+                                        if (fetchedSys != null && fetchedSys.trim().equals("نظامي")) fetchedSys = "";
+                                        allStudentSystems.put(rsSys.getString("name").trim(), fetchedSys != null ? fetchedSys.trim() : systemName);
                                     }
                                 }
                             }
@@ -499,7 +501,7 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                         while (rs.next()) {
                             String pName = rs.getString("name");
                             String pSys = rs.getString("exam_system");
-                            if (pName != null) profToSystem.put(pName.trim(), pSys != null ? pSys : "نظامي");
+                            if (pName != null) profToSystem.put(pName.trim(), pSys != null ? pSys : "");
                         }
                     }
                     for (int i = 0; i < selectedRows.length; i++) {
@@ -507,7 +509,8 @@ public class SucssfullPageEdit extends javax.swing.JFrame {
                         String name = String.valueOf(model1.getValueAt(r, 6) != null ? model1.getValueAt(r, 6) : "");
                         String prof = String.valueOf(model1.getValueAt(r, 5) != null ? model1.getValueAt(r, 5) : "");
                         String cleanProf = prof.replaceAll("<[^>]*>", "").trim();
-                        String systemName = profToSystem.getOrDefault(cleanProf, "نظامي");
+                        String systemName = profToSystem.getOrDefault(cleanProf, "");
+                        if (systemName.equals("نظامي")) systemName = "";
                         String htmlName = "<html><center>" + name.trim() + "</center></html>";
                         String htmlProf = "<html><center>" + prof.trim() + "</center></html>";
                         java.util.Vector rowData = new java.util.Vector();
