@@ -1,0 +1,26 @@
+# === Build Output ===
+target/
+
+# === ZIP Archives (build artifacts) ===
+*.zip
+
+# === Root-level Java Runtime (duplicate - already in application/runtime/) ===
+/runtime/
+
+# === Root-level app/ (duplicate - already in application/app/) ===
+/app/
+
+# === Compiled Java class files ===
+*.class
+
+# === Temporary/scratch files ===
+tmp_size_check.ps1
+*.log
+/scratch/
+
+# === IDE files ===
+.vscode/
+
+# === Python cache ===
+__pycache__/
+*.pyc

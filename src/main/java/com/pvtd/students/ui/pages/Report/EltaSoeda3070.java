@@ -1,0 +1,419 @@
+package com.pvtd.students.ui.pages.Report;
+
+import com.pvtd.students.db.DatabaseConnection;
+import java.awt.*;
+import com.pvtd.students.models.Student;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
+/**
+ * تسويدة رصد درجات الـ 30/70
+ * يعرض فقط الطلاب الذين حرفتهم تستخدم نظام الـ (مادة أب / مادة ابن) - 30/70
+ */
+public class EltaSoeda3070 extends JFrame {
+
+    private JComboBox<String> comboRegion;
+    private JComboBox<String> comboCenter;
+    private JComboBox<String> comboProf;
+    private JTable jTable1;
+    private JScrollPane jScrollPane1;
+    private JButton btnSelectAll;
+    private com.pvtd.students.ui.components.ButtonGradient btnGenerate;
+
+    public EltaSoeda3070() {
+        setTitle("تسويدة الدرجات - نظام 30/70");
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        initComponents();
+        setupTableUi();
+        loadFilters();
+        loadStudents("الكل", "الكل", "الكل");
+    }
+
+    private void initComponents() {
+        setLayout(new BorderLayout());
+
+        // ── Toolbar ──────────────────────────────────────────────────
+        JPanel toolbar = new JPanel(new GridBagLayout());
+        toolbar.setBackground(new Color(0, 102, 51));
+        toolbar.setPreferredSize(new Dimension(1000, 100));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 15, 0, 15);
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.BOTH;
+
+        // Title
+        JLabel title = new JLabel("تسويدة رصد درجات 30 / 70");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(Color.WHITE);
+        gbc.gridx = 5;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 50, 0, 20);
+        toolbar.add(title, gbc);
+
+        // Combo المنطقة
+        comboRegion = new JComboBox<>();
+        comboRegion.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        comboRegion.setPreferredSize(new Dimension(180, 40));
+        comboRegion.addActionListener(e -> onRegionChanged());
+        gbc.gridx = 2;
+        gbc.ipadx = 100;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, 15, 0, 15);
+        toolbar.add(comboRegion, gbc);
+
+        // Combo المركز
+        comboCenter = new JComboBox<>();
+        comboCenter.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        comboCenter.setPreferredSize(new Dimension(180, 40));
+        comboCenter.addActionListener(e -> refreshTable());
+        gbc.gridx = 1;
+        toolbar.add(comboCenter, gbc);
+
+        // Combo المهنة
+        comboProf = new JComboBox<>();
+        comboProf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        comboProf.setPreferredSize(new Dimension(180, 40));
+        comboProf.addActionListener(e -> refreshTable());
+        gbc.gridx = 0;
+        toolbar.add(comboProf, gbc);
+
+        // تحديد الكل
+        btnSelectAll = new JButton("تحديد الكل");
+        btnSelectAll.setBackground(new Color(51, 102, 255));
+        btnSelectAll.setForeground(Color.WHITE);
+        btnSelectAll.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnSelectAll.addActionListener(e -> jTable1.selectAll());
+        gbc.gridx = 3;
+        gbc.ipadx = 10;
+        toolbar.add(btnSelectAll, gbc);
+
+        // زر إنشاء التسويده
+        btnGenerate = new com.pvtd.students.ui.components.ButtonGradient();
+        btnGenerate.setText("إنشاء التسويده 30/70");
+        btnGenerate.setColor1(new Color(0, 153, 102));
+        btnGenerate.setColor2(new Color(0, 102, 51));
+        btnGenerate.addActionListener(e -> generateReport());
+        gbc.gridx = 4;
+        gbc.ipadx = 30;
+        toolbar.add(btnGenerate, gbc);
+
+        add(toolbar, BorderLayout.NORTH);
+
+        // ── Table ─────────────────────────────────────────────────────
+        jTable1 = new JTable(new DefaultTableModel(
+                new Object[][] {},
+                new String[] { "الحالة", "الرقم السري", "رقم الجلوس", "الرقم القومي", "الحرفة", "كود التنسيق",
+                        "رقم التسجيل", "الاسم" }) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        });
+        jScrollPane1 = new JScrollPane(jTable1);
+        add(jScrollPane1, BorderLayout.CENTER);
+    }
+
+    private void setupTableUi() {
+        jTable1.setRowHeight(45);
+        jTable1.setFont(new Font("Arial", Font.PLAIN, 18));
+        if (jTable1.getTableHeader() != null) {
+            jTable1.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
+            jTable1.getTableHeader().setPreferredSize(new Dimension(0, 45));
+            jTable1.getTableHeader().setBackground(new Color(204, 255, 255));
+        }
+        jTable1.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        jTable1.setForeground(Color.BLACK);
+        jTable1.setSelectionBackground(new Color(135, 206, 250));
+        jTable1.setSelectionForeground(Color.BLACK);
+        jTable1.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected)
+                    c.setBackground(Color.WHITE);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        });
+    }
+
+    // ── Data loading ──────────────────────────────────────────────────
+
+    private void loadFilters() {
+        comboRegion.removeAllItems();
+        comboRegion.addItem("الكل");
+        java.util.List<String> regions = com.pvtd.students.services.DictionaryService
+                .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_REGION);
+        for (String r : regions) {
+            comboRegion.addItem(r);
+        }
+
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+
+        comboProf.removeAllItems();
+        comboProf.addItem("الكل");
+        java.util.List<String> professions = com.pvtd.students.services.DictionaryService
+                .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_PROFESSION);
+        for (String p : professions) {
+            comboProf.addItem(p);
+        }
+    }
+
+    private void loadCenters(String region) {
+        comboCenter.removeAllItems();
+        comboCenter.addItem("الكل");
+        if (region.equals("الكل")) {
+            java.util.List<String> centers = com.pvtd.students.services.DictionaryService
+                    .getCombinedItems(com.pvtd.students.services.DictionaryService.CAT_CENTER);
+            for (String c : centers) {
+                comboCenter.addItem(c);
+            }
+        } else {
+            java.util.Map<String, String> centers = com.pvtd.students.services.StudentService
+                    .getCentersByRegionWithCodes(region);
+            for (String c : centers.keySet()) {
+                comboCenter.addItem(c);
+            }
+        }
+    }
+
+    /**
+     * يحمّل الطلاب الذين حرفتهم تستخدم نظام 30/70.
+     */
+    private void loadStudents(String region, String center, String profession) {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT name, seat_no, registration_no, coordination_no, professional_group, profession, status, national_id, secret_no "
+                        +
+                        "FROM students s WHERE EXISTS (" +
+                        "  SELECT 1 FROM subjects sub " +
+                        "  WHERE TRIM(sub.profession) = TRIM(s.profession) " +
+                        "  AND sub.parent_subject_id IS NOT NULL" +
+                        ")");
+        if (region != null && !region.equals("الكل"))
+            sql.append(" AND TRIM(s.region) = TRIM(?)");
+        if (center != null && !center.equals("الكل"))
+            sql.append(" AND TRIM(s.center_name) = TRIM(?)");
+        if (profession != null && !profession.equals("الكل"))
+            sql.append(" AND TRIM(s.profession) = TRIM(?)");
+        sql.append(" ORDER BY s.name ASC");
+
+        try (Connection con = DatabaseConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (region != null && !region.equals("الكل"))
+                ps.setString(idx++, region);
+            if (center != null && !center.equals("الكل"))
+                ps.setString(idx++, center);
+            if (profession != null && !profession.equals("الكل"))
+                ps.setString(idx++, profession);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    model.addRow(new Object[] {
+                            rs.getString("status"),
+                            rs.getString("secret_no"),
+                            rs.getString("seat_no"),
+                            rs.getString("national_id"),
+                            rs.getString("profession"),
+                            rs.getString("coordination_no"),
+                            rs.getString("registration_no"),
+                            rs.getString("name")
+                    });
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "خطأ في تحميل البيانات: " + ex.getMessage());
+        }
+
+        // Auto-select all after load
+        SwingUtilities.invokeLater(() -> jTable1.selectAll());
+    }
+
+    // ── Events ────────────────────────────────────────────────────────
+
+    private void onRegionChanged() {
+        if (comboRegion.getSelectedItem() != null) {
+            loadCenters((String) comboRegion.getSelectedItem());
+        }
+        refreshTable();
+    }
+
+    private void refreshTable() {
+        String region = (String) comboRegion.getSelectedItem();
+        String center = (String) comboCenter.getSelectedItem();
+        String prof = (String) comboProf.getSelectedItem();
+        loadStudents(region == null ? "الكل" : region, center == null ? "الكل" : center, prof == null ? "الكل" : prof);
+    }
+
+    // ── Report generation ─────────────────────────────────────────────
+
+    private void generateReport() {
+        DefaultTableModel model1 = (DefaultTableModel) jTable1.getModel();
+        int[] selectedRows = jTable1.getSelectedRows();
+
+        if (selectedRows.length == 0) {
+            JOptionPane.showMessageDialog(this, "برجاء اختيار طلاب أولاً", "تحذير", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String[] monthsResult = com.pvtd.students.ui.utils.ReportUtils.chooseMonths(this);
+        if (monthsResult == null)
+            return;
+        String selectedMonth = monthsResult[0];
+        String admissionMonth = monthsResult[1];
+
+
+        String currentYear = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
+
+        // Group selected students by profession
+        java.util.LinkedHashMap<String, java.util.List<String>> byProfession = new java.util.LinkedHashMap<>();
+        for (int i : selectedRows) {
+            String seatNo = String.valueOf(model1.getValueAt(i, 2)); // col 2 = رقم الجلوس
+            String prof = String.valueOf(model1.getValueAt(i, 4)); // col 4 = الحرفة
+            byProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(seatNo);
+        }
+
+        String centerName = "";
+        String regionName = "";
+
+        try {
+
+            try (Connection con = DatabaseConnection.getConnection()) {
+                String getStudentSql = "SELECT id, name, registration_no, coordination_no, seat_no, status, " +
+                        "national_id, professional_group, secret_no, region, center_name " +
+                        "FROM students WHERE seat_no = ?";
+                PreparedStatement getStudentPs = con.prepareStatement(getStudentSql);
+
+                // Fetch child-subject grades (مواد الابن اللي فيها درجات الـ 30 والـ 70)
+                String getGradesSql = "SELECT subject_id, obtained_mark FROM student_grades WHERE student_id = ?";
+                PreparedStatement getGradesPs = con.prepareStatement(getGradesSql);
+
+                java.util.List<Student> allSelectedStudents = new java.util.ArrayList<>();
+                for (Map.Entry<String, java.util.List<String>> entry : byProfession.entrySet()) {
+                    String professionName = entry.getKey();
+                    for (String seatNo : entry.getValue()) {
+                        getStudentPs.setString(1, seatNo);
+                        try (ResultSet rsStudent = getStudentPs.executeQuery()) {
+                            if (rsStudent.next()) {
+                                Student st = new Student();
+                                st.setId(rsStudent.getInt("id"));
+                                st.setName(rsStudent.getString("name"));
+                                st.setRegistrationNo(rsStudent.getString("registration_no"));
+                                st.setCoordinationNo(rsStudent.getString("coordination_no"));
+                                st.setSeatNo(rsStudent.getString("seat_no"));
+                                st.setStatus(rsStudent.getString("status"));
+                                st.setNationalId(rsStudent.getString("national_id"));
+                                st.setProfessionalGroup(rsStudent.getString("professional_group"));
+                                st.setSecretNo(rsStudent.getString("secret_no"));
+                                st.setProfession(professionName);
+                                st.setCenterName(rsStudent.getString("center_name") != null ? rsStudent.getString("center_name").trim() : "غير محدد");
+                                st.setRegion(rsStudent.getString("region") != null ? rsStudent.getString("region").trim() : "غير محدد");
+
+                                // تحميل الدرجات (مواد الابن + مواد الأب العادية)
+                                java.util.Map<Integer, Integer> grades = new java.util.HashMap<>();
+                                getGradesPs.setInt(1, st.getId());
+                                try (ResultSet rsGrades = getGradesPs.executeQuery()) {
+                                    while (rsGrades.next()) {
+                                        grades.put(rsGrades.getInt("subject_id"), rsGrades.getInt("obtained_mark"));
+                                    }
+                                }
+                                st.setGrades(grades);
+                                allSelectedStudents.add(st);
+                            }
+                        }
+                    }
+                }
+
+                // 2. GLOBAL SORT by Seat Number (Numerical) before any grouping
+                allSelectedStudents.sort((s1, s2) -> {
+                    String sn1 = s1.getSeatNo() != null ? s1.getSeatNo().trim() : "";
+                    String sn2 = s2.getSeatNo() != null ? s2.getSeatNo().trim() : "";
+                    
+                    // Robust normalization: Replace Arabic/Indian digits with English
+                    String sn1Norm = sn1.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                        .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+                    String sn2Norm = sn2.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                        .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+
+                    // Extract only digits
+                    String sn1Clean = sn1Norm.replaceAll("\\D", "");
+                    String sn2Clean = sn2Norm.replaceAll("\\D", "");
+                                        
+                    if (!sn1Clean.isEmpty() && !sn2Clean.isEmpty()) {
+                        try {
+                            return Long.compare(Long.parseLong(sn1Clean), Long.parseLong(sn2Clean));
+                        } catch (Exception ex) {}
+                    }
+                    return sn1Norm.compareTo(sn2Norm);
+                });
+
+                // 3. Group by Profession (Preserving the globally sorted order)
+                java.util.LinkedHashMap<String, java.util.List<Student>> groupedByProfession = new java.util.LinkedHashMap<>();
+                for (Student s : allSelectedStudents) {
+                    String prof = s.getProfession() != null ? s.getProfession().trim() : "بدون حرفة";
+                    groupedByProfession.computeIfAbsent(prof, k -> new java.util.ArrayList<>()).add(s);
+                }
+
+                java.io.File folder = new java.io.File("التقارير/تسويدة");
+                if (!folder.exists()) folder.mkdirs();
+
+                for (java.util.Map.Entry<String, java.util.List<Student>> entry : groupedByProfession.entrySet()) {
+                    String professionName = entry.getKey();
+                    java.util.List<Student> professionStudents = entry.getValue();
+
+                    // Determine center name for the header
+                    String displayCenterName = "مراكز متعددة";
+                    java.util.Set<String> uniqueCenters = professionStudents.stream()
+                        .map(Student::getCenterName)
+                        .filter(Objects::nonNull)
+                        .collect(java.util.stream.Collectors.toSet());
+                    if (uniqueCenters.size() == 1) {
+                        displayCenterName = uniqueCenters.iterator().next();
+                    } else if (uniqueCenters.isEmpty()) {
+                        displayCenterName = "غير محدد";
+                    }
+
+                    com.itextpdf.text.Document combinedDoc = new com.itextpdf.text.Document(
+                            com.itextpdf.text.PageSize.A3.rotate());
+                    String sanitizedProfession = professionName.replace("/", "_").replace("\\", "_").replace(":", "_");
+                    String combinedFn = "التقارير/تسويدة/" + sanitizedProfession + " (30-70).pdf";
+                    com.itextpdf.text.pdf.PdfWriter.getInstance(combinedDoc, new java.io.FileOutputStream(combinedFn));
+                    combinedDoc.open();
+
+                    String rName = !professionStudents.isEmpty() ? professionStudents.get(0).getRegion() : "";
+
+                    gradReportTasoeda report = new gradReportTasoeda(professionName, displayCenterName, rName, professionStudents, true,
+                            selectedMonth, currentYear, admissionMonth);
+                    
+                    report.createPDF(combinedDoc, 1, 0);
+
+                    combinedDoc.close();
+                }
+                Desktop.getDesktop().open(folder);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "حدث خطأ أثناء إنشاء التقرير: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new EltaSoeda3070().setVisible(true));
+    }
+}
