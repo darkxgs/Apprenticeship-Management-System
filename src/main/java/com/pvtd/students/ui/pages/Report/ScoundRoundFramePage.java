@@ -60,6 +60,10 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         String region = (String) cmdcenter1.getSelectedItem();
         if (center != null && region != null && !center.startsWith("اختر") && !region.startsWith("اختر")) {
             loadStudents(center, region);
+        } else {
+            DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+            model.setRowCount(0);
+            updateStats();
         }
     }
 
@@ -193,6 +197,11 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         buttonGradient2.setColor2(new java.awt.Color(15, 118, 110));
         buttonGradient2.setFont(UITheme.FONT_HEADER);
         buttonGradient2.addActionListener(this::buttonGradient2ActionPerformed);
+
+        UITheme.styleButton(btnSelectAll, new java.awt.Color(37, 99, 235), new java.awt.Color(29, 78, 216), new java.awt.Color(30, 64, 175));
+        btnSelectAll.setFont(UITheme.FONT_HEADER);
+        btnSelectAll.setForeground(java.awt.Color.WHITE);
+        btnSelectAll.setText("✅ اختيار الكل");
     }
 
     private void setupTableUi() {
@@ -222,8 +231,74 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
     public void loadCenters(String region) {
         cmdcenter.removeAllItems();
         cmdcenter.addItem("اختر المركز...");
-        java.util.Map<String, String> centers = com.pvtd.students.services.StudentService.getCentersByRegionWithCodes(region);
-        for (String c : centers.keySet()) {
+        if (region == null || region.trim().isEmpty() || region.startsWith("اختر")) {
+            return;
+        }
+
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
+
+        // 1. Get from proper metadata (centers joined with regions)
+        String sql = "SELECT c.name, c.code FROM centers c " +
+                     "JOIN regions r ON c.region_id = r.id " +
+                     "WHERE TRIM(r.name) = TRIM(?) OR " +
+                     "      REPLACE(REPLACE(REPLACE(REPLACE(TRIM(r.name), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = " +
+                     "      REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') " +
+                     "ORDER BY c.code";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, region);
+            stmt.setString(2, region);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String code = rs.getString("code");
+                    map.put(name, (code != null && !code.trim().isEmpty()) ? code.trim() : name);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 2. Also retrieve centers implicitly mapped to this region in the students table (useful for imported Excel data)
+        String sqlFallback = "SELECT DISTINCT center_name FROM students WHERE center_name IS NOT NULL AND " +
+                             "(TRIM(region) = TRIM(?) OR " +
+                             " REPLACE(REPLACE(REPLACE(REPLACE(TRIM(region), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = " +
+                             " REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا'))";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sqlFallback)) {
+            stmt.setString(1, region);
+            stmt.setString(2, region);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String cName = rs.getString("center_name");
+                    if (cName != null) {
+                        cName = cName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+                        if (!cName.isEmpty() && !map.containsKey(cName)) {
+                            // Try to find if this implicit center has a code somehow
+                            String codeSql = "SELECT code FROM centers WHERE TRIM(name) = TRIM(?) OR " +
+                                             "REPLACE(REPLACE(REPLACE(REPLACE(TRIM(name), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = " +
+                                             "REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا')";
+                            try (PreparedStatement cStmt = conn.prepareStatement(codeSql)) {
+                                cStmt.setString(1, cName);
+                                cStmt.setString(2, cName);
+                                try (ResultSet crs = cStmt.executeQuery()) {
+                                    if (crs.next()) {
+                                        String code = crs.getString("code");
+                                        map.put(cName, (code != null && !code.trim().isEmpty()) ? code.trim() : cName);
+                                    } else {
+                                        map.put(cName, cName); // Fallback code is name
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        for (String c : map.keySet()) {
             cmdcenter.addItem(c);
         }
     }
@@ -234,16 +309,22 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
             protected java.util.List<Object[]> doInBackground() throws Exception {
                 java.util.List<Object[]> data = new java.util.ArrayList<>();
                 try (Connection con = DatabaseConnection.getConnection()) {
-                    // This is the corrected query with the status filter
+                    // This is the corrected query with the status filter and robust Arabic spelling tolerance
                     String sql = "SELECT s.name, s.profession, s.registration_no, s.seat_no, s.status, s.coordination_no, s.exam_system "
                             + "FROM students s "
-                            + "WHERE s.center_name = ? "
-                            + "AND s.region = ? "
+                            + "WHERE (TRIM(s.center_name) = TRIM(?) OR "
+                            + "       REPLACE(REPLACE(REPLACE(REPLACE(TRIM(s.center_name), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = "
+                            + "       REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا')) "
+                            + "AND (TRIM(s.region) = TRIM(?) OR "
+                            + "     REPLACE(REPLACE(REPLACE(REPLACE(TRIM(s.region), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = "
+                            + "     REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا')) "
                             + "AND s.status = 'دور ثاني' "
                             + "ORDER BY CASE WHEN REGEXP_LIKE(s.seat_no, '^[0-9]+$') THEN TO_NUMBER(s.seat_no) ELSE 999999 END, s.id ASC";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, center);
-                        ps.setString(2, region);
+                        ps.setString(2, center);
+                        ps.setString(3, region);
+                        ps.setString(4, region);
                         try (ResultSet rs = ps.executeQuery()) {
                             int i = 1;
                             while (rs.next()) {
@@ -344,9 +425,8 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
     private void cmdcenter1ActionPerformed(java.awt.event.ActionEvent evt) {
         if (cmdcenter1.getSelectedItem() != null) {
             String region = cmdcenter1.getSelectedItem().toString();
-            if (!region.equals("اختر المنطقة...")) {
-                loadCenters(region);
-            }
+            loadCenters(region);
+            refreshData();
         }
     }
 
@@ -532,6 +612,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
 
     @SuppressWarnings("unchecked")
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         cmdcenter = new com.pvtd.students.ui.components.Combobox();
@@ -539,6 +620,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         buttonGradient1 = new com.pvtd.students.ui.components.ButtonGradient();
         buttonGradient2 = new com.pvtd.students.ui.components.ButtonGradient();
+        btnSelectAll = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
 
@@ -546,53 +628,55 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
 
         jPanel1.setLayout(new java.awt.BorderLayout());
 
-        jPanel2.setPreferredSize(new java.awt.Dimension(527, 100));
+        jPanel2.setPreferredSize(new java.awt.Dimension(1091, 80));
+        jPanel2.setLayout(new java.awt.GridBagLayout());
 
         cmdcenter.setLabeText("المركز");
         cmdcenter.addActionListener(this::cmdcenterActionPerformed);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2; gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 130;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(cmdcenter, gridBagConstraints);
 
         cmdcenter1.setLabeText("المنطقة");
         cmdcenter1.addActionListener(this::cmdcenter1ActionPerformed);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3; gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 130;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(cmdcenter1, gridBagConstraints);
 
         jLabel1.setText("كشف التلاميذ الدور ثاني");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4; gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
+        gridBagConstraints.insets = new java.awt.Insets(10, 20, 10, 20);
+        jPanel2.add(jLabel1, gridBagConstraints);
 
         buttonGradient1.addActionListener(this::buttonGradient1ActionPerformed);
-
         buttonGradient2.addActionListener(this::buttonGradient2ActionPerformed);
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(buttonGradient1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(buttonGradient2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 93, Short.MAX_VALUE)
-                .addComponent(cmdcenter, javax.swing.GroupLayout.PREFERRED_SIZE, 189, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(40, 40, 40)
-                .addComponent(cmdcenter1, javax.swing.GroupLayout.PREFERRED_SIZE, 189, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(jLabel1))
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(buttonGradient1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(buttonGradient2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addGap(2, 2, 2)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(cmdcenter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(cmdcenter1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(16, Short.MAX_VALUE))
-        );
+        javax.swing.JPanel actionsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
+        actionsPanel.setOpaque(false);
+
+        btnSelectAll.addActionListener(e -> jTable1.selectAll());
+        btnSelectAll.setPreferredSize(new java.awt.Dimension(130, 40));
+        actionsPanel.add(btnSelectAll);
+
+        buttonGradient1.setPreferredSize(new java.awt.Dimension(160, 40));
+        actionsPanel.add(buttonGradient1);
+
+        buttonGradient2.setPreferredSize(new java.awt.Dimension(160, 40));
+        actionsPanel.add(buttonGradient2);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0; gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(actionsPanel, gridBagConstraints);
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.NORTH);
 
@@ -627,4 +711,5 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private com.pvtd.students.ui.components.ButtonGradient buttonGradient1;
     private com.pvtd.students.ui.components.ButtonGradient buttonGradient2;
+    private javax.swing.JButton btnSelectAll;
 }

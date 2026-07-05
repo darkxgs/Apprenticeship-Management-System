@@ -483,7 +483,7 @@ public class gradReportFail extends JFrame {
                     failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 75));
                     failedLabels[i].setOpaque(true);
                     if (i > 0) {
-                        failedLabels[i].setBorder(BorderFactory.createMatteBorder(0, 0, 0, 3, Color.BLACK));
+                        failedLabels[i].setBorder(BorderFactory.createMatteBorder(0, 0, 0, 5, Color.BLACK));
                     }
                     failedSubjectsPanel.add(failedLabels[i]);
                 }
@@ -529,7 +529,7 @@ public class gradReportFail extends JFrame {
                         failedLabels[i].setForeground(Color.BLACK);
                     }
                     failedSubjectsPanel.setBackground(Color.WHITE);
-                    failedSubjectsPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                    failedSubjectsPanel.setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                     return failedSubjectsPanel;
                 }
 
@@ -564,7 +564,7 @@ public class gradReportFail extends JFrame {
                 comp.setBackground(Color.WHITE);
                 setHorizontalAlignment(SwingConstants.CENTER);
                 setVerticalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return comp;
             }
         });
@@ -596,7 +596,7 @@ public class gradReportFail extends JFrame {
                 c.setForeground(new Color(10, 30, 60)); // Dark navy/black
                 c.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 85));
                 setHorizontalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return c;
             }
         });
@@ -632,7 +632,7 @@ public class gradReportFail extends JFrame {
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(255, 102, 0))); // Thick orange line like in
                                                                                           // reference image
-        p.setPreferredSize(new Dimension(13000, 2000));
+        p.setPreferredSize(new Dimension(13000, 800));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
@@ -730,14 +730,16 @@ public class gradReportFail extends JFrame {
         int panelWidth = 13000;
         int panelHeight = (int) (panelWidth / 1.4142);
 
-        int headerH = 1100, footerH = 1000, tableHeaderH = 800; // Shrunk from 3500
-        int available = panelHeight - headerH - footerH - tableHeaderH - 400;
+        int headerH = 1100, footerH = 800, tableHeaderH = 600; // Match actual preferred heights
+        int available = panelHeight - headerH - footerH - tableHeaderH - 100;
         int totalRows = 15 + 2; // 15 student rows + 2 header rows (max/min)
         int calculatedH = available / totalRows;
         this.dynamicRowHeight = Math.min(550, Math.max(300, calculatedH)); // Increased cap to 550px for multi-line content
 
         page.add(buildHeader(pageNum, totalPages));
         JPanel tablePanel = buildTable(chunk);
+        tablePanel.setPreferredSize(new Dimension(panelWidth, available + tableHeaderH));
+        tablePanel.setMaximumSize(new Dimension(panelWidth, available + tableHeaderH));
         page.add(tablePanel);
         page.add(buildFooter());
 

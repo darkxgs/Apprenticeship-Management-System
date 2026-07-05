@@ -329,14 +329,17 @@ public class gradReportFailMixed extends JFrame {
         int panelWidth = 13000;
         int panelHeight = 9192;
 
-        int headerH = 1100, footerH = 1000, tableHeaderH = 800;
-        int available = panelHeight - headerH - footerH - tableHeaderH - 400;
-        int totalRows = 15 + 2; 
+        int headerH = 1100, footerH = 800, tableHeaderH = 600; // Match actual preferred heights
+        int available = panelHeight - headerH - footerH - tableHeaderH - 100;
+        int totalRows = 15; // 15 student rows only (no النهاية العظمى/الصغرى rows in this report)
         int calculatedH = available / totalRows; 
         this.dynamicRowHeight = Math.min(550, Math.max(300, calculatedH));
 
         page.add(buildHeader(chunk, pageNum, totalPages));
-        page.add(buildTable(chunk));
+        JPanel tablePanel = buildTable(chunk);
+        tablePanel.setPreferredSize(new Dimension(panelWidth, available + tableHeaderH));
+        tablePanel.setMaximumSize(new Dimension(panelWidth, available + tableHeaderH));
+        page.add(tablePanel);
         page.add(buildFooter());
 
         page.setSize(new Dimension(panelWidth, panelHeight));
@@ -568,7 +571,7 @@ public class gradReportFailMixed extends JFrame {
                     failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 75));
                     failedLabels[i].setOpaque(true);
                     if (i > 0) {
-                        failedLabels[i].setBorder(BorderFactory.createMatteBorder(0, 0, 0, 3, Color.BLACK));
+                        failedLabels[i].setBorder(BorderFactory.createMatteBorder(0, 0, 0, 5, Color.BLACK));
                     }
                     failedSubjectsPanel.add(failedLabels[i]);
                 }
@@ -609,7 +612,7 @@ public class gradReportFailMixed extends JFrame {
                         failedLabels[i].setForeground(Color.BLACK);
                     }
                     failedSubjectsPanel.setBackground(Color.WHITE);
-                    failedSubjectsPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                    failedSubjectsPanel.setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                     return failedSubjectsPanel;
                 }
 
@@ -642,7 +645,7 @@ public class gradReportFailMixed extends JFrame {
                 comp.setBackground(Color.WHITE);
                 setHorizontalAlignment(SwingConstants.CENTER);
                 setVerticalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return comp;
             }
         });
@@ -673,7 +676,7 @@ public class gradReportFailMixed extends JFrame {
                 c.setForeground(new Color(10, 30, 60));
                 c.setFont(new Font("Tahoma", Font.BOLD, 85));
                 setHorizontalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return c;
             }
         });
@@ -712,7 +715,7 @@ public class gradReportFailMixed extends JFrame {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(255, 102, 0)));
-        p.setPreferredSize(new Dimension(13000, 2000));
+        p.setPreferredSize(new Dimension(13000, 800));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;

@@ -364,7 +364,7 @@ public class gradSecretReport extends JFrame {
                 c.setFont(useFont);
                 setHorizontalAlignment(SwingConstants.RIGHT);
                 setVerticalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return c;
             }
         });
@@ -380,10 +380,23 @@ public class gradSecretReport extends JFrame {
         table.setFont(new Font("Arial", Font.PLAIN, 27));
         table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         table.getTableHeader().setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        table.getTableHeader().setFont(new Font("Arial", Font.PLAIN, 25));
-        table.getTableHeader().setBackground(new Color(204, 255, 255));
-        table.getTableHeader().setForeground(Color.BLACK);
         table.getTableHeader().setPreferredSize(new Dimension(0, 180));
+        table.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                String txt = (val == null) ? "" : val.toString();
+                if (!txt.toLowerCase().startsWith("<html>")) {
+                    txt = "<html><center>" + txt + "</center></html>";
+                }
+                Component c = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
+                c.setBackground(new Color(204, 255, 255));
+                c.setForeground(Color.BLACK);
+                c.setFont(new Font("Arial", Font.PLAIN, 25));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
+                return c;
+            }
+        });
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         for (int i = 0; i < table.getColumnCount(); i++) {
@@ -478,8 +491,8 @@ public class gradSecretReport extends JFrame {
         int panelHeight = (int) (panelWidth / 1.4142); // ~1980px
 
         // Calculate row height to fill available space dynamically
-        int headerH = 150, footerH = 220, tableHeaderH = 120;
-        int available = panelHeight - headerH - footerH - tableHeaderH;
+        int headerH = 380, footerH = 220, tableHeaderH = 180;
+        int available = panelHeight - headerH - footerH - tableHeaderH - 50;
         int totalRows = 20 + 2; // +2 for النهاية العظمى / الصغرى rows
         dynamicRowHeight = Math.max(50, available / totalRows);
 

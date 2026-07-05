@@ -425,7 +425,7 @@ public class gradReportGeneric extends JFrame {
                     }
                 }
                 comp.setFont(useFont);
-                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) comp).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return comp;
             }
         });
@@ -458,7 +458,7 @@ public class gradReportGeneric extends JFrame {
                 c.setForeground(Color.BLACK);
                 c.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 95));
                 setHorizontalAlignment(SwingConstants.CENTER);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return c;
             }
         });
@@ -498,7 +498,7 @@ public class gradReportGeneric extends JFrame {
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(255, 102, 0))); // Thick orange line like in
                                                                                           // reference image
-        p.setPreferredSize(new Dimension(1450, 110));
+        p.setPreferredSize(new Dimension(13000, 800));
         p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.weightx = 1.0;
@@ -598,13 +598,15 @@ public class gradReportGeneric extends JFrame {
         int panelWidth = 13000;
         int panelHeight = (int) (panelWidth / 1.4142);
 
-        int headerH = 1700, footerH = 1100, tableHeaderH = 700;
-        int available = panelHeight - headerH - footerH - tableHeaderH - 600;
+        int headerH = 1700, footerH = 800, tableHeaderH = 180;
+        int available = panelHeight - headerH - footerH - tableHeaderH - 100;
         int totalRows = 17;
         this.dynamicRowHeight = Math.max(200, available / totalRows);
 
         page.add(buildHeader(pageNum, totalPages));
         JPanel tablePanel = buildTable(chunk);
+        tablePanel.setPreferredSize(new Dimension(panelWidth, available + tableHeaderH));
+        tablePanel.setMaximumSize(new Dimension(panelWidth, available + tableHeaderH));
         page.add(tablePanel);
         page.add(buildFooter());
 

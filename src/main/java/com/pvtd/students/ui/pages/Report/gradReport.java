@@ -241,7 +241,7 @@ public class gradReport extends JFrame {
                     }
                 }
                 c.setFont(useFont);
-                ((javax.swing.JComponent) c).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
                 return c;
             }
         });
@@ -298,9 +298,23 @@ public class gradReport extends JFrame {
         table.setRowHeight(30);
         table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         table.getTableHeader().setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
-        table.getTableHeader().setBackground(new Color(204, 255, 255));
-        table.getTableHeader().setForeground(Color.BLACK);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+        table.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                String txt = (val == null) ? "" : val.toString();
+                if (!txt.toLowerCase().startsWith("<html>")) {
+                    txt = "<html><center><b>" + txt + "</b></center></html>";
+                }
+                Component c = super.getTableCellRendererComponent(t, txt, sel, foc, row, col);
+                c.setBackground(new Color(204, 255, 255));
+                c.setForeground(Color.BLACK);
+                c.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                ((javax.swing.JComponent) c).setBorder(BorderFactory.createMatteBorder(2, 5, 2, 5, Color.BLACK));
+                return c;
+            }
+        });
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(110);
