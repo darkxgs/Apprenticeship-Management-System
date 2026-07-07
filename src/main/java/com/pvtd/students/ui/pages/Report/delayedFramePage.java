@@ -575,6 +575,21 @@ public class delayedFramePage extends javax.swing.JFrame {
                         bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
                     }
                 }
+
+                // Sort students within each system numerically by seat number (seat_no is column 1)
+                for (java.util.List<java.util.Vector> rows : bySystem.values()) {
+                    rows.sort((v1, v2) -> {
+                        String sn1 = String.valueOf(v1.get(1) != null ? v1.get(1) : "").trim();
+                        String sn2 = String.valueOf(v2.get(1) != null ? v2.get(1) : "").trim();
+                        String sn1C = sn1.replaceAll("[^0-9]", "");
+                        String sn2C = sn2.replaceAll("[^0-9]", "");
+                        if (!sn1C.isEmpty() && !sn2C.isEmpty()) {
+                            try { return Long.compare(Long.parseLong(sn1C), Long.parseLong(sn2C)); } catch (Exception e) {}
+                        }
+                        return sn1.compareTo(sn2);
+                    });
+                }
+
                 updateStatus(50, 100, "جاري إنشاء ملف PDF...");
                 report.createPDFGroupedBySystem(bySystem, centerName, regionName, true);
                 return null;

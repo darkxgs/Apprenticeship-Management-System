@@ -582,11 +582,14 @@ public class DetailersFRamepage extends javax.swing.JFrame {
                     for (java.util.LinkedHashMap<String, java.util.List<com.pvtd.students.models.Student>> sysMap : studentsByRegionAndSystem.values()) {
                         for (java.util.List<com.pvtd.students.models.Student> lst : sysMap.values()) {
                             lst.sort((a, b) -> {
-                                try {
-                                    return Integer.compare(Integer.parseInt(a.getSeatNo().trim()), Integer.parseInt(b.getSeatNo().trim()));
-                                } catch (NumberFormatException e2) {
-                                    return a.getSeatNo().compareTo(b.getSeatNo());
+                                String sn1 = a.getSeatNo() != null ? a.getSeatNo().trim() : "";
+                                String sn2 = b.getSeatNo() != null ? b.getSeatNo().trim() : "";
+                                String sn1C = sn1.replaceAll("[^0-9]", "");
+                                String sn2C = sn2.replaceAll("[^0-9]", "");
+                                if (!sn1C.isEmpty() && !sn2C.isEmpty()) {
+                                    try { return Long.compare(Long.parseLong(sn1C), Long.parseLong(sn2C)); } catch (Exception e2) {}
                                 }
+                                return sn1.compareTo(sn2);
                             });
                         }
                     }
