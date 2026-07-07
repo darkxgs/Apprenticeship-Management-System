@@ -15,6 +15,7 @@ import com.pvtd.students.ui.pages.Report.absentFramePage;
 import com.pvtd.students.ui.pages.Report.delayedFramePage;
 import com.pvtd.students.ui.pages.Report.sucsseccFromPage;
 import com.pvtd.students.ui.pages.Report.EltaSoeda;
+import com.pvtd.students.ui.pages.Report.WithdrawalFramePage;
 
 public class ReportsPage extends JPanel {
 
@@ -127,6 +128,19 @@ public class ReportsPage extends JPanel {
                 () -> {
 
                     delayedFramePage frame = new delayedFramePage();
+                    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 🔥 ده المهم
+
+                    frame.setVisible(true);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+                }));
+
+        gridPanel.add(createReportCard("سحب الملف",
+                "إصدار تقرير بالطلاب الذين قاموا بسحب ملفاتهم",
+                "icons/reports.svg",
+                () -> {
+
+                    WithdrawalFramePage frame = new WithdrawalFramePage();
                     frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 🔥 ده المهم
 
                     frame.setVisible(true);

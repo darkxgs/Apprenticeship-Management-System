@@ -971,8 +971,12 @@ public class DataEntryPage extends JPanel {
         failedSubjectsListPanel.revalidate();
         failedSubjectsListPanel.repaint();
 
-        // Status calculate
-        String status = StudentService.calculateStatus(currentStudent.getProfession(), resolvedGrades);
+        // Status calculate.
+        // NOTE: pass the RAW grades (not resolvedGrades). calculateStatus() resolves
+        // composite (30/70) subjects internally, so passing already-resolved grades
+        // would double-count the children into the parent (e.g. 0+25 -> 25, then 25+25 -> 50)
+        // and wrongly mark a failing composite subject (25 < pass 50) as passed.
+        String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
         statusPill.setText(status);
         if ("ناجح".equals(status)) {
             statusPill.setBackground(new Color(0xD1FAE5));
@@ -994,7 +998,10 @@ public class DataEntryPage extends JPanel {
         
         boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), resolvedGrades, user);
         if (ok) {
-            String status = StudentService.calculateStatus(currentStudent.getProfession(), resolvedGrades);
+            // Use RAW grades here: calculateStatus() resolves composite subjects internally,
+            // so passing resolvedGrades would double-count the 30/70 children into the parent
+            // and store a wrong status (e.g. "ناجح" instead of "دور ثاني").
+            String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
             StudentService.updateStudentStatusDirectly(currentStudent.getId(), status);
             currentStudent.setGrades(resolvedGrades);
             currentStudent.setStatus(status);

@@ -91,6 +91,7 @@
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSequential.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSucc.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportTasoeda.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\gradReportWithdrawal.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradSecretReport.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\ScoundRoundFramePage.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\SecondRound.java
@@ -98,6 +99,8 @@
 .\src\main\java\com\pvtd\students\ui\pages\Report\sucsseccFromPage.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\SucssfullPageEdit.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\table.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\Withdrawal.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\WithdrawalFramePage.java
 .\src\main\java\com\pvtd\students\ui\utils\CleanCellRenderer.java
 .\src\main\java\com\pvtd\students\ui\utils\DropShadowBorder.java
 .\src\main\java\com\pvtd\students\ui\utils\ProgressDialog.java

@@ -15,18 +15,22 @@ public class GradeCalculationService {
      */
     public static Map<Integer, Integer> resolveCompositeGrades(List<Subject> subjects, Map<Integer, Integer> grades) {
         Map<Integer, Integer> resolved = new java.util.HashMap<>(grades);
-        
-        // Sum children into parents
+
+        // A composite parent's grade is ALWAYS the sum of its children.
+        // We compute each parent's total from its children and OVERWRITE it (rather than
+        // add to whatever the parent already holds). This keeps the method idempotent:
+        // calling it on already-resolved grades, or on grades that contain a stale/stored
+        // parent row from the DB, yields the same result instead of double-counting
+        // (e.g. stored parent 70 + children (70+0) -> 140).
+        Map<Integer, Integer> parentSums = new java.util.HashMap<>();
         for (Subject sub : subjects) {
             if (sub.getParentSubjectId() != null) {
                 int parentId = sub.getParentSubjectId();
                 int childGrade = grades.getOrDefault(sub.getId(), 0);
-                
-                // Add child grade to parent total (existing or starts at 0)
-                int currentParentTotal = resolved.getOrDefault(parentId, 0);
-                resolved.put(parentId, currentParentTotal + childGrade);
+                parentSums.merge(parentId, childGrade, Integer::sum);
             }
         }
+        resolved.putAll(parentSums);
         return resolved;
     }
 

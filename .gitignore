@@ -24,3 +24,7 @@ tmp_size_check.ps1
 # === Python cache ===
 __pycache__/
 *.pyc
+
+# === Generated Reports ===
+/التقارير/
+/application/التقارير/
