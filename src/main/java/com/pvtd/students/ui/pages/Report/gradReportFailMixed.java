@@ -52,7 +52,23 @@ public class gradReportFailMixed extends JFrame {
                                String selectedMonth, String admissionMonth, boolean isSecondRound) {
         this.center        = center;
         this.region        = region;
-        this.students      = students;
+        this.students      = new java.util.ArrayList<>(students);
+        this.students.sort((s1, s2) -> {
+            String sn1 = s1.getSeatNo() != null ? s1.getSeatNo().trim() : "";
+            String sn2 = s2.getSeatNo() != null ? s2.getSeatNo().trim() : "";
+            String sn1Norm = sn1.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+            String sn2Norm = sn2.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+            String sn1Clean = sn1Norm.replaceAll("\\D", "");
+            String sn2Clean = sn2Norm.replaceAll("\\D", "");
+            if (!sn1Clean.isEmpty() && !sn2Clean.isEmpty()) {
+                try {
+                    return Long.compare(Long.parseLong(sn1Clean), Long.parseLong(sn2Clean));
+                } catch (Exception ex) {}
+            }
+            return sn1Norm.compareTo(sn2Norm);
+        });
         this.selectedMonth = selectedMonth;
         this.admissionMonth = admissionMonth;
         this.isSecondRound = isSecondRound;
