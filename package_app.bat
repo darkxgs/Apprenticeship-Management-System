@@ -1,7 +1,15 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "JAVA_HOME=C:\Program Files\Java\jdk-25.0.2"
+:: Auto-detect the newest installed JDK (picks the last jdk-* folder alphabetically)
+set "JAVA_HOME="
+for /d %%D in ("C:\Program Files\Java\jdk-*") do set "JAVA_HOME=%%D"
+if not defined JAVA_HOME (
+    echo ERROR: No JDK found under "C:\Program Files\Java". Please install a JDK.
+    pause
+    exit /b 1
+)
+echo Using JDK: %JAVA_HOME%
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 echo [1/4] Cleaning old build files...
@@ -43,7 +51,7 @@ if %ERRORLEVEL% EQU 0 (
     echo SUCCESS! Standalone application created in target\dist\ApprenticeshipSystem
     echo You can run it using ApprenticeshipSystem.exe inside that folder.
     echo.
-    echo Note: Ensure you include the 'التقارير' and 'students_images' folders 
+    echo Note: Ensure you include the 'Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±' and 'students_images' folders 
     echo next to the EXE if the app needs to read existing data.
 ) else (
     echo.

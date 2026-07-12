@@ -793,6 +793,64 @@ public class StudentService {
         }
     }
 
+    /**
+     * يعيد حساب حالة كل الطلاب الذين لديهم درجات وفق قواعد calculateStatus الحالية.
+     * الحالات اليدوية (غائب/محروم/معتذر/سحب الملف...) لا يعاد حسابها —
+     * نفس شرط الحفظ في addStudent/updateStudent.
+     *
+     * @return مصفوفة من عنصرين: {عدد الطلاب الذين تم فحصهم، عدد الحالات التي تغيرت}
+     */
+    public static int[] recalculateAllStatuses(String username) {
+        Map<Integer, String> professions = new HashMap<>();
+        Map<Integer, String> statuses = new HashMap<>();
+        Map<Integer, Map<Integer, Integer>> gradesMap = new HashMap<>();
+
+        int checked = 0, changed = 0;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+
+            String sql = "SELECT s.id, s.profession, s.status, sg.subject_id, sg.obtained_mark"
+                    + " FROM students s JOIN student_grades sg ON s.id = sg.student_id";
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                    ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    professions.putIfAbsent(id, rs.getString("profession"));
+                    statuses.putIfAbsent(id, rs.getString("status"));
+                    gradesMap.computeIfAbsent(id, k -> new HashMap<>())
+                            .put(rs.getInt("subject_id"), rs.getInt("obtained_mark"));
+                }
+            }
+
+            try (PreparedStatement upd = conn.prepareStatement("UPDATE students SET status = ? WHERE id = ?")) {
+                for (Map.Entry<Integer, Map<Integer, Integer>> entry : gradesMap.entrySet()) {
+                    int id = entry.getKey();
+                    String oldStatus = statuses.get(id) == null ? "" : statuses.get(id).trim();
+
+                    if (!oldStatus.isEmpty() && !oldStatus.equals("غير محدد")
+                            && !oldStatus.equals("ناجح") && !oldStatus.equals("راسب")
+                            && !oldStatus.equals("دور ثاني")) {
+                        continue; // حالة يدوية — لا تمس
+                    }
+
+                    checked++;
+                    String newStatus = calculateStatus(professions.get(id), entry.getValue());
+                    if (!newStatus.equals(oldStatus)) {
+                        upd.setString(1, newStatus);
+                        upd.setInt(2, id);
+                        upd.executeUpdate();
+                        changed++;
+                    }
+                }
+            }
+
+            LogService.logAction(username, "RECALC_STATUSES",
+                    "إعادة حساب حالات الطلاب: تم فحص " + checked + " طالب وتغيير حالة " + changed + " طالب");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new int[] { checked, changed };
+    }
+
     public static String calculateStatus(String profession, Map<Integer, Integer> grades) {
         if (grades == null || grades.isEmpty())
             return "غير محدد";
@@ -817,8 +875,9 @@ public class StudentService {
         // Resolve composite totals (sum children into parents)
         Map<Integer, Integer> resGrades = GradeCalculationService.resolveCompositeGrades(subjects, grades);
 
-        int failedTheoryCount = 0;
-        boolean failedPracticalOrApplied = false;
+        // العملي يعامل معاملة النظري: الرسوب فيه يتحسب ضمن عدد مواد الدور الثاني
+        int failedSubjectsCount = 0;
+        boolean failedApplied = false;
 
         for (com.pvtd.students.models.Subject sub : subjects) {
             // Only evaluate pass/fail for top-level subjects
@@ -826,34 +885,33 @@ public class StudentService {
 
             int obtained = resGrades.getOrDefault(sub.getId(), 0);
 
-            // Determine if subject is applied, practical, or theory
             String type = sub.getType() != null ? sub.getType().trim() : "";
             String name = sub.getName() != null ? sub.getName().trim() : "";
-            
+
             boolean isApplied = type.equalsIgnoreCase("تطبيقي") || name.contains("تطبيقي");
-            boolean isPractical = type.equalsIgnoreCase("عملي") || name.equals("عملي");
 
             if (obtained < sub.getPassMark()) {
-                if (isApplied || isPractical) {
-                    failedPracticalOrApplied = true;
+                if (isApplied) {
+                    failedApplied = true;
                 } else {
-                    failedTheoryCount++;
+                    failedSubjectsCount++;
                 }
             }
         }
 
-        // Rule 3: إذا رسب الطالب في أي مادة عملية أو تطبيقية -> تكون النتيجة راسب مباشرة
-        if (failedPracticalOrApplied) {
+        // Rule 3: إذا رسب الطالب في التطبيقي -> تكون النتيجة راسب مباشرة
+        // حتى لو كان ناجحاً في النظري والعملي
+        if (failedApplied) {
             return "راسب";
         }
 
-        // Rule 2: إذا رسب الطالب في ثلاث مواد نظرية أو أكثر -> تكون النتيجة راسب
-        if (failedTheoryCount >= 3) {
+        // Rule 2: إذا رسب الطالب في ثلاث مواد أو أكثر (نظري و/أو عملي) -> تكون النتيجة راسب
+        if (failedSubjectsCount >= 3) {
             return "راسب";
         }
 
-        // Rule 1: إذا رسب الطالب في مادة نظرية واحدة أو مادتين -> تكون النتيجة دور ثاني
-        if (failedTheoryCount == 1 || failedTheoryCount == 2) {
+        // Rule 1: إذا رسب الطالب في مادة أو مادتين (نظري و/أو عملي) -> تكون النتيجة دور ثاني
+        if (failedSubjectsCount == 1 || failedSubjectsCount == 2) {
             return "دور ثاني";
         }
 

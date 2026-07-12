@@ -379,6 +379,7 @@ public class StudentsPage extends JPanel {
         JButton btnForm = actionBtn("استمارة طالب", new Color(0xFEF3C7), new Color(0xB45309), false);
         JButton btnIdCard = actionBtn("عرض الهوية", new Color(0xFAFAF9), UITheme.TEXT_SECONDARY, false);
         JButton btnNoImages = actionBtn("الطلاب بدون صور", new Color(0xFFF1F2), new Color(0xBE123C), false);
+        JButton btnRecalc = actionBtn("إعادة حساب الحالات", new Color(0xF5F3FF), new Color(0x6D28D9), false);
 
         // ── Actions ───────────────────────────────────────────────────────────
         btnSelectAll.addActionListener(e -> {
@@ -556,6 +557,41 @@ public class StudentsPage extends JPanel {
             }
         });
 
+        btnRecalc.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "سيتم إعادة حساب حالة (ناجح / راسب / دور ثاني) لكل الطلاب الذين لديهم درجات\n"
+                            + "وفق قواعد النجاح الحالية. الحالات اليدوية (غائب، محروم، معتذر...) لن تتأثر.\n\nهل تريد المتابعة؟",
+                    "إعادة حساب حالات الطلاب", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION)
+                return;
+
+            LoadingDialog loading = new LoadingDialog(parentFrame, "جاري إعادة حساب الحالات...");
+            new Thread(() -> {
+                try {
+                    String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
+                    int[] result = StudentService.recalculateAllStatuses(user);
+                    SwingUtilities.invokeLater(() -> {
+                        loading.dispose();
+                        executeSearch();
+                        JOptionPane.showMessageDialog(this,
+                                "تمت إعادة الحساب بنجاح.\nتم فحص " + result[0] + " طالب، وتغيرت حالة "
+                                        + result[1] + " طالب.",
+                                "اكتمال العملية", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    SwingUtilities.invokeLater(() -> {
+                        loading.dispose();
+                        JOptionPane.showMessageDialog(this,
+                                "حدث خطأ أثناء إعادة الحساب: " + ex.getMessage(), "خطأ",
+                                JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
+            loading.setVisible(true);
+        });
+
+        bar.add(btnRecalc);
         bar.add(btnExportExcel);
         bar.add(btnSelectAll);
         bar.add(btnNoImages);

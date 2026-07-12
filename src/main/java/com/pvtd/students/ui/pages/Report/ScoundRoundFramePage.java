@@ -462,8 +462,23 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
                     bySystem.computeIfAbsent(systemName, k -> new java.util.ArrayList<>()).add(rowData);
                 }
 
+                // ترتيب الأنظمة بالاسم ثم الطلاب داخل كل نظام برقم الجلوس تصاعدياً (نفس الكشف الكبير)
+                java.util.LinkedHashMap<String, java.util.List<java.util.Vector>> bySystemSorted = new java.util.LinkedHashMap<>(new java.util.TreeMap<>(bySystem));
+                for (java.util.List<java.util.Vector> rows : bySystemSorted.values()) {
+                    rows.sort((v1, v2) -> {
+                        String sn1 = String.valueOf(v1.get(1)).trim();
+                        String sn2 = String.valueOf(v2.get(1)).trim();
+                        String sn1C = sn1.replaceAll("[^0-9]", "");
+                        String sn2C = sn2.replaceAll("[^0-9]", "");
+                        if (!sn1C.isEmpty() && !sn2C.isEmpty()) {
+                            try { return Long.compare(Long.parseLong(sn1C), Long.parseLong(sn2C)); } catch (Exception ex) {}
+                        }
+                        return sn1.compareTo(sn2);
+                    });
+                }
+
                 SecondRound report = new SecondRound(months[4], months[5]);
-                report.createPDFGroupedBySystem(bySystem, centerName, regionName, true);
+                report.createPDFGroupedBySystem(bySystemSorted, centerName, regionName, true);
                 return null;
             }
         };

@@ -148,6 +148,17 @@ public class ReportsPage extends JPanel {
 
                 }));
 
+        gridPanel.add(createReportCard("أوائل الطلاب",
+                "استخراج شهادات أوائل الطلاب (صفحة لكل طالب) مع فلتر النهاية العظمى والمجموع",
+                "icons/reports.svg",
+                () -> {
+                    com.pvtd.students.ui.pages.Report.TopStudentsFramePage frame =
+                            new com.pvtd.students.ui.pages.Report.TopStudentsFramePage();
+                    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    frame.setVisible(true);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
         gridPanel.add(createReportCard("التسويده ",
                 "إخراج كشف رصد الدرجات (تلقائياً حسب نظام المادة)",
                 "icons/reports.svg",

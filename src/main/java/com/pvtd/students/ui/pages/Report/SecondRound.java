@@ -339,9 +339,11 @@ public class SecondRound extends javax.swing.JFrame {
         jTable2.setShowHorizontalLines(true);
         jTable2.setShowVerticalLines(true);
 
-        // Fixed full-page height for 25 rows (25*65 = 1625px, fits space)
+        // rowH = remaining space after header, divided by 30 rows (نفس منطق كشف الراسبين A4)
         int tableHeight = 1650;
-        jTable2.setRowHeight(65);
+        int tableHeaderH = 45;
+        int rowH = (tableHeight - tableHeaderH) / 30;
+        jTable2.setRowHeight(Math.min(50, rowH));
         jScrollPane1.setBounds(15, tableY, 1370, tableHeight);
 
         // Custom renderer for مواد الدور الثاني column (Index 0)
