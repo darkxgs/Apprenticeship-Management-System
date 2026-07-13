@@ -726,13 +726,13 @@ public class FailedFramePage extends javax.swing.JFrame {
                     }
                 }
 
-                // Sort students within each system numerically by seat number
+                // Sort students within each system numerically by seat number (يدعم الأرقام العربية مثل الكشف الكبير)
                 for (java.util.List<java.util.Vector> rows : sortedBySystem.values()) {
                     rows.sort((v1, v2) -> {
                         String sn1 = String.valueOf(v1.get(1)).trim();
                         String sn2 = String.valueOf(v2.get(1)).trim();
-                        String sn1C = sn1.replaceAll("[^0-9]", "");
-                        String sn2C = sn2.replaceAll("[^0-9]", "");
+                        String sn1C = sn1.replaceAll("[^0-9\\u0660-\\u0669]", "").replace("٠","0").replace("١","1").replace("٢","2").replace("٣","3").replace("٤","4").replace("٥","5").replace("٦","6").replace("٧","7").replace("٨","8").replace("٩","9");
+                        String sn2C = sn2.replaceAll("[^0-9\\u0660-\\u0669]", "").replace("٠","0").replace("١","1").replace("٢","2").replace("٣","3").replace("٤","4").replace("٥","5").replace("٦","6").replace("٧","7").replace("٨","8").replace("٩","9");
                         if (!sn1C.isEmpty() && !sn2C.isEmpty()) {
                             try { return Long.compare(Long.parseLong(sn1C), Long.parseLong(sn2C)); } catch (Exception e) {}
                         }
