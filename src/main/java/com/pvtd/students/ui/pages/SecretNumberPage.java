@@ -155,6 +155,15 @@ public class SecretNumberPage extends JPanel {
         btnGenerate.putClientProperty("JButton.buttonType", "roundRect");
         btnGenerate.addActionListener(e -> generateSecretNumbers());
 
+        // زر جديد: توليد أرقام سرية متسلسلة لطلاب الدور الثاني (والمؤجلين) لكل المراكز
+        JButton btnSecondRound = new JButton("🔁 أرقام الدور الثاني (متسلسل)");
+        btnSecondRound.setFont(UITheme.FONT_HEADER);
+        btnSecondRound.setBackground(new Color(0x7C3AED));
+        btnSecondRound.setForeground(Color.WHITE);
+        btnSecondRound.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnSecondRound.putClientProperty("JButton.buttonType", "roundRect");
+        btnSecondRound.addActionListener(e -> generateSecondRoundSecretNumbers());
+
         JButton btnSave = new JButton("💾 حفظ الأرقام السرية");
         btnSave.setFont(UITheme.FONT_HEADER);
         btnSave.setBackground(UITheme.PRIMARY);
@@ -179,8 +188,35 @@ public class SecretNumberPage extends JPanel {
         footer.add(btnExport);
         footer.add(btnSave);
         footer.add(btnGenerate);
+        footer.add(btnSecondRound);
 
         return footer;
+    }
+
+    /**
+     * توليد أرقام سرية متسلسلة ومتجاورة لكل طلاب الدور الثاني (والمؤجلين والناجحين
+     * في الدور الثاني) في كل المراكز دفعة واحدة — لكل مركز عداد مستقل. يستبدل
+     * الرقم السري الحالي مباشرةً في قاعدة البيانات.
+     */
+    private void generateSecondRoundSecretNumbers() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "هيتم إعادة توليد الأرقام السرية لكل طلاب الدور الثاني والمؤجلين في جميع المراكز\n"
+                        + "بشكل متسلسل ومتجاور (عداد مستقل لكل مركز)، وهيتم استبدال الأرقام السرية الحالية.\n\n"
+                        + "متأكد إنك عايز تكمل؟",
+                "توليد أرقام الدور الثاني", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        java.util.List<String> statuses = java.util.Arrays.asList("دور ثاني", "مؤجل", "ناجح دور ثاني");
+        int updated = com.pvtd.students.services.SecretNumberService.regenerateSecondRoundSecretNumbers(statuses);
+
+        String username = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
+        com.pvtd.students.services.LogService.logAction(username, "GENERATE_SECRET_ROUND2",
+                "تم توليد " + updated + " رقم سري متسلسل لطلاب الدور الثاني");
+
+        JOptionPane.showMessageDialog(this,
+                "تم توليد وحفظ " + updated + " رقم سري متسلسل لطلاب الدور الثاني بنجاح!",
+                "نجاح", JOptionPane.INFORMATION_MESSAGE);
+        loadStudents(); // تحديث العرض لو فيه مركز محمّل
     }
 
     private void loadStudents() {

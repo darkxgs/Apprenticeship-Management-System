@@ -920,6 +920,62 @@ public class StudentService {
     }
 
     /**
+     * يرجّع الطلاب المطابقين لأي من الحالات المحددة (مثال: دور ثاني / مؤجل / ناجح دور ثاني)
+     * مع فلتر اختياري بالمنطقة والمركز، ومرتبين برقم الجلوس. يتضمن درجات كل طالب.
+     * يُستخدم في صفحة الدور الثاني وإدخال درجات الدور الثاني.
+     */
+    public static List<Student> getStudentsByStatuses(String region, String centerName,
+            java.util.List<String> statuses) {
+        List<Student> students = new ArrayList<>();
+        if (statuses == null || statuses.isEmpty()) return students;
+
+        StringBuilder in = new StringBuilder();
+        for (int i = 0; i < statuses.size(); i++) {
+            if (i > 0) in.append(", ");
+            in.append("?");
+        }
+
+        StringBuilder query = new StringBuilder("SELECT * FROM students WHERE TRIM(status) IN (" + in + ") ");
+        List<Object> parameters = new ArrayList<>(statuses);
+
+        String cleanRegion = region == null ? null
+                : region.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+        if (cleanRegion != null && !cleanRegion.isEmpty() && !cleanRegion.equals("الكل")) {
+            query.append("AND TRIM(region) = ? ");
+            parameters.add(cleanRegion);
+        }
+
+        String cleanCenter = centerName == null ? null
+                : centerName.replaceAll("(^[\\s\\xA0\\u200B\\p{Z}]+)|([\\s\\xA0\\u200B\\p{Z}]+$)", "");
+        if (cleanCenter != null && !cleanCenter.isEmpty() && !cleanCenter.equals("الكل")) {
+            query.append("AND center_name LIKE ? ");
+            parameters.add("%" + cleanCenter + "%");
+        }
+
+        query.append("ORDER BY center_name, "
+                + "CASE WHEN REGEXP_LIKE(seat_no, '^[0-9]+$') THEN TO_NUMBER(seat_no) ELSE 999999 END, id ASC");
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+            for (int i = 0; i < parameters.size(); i++) {
+                Object p = parameters.get(i);
+                if (p instanceof String) stmt.setString(i + 1, ((String) p).trim());
+                else stmt.setObject(i + 1, p);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Student s = extractStudent(rs);
+                    s.setGrades(getStudentGrades(conn, s.getId()));
+                    students.add(s);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return students;
+    }
+
+    /**
      * Fetch students filtered by profession, optional center, and status.
      * Includes their grades map.
      */

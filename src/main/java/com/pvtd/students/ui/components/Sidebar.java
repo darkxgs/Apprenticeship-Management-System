@@ -15,6 +15,7 @@ import com.pvtd.students.ui.pages.BackupRestorePage;
 import com.pvtd.students.ui.pages.ResultsPage;
 import com.pvtd.students.ui.pages.SystemSettingsPage;
 import com.pvtd.students.ui.pages.SecretNumberPage;
+import com.pvtd.students.ui.pages.SecondRoundPage;
 import com.pvtd.students.ui.utils.UITheme;
 
 import javax.swing.*;
@@ -90,6 +91,9 @@ public class Sidebar extends JPanel {
         HoverButton btnImport = menu("استيراد بيانات", () -> frame.showPage(new ImportPage(frame)));
         HoverButton btnSecret = menu("إنشاء الرقم السري", () -> frame.showPage(new SecretNumberPage(frame)));
         HoverButton btnDataEntry = menu("إدخال الدرجات السريع", () -> frame.showPage(new DataEntryPage(frame)));
+        HoverButton btnSecondRound = menu("الدور الثاني", () -> frame.showPage(new SecondRoundPage(frame)));
+        HoverButton btnSecondRoundEntry = menu("إدخال درجات الدور الثاني",
+                () -> frame.showPage(new DataEntryPage(frame, true)));
         HoverButton btnRep = menu("التقارير", () -> frame.showPage(new ReportsPage()));
         HoverButton btnResults = menu("النتيجة", () -> frame.showPage(new ResultsPage(frame)));
         HoverButton btnArchives = menu("الأرشيف", () -> frame.showPage(new ArchivesPage()));
@@ -103,6 +107,8 @@ public class Sidebar extends JPanel {
             navPanel.add(createSectionLabel("إدخال البيانات"));
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnDataEntry);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnSecondRoundEntry);
             navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(btnImport);
             navPanel.add(Box.createVerticalStrut(6));
@@ -134,6 +140,16 @@ public class Sidebar extends JPanel {
             navPanel.add(createSectionLabel("الرقم السري"));
             navPanel.add(Box.createVerticalStrut(4));
             navPanel.add(btnSecret);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(createSeparator());
+            navPanel.add(Box.createVerticalStrut(6));
+
+            // ══════ Section: الدور الثاني ══════
+            navPanel.add(createSectionLabel("الدور الثاني"));
+            navPanel.add(Box.createVerticalStrut(4));
+            navPanel.add(btnSecondRound);
+            navPanel.add(Box.createVerticalStrut(6));
+            navPanel.add(btnSecondRoundEntry);
             navPanel.add(Box.createVerticalStrut(6));
             navPanel.add(createSeparator());
             navPanel.add(Box.createVerticalStrut(6));

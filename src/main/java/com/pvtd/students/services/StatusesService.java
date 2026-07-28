@@ -36,6 +36,8 @@ public class StatusesService {
             statuses.add(0, "راسب");
         if (!statuses.contains("دور ثاني"))
             statuses.add(0, "دور ثاني");
+        if (!statuses.contains("ناجح دور ثاني"))
+            statuses.add(0, "ناجح دور ثاني");
         if (!statuses.contains("سحب الملف"))
             statuses.add("سحب الملف");
 
@@ -164,7 +166,8 @@ public class StatusesService {
     }
 
     public static void deleteStatus(String statusName, String username) throws SQLException {
-        if (statusName.equals("ناجح") || statusName.equals("راسب") || statusName.equals("دور ثاني") || statusName.equals("سحب الملف")) {
+        if (statusName.equals("ناجح") || statusName.equals("راسب") || statusName.equals("دور ثاني")
+                || statusName.equals("ناجح دور ثاني") || statusName.equals("سحب الملف")) {
             throw new SQLException("لا يمكن حذف الحالات الأساسية للنظام");
         }
         String query = "DELETE FROM student_statuses WHERE status_name = ?";

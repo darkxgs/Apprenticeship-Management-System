@@ -61,6 +61,12 @@ public class DataEntryPage extends JPanel {
     private java.util.Map<String, String> regionCodeToNameMap = new java.util.LinkedHashMap<>();
     private boolean isDirty = false;
 
+    // وضع الدور الثاني: يعرض فقط طلاب (دور ثاني / مؤجل / ناجح دور ثاني) للمركز المختار،
+    // وعند النجاح الكامل يحفظ الحالة كـ "ناجح دور ثاني" بدل "ناجح".
+    private final boolean secondRoundMode;
+    private static final java.util.List<String> SECOND_ROUND_STATUSES =
+            java.util.Arrays.asList("دور ثاني", "مؤجل", "ناجح دور ثاني");
+
     // Colors matched from screenshot
     private final Color CLR_BG = new Color(0xF1F5F9); // Slightly cleaner tailwind slate-100
     private final Color CLR_DARK_BLUE = new Color(0x182235);
@@ -71,7 +77,12 @@ public class DataEntryPage extends JPanel {
     private final Color CLR_BLUE_LIGHT = new Color(0xE3F2FD);
 
     public DataEntryPage(AppFrame parent) {
+        this(parent, false);
+    }
+
+    public DataEntryPage(AppFrame parent, boolean secondRoundMode) {
         this.parentFrame = parent;
+        this.secondRoundMode = secondRoundMode;
         setLayout(new BorderLayout());
         setBackground(CLR_BG);
 
@@ -190,6 +201,16 @@ public class DataEntryPage extends JPanel {
         RoundedButton btnSearchSecret = new RoundedButton("بحث بالرقم السري", CLR_DARK_BLUE, Color.WHITE);
         btnSearchSecret.setPreferredSize(new Dimension(160, 40));
         
+        if (secondRoundMode) {
+            JLabel modeLbl = new JLabel("إدخال درجات الدور الثاني");
+            modeLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            modeLbl.setForeground(new Color(0x7C3AED));
+            modeLbl.setOpaque(true);
+            modeLbl.setBackground(new Color(0xF3E8FF));
+            modeLbl.setBorder(BorderFactory.createEmptyBorder(6, 14, 6, 14));
+            topBar.add(modeLbl);
+        }
+
         topBar.add(regionPanel);
         topBar.add(centerPanel);
         topBar.add(Box.createHorizontalStrut(20));
@@ -555,11 +576,18 @@ public class DataEntryPage extends JPanel {
         
         String regDisplay = (String) regionCombo.getSelectedItem();
         String selReg = regionCombo.getSelectedIndex() > 0 ? regionCodeToNameMap.getOrDefault(regDisplay, regDisplay) : "الكل";
-        centerStudents = StudentService.searchStudents("", "", "الكل", selReg, "الكل", "الكل", center);
-        System.out.println("[DataEntryPage] center='" + center + "', region='" + selReg + "' -> students=" + centerStudents.size());
-        
+        if (secondRoundMode) {
+            centerStudents = StudentService.getStudentsByStatuses(selReg, center, SECOND_ROUND_STATUSES);
+        } else {
+            centerStudents = StudentService.searchStudents("", "", "الكل", selReg, "الكل", "الكل", center);
+        }
+        System.out.println("[DataEntryPage] center='" + center + "', region='" + selReg + "', secondRound=" + secondRoundMode + " -> students=" + centerStudents.size());
+
         if (centerStudents.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "لا يوجد طلاب مسجلين في هذا المركز.", "معلومة", JOptionPane.INFORMATION_MESSAGE);
+            String msg = secondRoundMode
+                    ? "لا يوجد طلاب دور ثاني في هذا المركز."
+                    : "لا يوجد طلاب مسجلين في هذا المركز.";
+            JOptionPane.showMessageDialog(this, msg, "معلومة", JOptionPane.INFORMATION_MESSAGE);
             clearUI();
             return;
         }
@@ -977,8 +1005,11 @@ public class DataEntryPage extends JPanel {
         // would double-count the children into the parent (e.g. 0+25 -> 25, then 25+25 -> 50)
         // and wrongly mark a failing composite subject (25 < pass 50) as passed.
         String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
+        if (secondRoundMode && "ناجح".equals(status)) {
+            status = "ناجح دور ثاني";
+        }
         statusPill.setText(status);
-        if ("ناجح".equals(status)) {
+        if (status.startsWith("ناجح")) {
             statusPill.setBackground(new Color(0xD1FAE5));
             statusPill.setForeground(new Color(0x065F46));
         } else if ("دور ثاني".equals(status) || "راسب".equals(status)) {
@@ -1002,6 +1033,10 @@ public class DataEntryPage extends JPanel {
             // so passing resolvedGrades would double-count the 30/70 children into the parent
             // and store a wrong status (e.g. "ناجح" instead of "دور ثاني").
             String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
+            // في وضع الدور الثاني: النجاح الكامل يتسجل كـ "ناجح دور ثاني" بدل "ناجح".
+            if (secondRoundMode && "ناجح".equals(status)) {
+                status = "ناجح دور ثاني";
+            }
             StudentService.updateStudentStatusDirectly(currentStudent.getId(), status);
             currentStudent.setGrades(resolvedGrades);
             currentStudent.setStatus(status);

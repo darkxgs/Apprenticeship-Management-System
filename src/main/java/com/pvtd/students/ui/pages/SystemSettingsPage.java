@@ -32,6 +32,8 @@ public class SystemSettingsPage extends JPanel {
     private JTable centersTable;
     private JTextField centerNameField, centerCodeField;
     private JComboBox<String> centerRegionCombo;
+    // اسم المركز الأصلي للصف المحدد — لاكتشاف عملية إعادة التسمية والتحديث المتسلسل على الطلاب
+    private String selectedCenterOldName = null;
 
     // ProfGroups tab
     private DefaultTableModel profGroupsModel;
@@ -373,6 +375,7 @@ public class SystemSettingsPage extends JPanel {
                 int row = centersTable.getSelectedRow();
                 centerCodeField.setText(centersModel.getValueAt(row, 0) != null ? centersModel.getValueAt(row, 0).toString() : "");
                 centerNameField.setText(centersModel.getValueAt(row, 1) != null ? centersModel.getValueAt(row, 1).toString() : "");
+                selectedCenterOldName = centersModel.getValueAt(row, 1) != null ? centersModel.getValueAt(row, 1).toString() : null;
                 String rName = centersModel.getValueAt(row, 2) != null ? centersModel.getValueAt(row, 2).toString() : null;
                 if (rName != null) {
                     centerRegionCombo.setSelectedItem(rName);
@@ -524,6 +527,85 @@ public class SystemSettingsPage extends JPanel {
                 }
             }
             
+            // ── إعادة تسمية مركز: لو الصف المحدد اسمه اتغير، نعمل rename + تحديث كل الطلاب المرتبطين ──
+            if (selectedCenterOldName != null && !selectedCenterOldName.trim().isEmpty()
+                    && !selectedCenterOldName.trim().equals(name)) {
+                // امنع التصادم مع اسم مركز آخر موجود بالفعل
+                try (PreparedStatement chk = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM centers WHERE TRIM(name) = TRIM(?)")) {
+                    chk.setString(1, name);
+                    try (ResultSet rs = chk.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            JOptionPane.showMessageDialog(this,
+                                    "اسم المركز \"" + name + "\" موجود بالفعل. اختر اسمًا مختلفًا.",
+                                    "اسم مكرر", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    }
+                }
+
+                // عدّ الطلاب المرتبطين بالاسم القديم
+                int linked = 0;
+                try (PreparedStatement cnt = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM students WHERE TRIM(center_name) = TRIM(?)")) {
+                    cnt.setString(1, selectedCenterOldName);
+                    try (ResultSet rs = cnt.executeQuery()) {
+                        if (rs.next()) linked = rs.getInt(1);
+                    }
+                }
+
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "سيتم تغيير اسم المركز من \"" + selectedCenterOldName + "\" إلى \"" + name + "\"\n"
+                                + "وتحديث " + linked + " طالب مرتبط بهذا المركز.\n\nمتابعة؟",
+                        "تأكيد تعديل اسم المركز", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                if (confirm != JOptionPane.YES_OPTION) return;
+
+                conn.setAutoCommit(false);
+                try {
+                    // 1) تحديث المركز نفسه
+                    if (regionId != null) {
+                        try (PreparedStatement up = conn.prepareStatement(
+                                "UPDATE centers SET name = ?, code = ?, region_id = ? WHERE TRIM(name) = TRIM(?)")) {
+                            up.setString(1, name);
+                            up.setString(2, code);
+                            up.setInt(3, regionId);
+                            up.setString(4, selectedCenterOldName);
+                            up.executeUpdate();
+                        }
+                    } else {
+                        try (PreparedStatement up = conn.prepareStatement(
+                                "UPDATE centers SET name = ?, code = ? WHERE TRIM(name) = TRIM(?)")) {
+                            up.setString(1, name);
+                            up.setString(2, code);
+                            up.setString(3, selectedCenterOldName);
+                            up.executeUpdate();
+                        }
+                    }
+                    // 2) تحديث كل الطلاب المرتبطين بالاسم القديم
+                    try (PreparedStatement ups = conn.prepareStatement(
+                            "UPDATE students SET center_name = ? WHERE TRIM(center_name) = TRIM(?)")) {
+                        ups.setString(1, name);
+                        ups.setString(2, selectedCenterOldName);
+                        ups.executeUpdate();
+                    }
+                    conn.commit();
+                } catch (Exception ex) {
+                    conn.rollback();
+                    throw ex;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "تم تعديل اسم المركز وتحديث " + linked + " طالب مرتبط بنجاح.",
+                        "نجاح", JOptionPane.INFORMATION_MESSAGE);
+                centerNameField.setText("");
+                centerCodeField.setText("");
+                selectedCenterOldName = null;
+                loadCenters();
+                return;
+            }
+
             // Check if code already exists for a different center in the same region
             if (regionId != null) {
                 try (PreparedStatement check = conn.prepareStatement(
@@ -569,6 +651,7 @@ public class SystemSettingsPage extends JPanel {
             JOptionPane.showMessageDialog(this, "تم الحفظ بنجاح.", "نجاح", JOptionPane.INFORMATION_MESSAGE);
             centerNameField.setText("");
             centerCodeField.setText("");
+            selectedCenterOldName = null;
             loadCenters();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "خطأ: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);

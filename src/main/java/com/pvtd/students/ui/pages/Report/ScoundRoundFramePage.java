@@ -318,7 +318,7 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
                             + "AND (TRIM(s.region) = TRIM(?) OR "
                             + "     REPLACE(REPLACE(REPLACE(REPLACE(TRIM(s.region), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا') = "
                             + "     REPLACE(REPLACE(REPLACE(REPLACE(TRIM(?), 'ة', 'ه'), 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا')) "
-                            + "AND s.status = 'دور ثاني' "
+                            + "AND TRIM(s.status) IN ('دور ثاني', 'مؤجل', 'ناجح دور ثاني') "
                             + "ORDER BY CASE WHEN REGEXP_LIKE(s.seat_no, '^[0-9]+$') THEN TO_NUMBER(s.seat_no) ELSE 999999 END, s.id ASC";
                     try (PreparedStatement ps = con.prepareStatement(sql)) {
                         ps.setString(1, center);

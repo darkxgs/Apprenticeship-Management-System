@@ -263,7 +263,8 @@ public class DatabaseConnection {
                     { "مؤجل", "-5" },
                     { "ناجح", "NULL" },
                     { "راسب", "NULL" },
-                    { "دور ثاني", "NULL" }
+                    { "دور ثاني", "NULL" },
+                    { "ناجح دور ثاني", "NULL" }
             };
             for (String[] s : defaultStatuses) {
                 try {

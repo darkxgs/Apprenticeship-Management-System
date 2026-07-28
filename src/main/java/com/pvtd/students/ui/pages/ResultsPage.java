@@ -43,6 +43,7 @@ public class ResultsPage extends JPanel {
             { "رقم التسجيل", 120 },
             { "رقم الجلوس", 100 },
             { "الرقم القومي", 150 },
+            { "الرقم السري", 120 },
             { "التخصص", 150 },
             { "المجموعة المهنية", 160 },
             { "المركز", 160 },
@@ -225,8 +226,8 @@ public class ResultsPage extends JPanel {
             }
         });
         
-        // Status Badge for "حالة الطالب" column (Index 16 now due to new Seat No column)
-        resultsTable.getColumnModel().getColumn(16).setCellRenderer(new StatusBadgeRenderer());
+        // Status Badge for "حالة الطالب" column (Index 17 after adding the Secret No column)
+        resultsTable.getColumnModel().getColumn(17).setCellRenderer(new StatusBadgeRenderer());
 
         JScrollPane scrollPane = new JScrollPane(resultsTable,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -335,6 +336,7 @@ public class ResultsPage extends JPanel {
                     s.getRegistrationNo() != null ? s.getRegistrationNo() : "",
                     s.getSeatNo() != null ? s.getSeatNo() : "",
                     s.getNationalId() != null ? s.getNationalId() : "",
+                    s.getSecretNo() != null ? s.getSecretNo() : "",
                     s.getProfession() != null ? s.getProfession() : "",
                     s.getProfessionalGroup() != null ? s.getProfessionalGroup() : "",
                     s.getCenterName() != null ? s.getCenterName() : "",
