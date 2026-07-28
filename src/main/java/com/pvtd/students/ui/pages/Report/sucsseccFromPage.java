@@ -46,6 +46,10 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         govLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         specLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         centerLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        sub1Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        sub2Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        sub3Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        sub4Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         int year = LocalDate.now().getYear();
         DateL.setText(toArabicNumbers(String.valueOf(year)));
         roundLbl.setText(getArabicMonth());
@@ -96,21 +100,55 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                 JOptionPane.QUESTION_MESSAGE, null, null, currentYear);
     }
 
+    // قياس عرض نص بنفس محرك HTML اللي بيرسم فعلياً (عشان القياس يطلع مظبوط)
+    private int htmlTextWidth(javax.swing.JLabel dummy, String s, int fontSize) {
+        dummy.setText("<html><span style='font-family: Segoe UI, Tahoma; font-weight: bold; font-size:"
+                + fontSize + "px;'>" + s + "</span></html>");
+        return dummy.getPreferredSize().width;
+    }
+
     private String wrapText(String text, int width) {
         int fontSize = 11; // base maximum font size
         javax.swing.JLabel dummy = new javax.swing.JLabel();
         int maxHeight = 48; // max height bounds
-        
+        String[] words = text.trim().split("\\s+");
+        String body = text.trim();
+
+        // ملاحظة: مينفعش نستخدم width في الـ CSS لأن محرك HTML بتاع Swing
+        // بيزحزح النص يمين وبيقص أول حرف — فبنقسم السطور يدوياً بـ <br>
         while (fontSize > 4) {
-            String html = "<html><div style='width:" + width + "px; text-align:center; direction:rtl; font-family: Segoe UI, Tahoma; font-weight: bold; font-size:" + fontSize + "px; line-height: 1.0; padding-top: 2px;'>" + text + "</div></html>";
-            dummy.setText(html);
-            if (dummy.getPreferredSize().height <= maxHeight) {
-                break;
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            StringBuilder line = new StringBuilder();
+            boolean wordTooWide = false;
+            for (String w : words) {
+                if (htmlTextWidth(dummy, w, fontSize) > width) {
+                    wordTooWide = true;
+                    break;
+                }
+                String candidate = (line.length() == 0) ? w : line + " " + w;
+                if (htmlTextWidth(dummy, candidate, fontSize) <= width) {
+                    line = new StringBuilder(candidate);
+                } else {
+                    lines.add(line.toString());
+                    line = new StringBuilder(w);
+                }
+            }
+            if (line.length() > 0) {
+                lines.add(line.toString());
+            }
+
+            if (!wordTooWide) {
+                body = String.join("<br>", lines);
+                String html = "<html><div style='text-align:center; direction:rtl; font-family: Segoe UI, Tahoma; font-weight: bold; font-size:" + fontSize + "px; line-height: 1.0; padding-top: 2px;'>" + body + "</div></html>";
+                dummy.setText(html);
+                if (dummy.getPreferredSize().height <= maxHeight) {
+                    break;
+                }
             }
             fontSize--;
         }
-        
-        return "<html><div style='width:" + width + "px; text-align:center; direction:rtl; font-family: Segoe UI, Tahoma; font-weight: bold; font-size:" + fontSize + "px; line-height: 1.0; padding-top: 2px;'>" + text + "</div></html>";
+
+        return "<html><div style='text-align:center; direction:rtl; font-family: Segoe UI, Tahoma; font-weight: bold; font-size:" + fontSize + "px; line-height: 1.0; padding-top: 2px;'>" + body + "</div></html>";
     }
 
     private String toArabicNumbers(String number) {
@@ -431,7 +469,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
             for (int i = 0; i < 4; i++) {
                 if (i < theory.size()) {
                     SubData s = theory.get(i);
-                    subLbls[i].setText(wrapText(s.name, i == 0 ? 46 : 36));
+                    subLbls[i].setText(wrapText(s.name, 48));
                     maxLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.max)));
                     passLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.pass)));
                     markLbls[i].setText(
@@ -772,17 +810,17 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         jPanel1.add(studentImageLbl);
         studentImageLbl.setBounds(50, 20, 170, 230);
 
-        seatNoLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        seatNoLbl.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         jPanel1.add(seatNoLbl);
-        seatNoLbl.setBounds(480, 290, 190, 10);
+        seatNoLbl.setBounds(480, 283, 175, 24);
 
-        coordinationLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        coordinationLbl.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         jPanel1.add(coordinationLbl);
-        coordinationLbl.setBounds(477, 320, 190, 10);
+        coordinationLbl.setBounds(477, 313, 175, 24);
 
-        nationalIdLbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        nationalIdLbl.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         jPanel1.add(nationalIdLbl);
-        nationalIdLbl.setBounds(477, 350, 200, 10);
+        nationalIdLbl.setBounds(477, 343, 185, 24);
 
         groupLbl.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         groupLbl.setForeground(new java.awt.Color(61, 59, 110));
@@ -810,15 +848,15 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
         sub2Lbl.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
         jPanel1.add(sub2Lbl);
-        sub2Lbl.setBounds(480, 530, 40, 50);
+        sub2Lbl.setBounds(478, 530, 52, 50);
 
         sub3Lbl.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
         jPanel1.add(sub3Lbl);
-        sub3Lbl.setBounds(430, 530, 40, 50);
+        sub3Lbl.setBounds(428, 530, 52, 50);
 
         sub4Lbl.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
         jPanel1.add(sub4Lbl);
-        sub4Lbl.setBounds(380, 530, 40, 50);
+        sub4Lbl.setBounds(376, 530, 50, 50);
 
         max1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jPanel1.add(max1Lbl);
@@ -947,7 +985,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
         jLabel41.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(jLabel41);
-        jLabel41.setBounds(310, 760, 210, 30);
+        jLabel41.setBounds(40, 760, 480, 30);
 
         gradeLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(gradeLbl);
