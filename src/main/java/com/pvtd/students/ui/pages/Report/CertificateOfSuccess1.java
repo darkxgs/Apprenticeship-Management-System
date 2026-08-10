@@ -231,11 +231,13 @@ if (specializationFromDB != null) {
 
     double percentage = 0;
 
+    // النسبة = المجموع ÷ مجموع النهايات العظمى لكل مواد مهنة الطالب
+    // (نفس طريقة استمارة إدارة الامتحانات — وليس فقط المواد التي لها درجات مسجلة)
     String sql = "SELECT NVL(ROUND((SUM(NVL(sg.obtained_mark,0)) / NULLIF(SUM(NVL(sub.max_mark,0)),0)) * 100,2),0) AS percentage "
-               + "FROM students s "
-               + "LEFT JOIN student_grades sg ON s.id = sg.student_id "
-               + "LEFT JOIN subjects sub ON sg.subject_id = sub.id "
-               + "WHERE s.seat_no = ?";
+               + "FROM subjects sub "
+               + "CROSS JOIN students s "
+               + "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id "
+               + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
 
     try (Connection con = DatabaseConnection.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {

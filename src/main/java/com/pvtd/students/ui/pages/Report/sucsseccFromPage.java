@@ -251,6 +251,37 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * النسبة = المجموع ÷ مجموع النهايات العظمى لكل مواد مهنة الطالب (مثلاً 600)
+     * بنفس طريقة استمارة إدارة الامتحانات — تشمل كل مواد المهنة حتى غير المسجّل
+     * لها درجات، ولا تشمل درجات مواد من مهنة أخرى.
+     */
+    private double getCorrectPercentage(String seatNo, Connection con) {
+        String sql = "SELECT NVL(ROUND((SUM(NVL(sg.obtained_mark,0)) / NULLIF(SUM(NVL(sub.max_mark,0)),0)) * 100,2),0) AS percentage "
+                   + "FROM subjects sub "
+                   + "CROSS JOIN students s "
+                   + "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id "
+                   + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, seatNo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble("percentage");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /** نفس شرائح التقدير المستخدمة في الشهادات */
+    private String gradeFromPercentage(double percent) {
+        if (percent >= 85) return "ممتاز";
+        if (percent >= 75) return "جيد جداً";
+        if (percent >= 65) return "جيد";
+        if (percent >= 50) return "مقبول";
+        return "راسب";
+    }
+
     public void loadStudentInfo(String seatNo, Connection con) {
 
         PreparedStatement ps = null;
@@ -305,8 +336,10 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                 centerLbl.setText(rs.getString("center_name"));
                 govLbl.setText(rs.getString("region"));
 
-                // 🔥🔥 التعديل هنا
-                double percent = rs.getDouble("percentage");
+                // النسبة الصحيحة: المجموع ÷ مجموع النهايات العظمى لكل مواد المهنة
+                // (نفس طريقة استمارة إدارة الامتحانات) — وليس نسبة الاستعلام أعلاه
+                // التي كانت تُحسب فقط على المواد التي لها درجات مسجلة
+                double percent = getCorrectPercentage(seatNo, con);
 
                 // رقمين بعد العلامة
                 String formattedPercent = String.format("%.2f", percent);
@@ -316,7 +349,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
                 percentLbl.setText(percentArabic + "٪");
 
-                gradeLbl.setText(rs.getString("grade"));
+                gradeLbl.setText(gradeFromPercentage(percent));
 
                 currentImagePath = rs.getString("image_path");
                 currentNationalId = rs.getString("national_id");
