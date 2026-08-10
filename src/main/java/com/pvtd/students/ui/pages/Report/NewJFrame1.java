@@ -152,11 +152,10 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel45.setBounds(dest45Bounds);
         originalBoundsMap.put(jLabel45, dest45Bounds);
 
-        // ── موضع jLabel43 (رقم القسيمة / "بموجب قسيمة رقم") ──────────────────
-        // نص القالب المطبوع «... رقم ٤٣ ع ج.ج» ينتهي عند x=505 (مقاس بالبكسل)
-        // فالحافة اليمنى = 80 + 390 = 470 ← مسافة أمان ~35px حتى لا يلتصق
-        // الرقم المكتوب بنص القالب
-        java.awt.Rectangle receipt43Bounds = new java.awt.Rectangle(80, 860, 390, 25);
+        // ── موضع jLabel43 (رقم القسيمة والمجموعة بعد «قسيمة رقم 33 ع .ح») ────
+        // نص القالب المعاد رسمه «قسيمة رقم ٣٣ ع .ح» ينتهي عند x≈485
+        // فالحافة اليمنى = 80 + 370 = 450 ← مسافة أمان حتى لا يلتصق بالقالب
+        java.awt.Rectangle receipt43Bounds = new java.awt.Rectangle(80, 860, 370, 25);
         jLabel43.setBounds(receipt43Bounds);
         originalBoundsMap.put(jLabel43, receipt43Bounds);
 
@@ -190,35 +189,51 @@ public class NewJFrame1 extends javax.swing.JFrame {
 
     // ── Receipt metadata fields ─────────────────────────────────────────────
 
-    private String extraPounds      = "";
-    private String extraDate        = "";
-    private String extraDestination = "";
-    private String extraReceiptNo   = "";
+    private String extraPounds    = "";
+    private String extraDate      = "";
+    private String extraGroup     = "";
+    private String extraReceiptNo = "";
 
-    public void setReceiptMetadata(String pounds, String receiptNo, String date, String destination) {
-        this.extraPounds      = pounds      != null ? pounds.trim()      : "";
-        this.extraReceiptNo   = receiptNo   != null ? receiptNo.trim()   : "";
-        this.extraDate        = date        != null ? date.trim()        : "";
-        this.extraDestination = destination != null ? destination.trim() : "";
+    public void setReceiptMetadata(String pounds, String receiptNo, String groupNo, String date) {
+        this.extraPounds    = pounds    != null ? pounds.trim()    : "";
+        this.extraReceiptNo = receiptNo != null ? receiptNo.trim() : "";
+        this.extraGroup     = groupNo   != null ? groupNo.trim()   : "";
+        this.extraDate      = date      != null ? date.trim()      : "";
 
         // jLabel42 = جنيهاً فقط (المبلغ كتابة)
-        // jLabel43 = بموجب قسيمة رقم
+        // jLabel43 = رقم القسيمة + المجموعة (بعد «بموجب قسيمة رقم 33 ع .ح» المطبوعة)
         // jLabel44 = بتاريخ (التاريخ)
-        // jLabel45 = جهة التقديم (مخفي — لا يُطبع)
+        // jLabel45 = جهة التقديم (مخفي — أُلغي من الاستمارة)
         jLabel42.setText(toArabic(this.extraPounds));
-        jLabel43.setText(toArabic(this.extraReceiptNo));
-        jLabel44.setText(ltrText(toArabic(this.extraDate)));
-        jLabel45.setText(toArabic(this.extraDestination));
+        jLabel43.setText(receiptWithGroup());
+        jLabel44.setText(formatDate(this.extraDate));
+        jLabel45.setText("");
         adjustAllDynamicLabels();
     }
 
+    /** «[رقم القسيمة]  مجموعة / [المجموعة]» — كما في الورقة المؤمنة الرسمية */
+    private String receiptWithGroup() {
+        String txt = toArabic(extraReceiptNo);
+        if (!extraGroup.isEmpty()) {
+            txt += "  مجموعة / " + toArabic(extraGroup);
+        }
+        return txt;
+    }
+
     /**
-     * يجبر النص على الظهور بنفس ترتيب كتابته (يسار→يمين) — يمنع الـ bidi
-     * من قلب ترتيب مجموعات الأرقام في التاريخ مثل 10/8/2026 → 2026/8/10
+     * يعرض التاريخ بمجموعات مفصولة داخل سياق يمين→يسار بحيث يُقرأ من اليمين
+     * يوم/شهر/سنة كما يُكتب باليد: «١٠ / ٨ / ٢٠٢٦» تُقرأ ١٠ ثم ٨ ثم ٢٠٢٦
      */
-    private String ltrText(String s) {
-        if (s == null || s.isEmpty()) return "";
-        return "‭" + s + "‬";
+    private String formatDate(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "";
+        String[] parts = raw.trim().split("\\s*[/\\\\-]\\s*");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append(" / ");
+            sb.append(parts[i].trim());
+        }
+        // ‏RLE‏ لضمان أن اتجاه الفقرة يمين→يسار مهما كان سياق العرض
+        return "‫" + toArabic(sb.toString()) + "‬";
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -480,9 +495,9 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel45.setText("");
         // إعادة تطبيق بيانات القسيمة إذا تم تعيينها
         jLabel42.setText(toArabic(extraPounds));
-        jLabel43.setText(toArabic(extraReceiptNo));
-        jLabel44.setText(ltrText(toArabic(extraDate)));
-        jLabel45.setText(toArabic(extraDestination));
+        jLabel43.setText(receiptWithGroup());
+        jLabel44.setText(formatDate(extraDate));
+        jLabel45.setText("");
         // jLabel46 = ١٠٠ (الدرجة العظمى للمجموع الكلي، ثابت)
         jLabel46.setText("١٠٠");
         currentCenterName = "";

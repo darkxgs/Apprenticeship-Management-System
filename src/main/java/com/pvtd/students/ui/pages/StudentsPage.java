@@ -597,23 +597,23 @@ public class StudentsPage extends JPanel {
             java.awt.GridBagConstraints gc = new java.awt.GridBagConstraints();
             gc.insets = new java.awt.Insets(7, 8, 7, 8);
 
-            JTextField txtPounds2      = new JTextField(20);
-            JTextField txtReceiptNo2   = new JTextField(20);
-            JTextField txtDate2        = new JTextField(20);
-            JTextField txtDestination2 = new JTextField(20);
-            for (JTextField tf : new JTextField[]{ txtPounds2, txtReceiptNo2, txtDate2, txtDestination2 }) {
+            JTextField txtPounds2    = new JTextField(20);
+            JTextField txtReceiptNo2 = new JTextField(20);
+            JTextField txtGroup2     = new JTextField(20);
+            JTextField txtDate2      = new JTextField(20);
+            for (JTextField tf : new JTextField[]{ txtPounds2, txtReceiptNo2, txtGroup2, txtDate2 }) {
                 tf.setFont(dlgFont);
                 tf.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
                 tf.setHorizontalAlignment(JTextField.RIGHT);
             }
 
             String[][]  rowDefs = {
-                { "المبلغ كتابةً:",    "جنيهاً فقط"       },
-                { "رقم القسيمة:",   "بموجب قسيمة رقم"  },
-                { "التاريخ:",        "بتاريخ"            },
-                { "جهة التقديم:",   "وذلك لتقديمه إلى" }
+                { "المبلغ كتابةً:",   "جنيهاً فقط"                    },
+                { "رقم القسيمة:",  "بموجب قسيمة رقم 33 ع .ح"     },
+                { "المجموعة:",      "مجموعة /"                      },
+                { "التاريخ:",       "بتاريخ (يوم/شهر/سنة)"         }
             };
-            JTextField[] flds = { txtPounds2, txtReceiptNo2, txtDate2, txtDestination2 };
+            JTextField[] flds = { txtPounds2, txtReceiptNo2, txtGroup2, txtDate2 };
 
             for (int i = 0; i < rowDefs.length; i++) {
                 JLabel lbl  = new JLabel(rowDefs[i][0]);
@@ -682,10 +682,10 @@ public class StudentsPage extends JPanel {
 
             if (!confirmed[0]) return; // المستخدم ضغط إلغاء أو أغلق النافذة
 
-            final String poundsVal      = txtPounds2.getText().trim();
-            final String receiptNoVal   = txtReceiptNo2.getText().trim();
-            final String dateVal        = txtDate2.getText().trim();
-            final String destinationVal = txtDestination2.getText().trim();
+            final String poundsVal    = txtPounds2.getText().trim();
+            final String receiptNoVal = txtReceiptNo2.getText().trim();
+            final String groupVal     = txtGroup2.getText().trim();
+            final String dateVal      = txtDate2.getText().trim();
 
             // ── build student list ────────────────────────────────────────────
             List<String[]> studentsData2 = new ArrayList<>();
@@ -699,7 +699,7 @@ public class StudentsPage extends JPanel {
             new Thread(() -> {
                 try {
                     NewJFrame1 examForm = new NewJFrame1();
-                    examForm.setReceiptMetadata(poundsVal, receiptNoVal, dateVal, destinationVal);
+                    examForm.setReceiptMetadata(poundsVal, receiptNoVal, groupVal, dateVal);
                     examForm.printForms(
                         studentsData2,
                         (current, total) -> {
