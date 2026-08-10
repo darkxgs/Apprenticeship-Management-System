@@ -140,7 +140,8 @@ public class NewJFrame extends javax.swing.JFrame {
 
                     // --- الحقول الأساسية ---
                     jLabel2.setText(name);
-                    jLabel3.setText(toArabic(coordinationNo.isEmpty() ? seat : coordinationNo));
+                    // jLabel3 = اسم المركز — خانة «التابع لمركز/ "..."» في القالب
+                    jLabel3.setText(centerName);
                     jLabel5.setText(profession);
 
                     currentCenterName = centerName;

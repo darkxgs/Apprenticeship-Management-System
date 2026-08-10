@@ -160,13 +160,29 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel43.setBounds(receipt43Bounds);
         originalBoundsMap.put(jLabel43, receipt43Bounds);
 
-        // ── موضع jLabel41 (مجموع درجات التلميذ بالكتابة) ──────────────────────
-        // X أصغر = شمال (يسار) | Y أصغر = أعلى
-        // الموضع الأصلي: x=700, y=770
-        // لتعديل المكان: عدّل X (يسار/يمين) وY (أعلى/أسفل)
-        java.awt.Rectangle totWords41Bounds = new java.awt.Rectangle(495, 765, 400, 25);
+        // ── موضع jLabel3 (اسم المركز — خانة «التابع لمركز/ "..."») ───────────
+        // الفراغ بين علامتي التنصيص في القالب يمتد من x=700 إلى x=879 (مقاس بالبكسل)
+        // والسطر المطبوع عند y≈308-333 بعد إزاحة الخلفية — لذا نرفع الخانة لمستواه
+        java.awt.Rectangle center3Bounds = new java.awt.Rectangle(707, 305, 170, 25);
+        jLabel3.setBounds(center3Bounds);
+        originalBoundsMap.put(jLabel3, center3Bounds);
+
+        // ── موضع jLabel41 (مجموع درجات التلميذ بالكتابة — التفقيطة) ──────────
+        // الكلام المطبوع «مجموع درجات التلميذ بالكتابة :» يمتد من x=746 إلى x=1008
+        // (مقاس بالبكسل) — لذا التفقيطة تبدأ من يمين x=738 وتمتد شمالًا حتى لا
+        // تركب على الكلام المطبوع، ومحاذاة يمين حتى تلتصق بالنقطتين مباشرة
+        java.awt.Rectangle totWords41Bounds = new java.awt.Rectangle(200, 766, 538, 30);
         jLabel41.setBounds(totWords41Bounds);
         originalBoundsMap.put(jLabel41, totWords41Bounds);
+        jLabel41.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+
+        // ── تكبير خط التفقيطة وبيانات القسيمة (طلب إدارة الامتحانات) ─────────
+        java.awt.Font bigFieldFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22);
+        jLabel41.setFont(bigFieldFont); // تفقيطة مجموع الدرجات
+        jLabel42.setFont(bigFieldFont); // المبلغ كتابة (جنيهاً فقط)
+        jLabel43.setFont(bigFieldFont); // رقم القسيمة
+        jLabel44.setFont(bigFieldFont); // التاريخ
+        jLabel45.setFont(bigFieldFont); // جهة التقديم
     }
 
     // ── Receipt metadata fields ─────────────────────────────────────────────
@@ -218,8 +234,9 @@ public class NewJFrame1 extends javax.swing.JFrame {
                     // --- الحقول الأساسية ---
                     // jLabel1 = اسم الطالب
                     jLabel1.setText(name);
-                    // jLabel3 = رقم الجلوس / التنسيق
-                    jLabel3.setText(toArabic(coordinationNo.isEmpty() ? seat : coordinationNo));
+                    // jLabel3 = اسم المركز — خانة «التابع لمركز/ "..."» في القالب
+                    jLabel3.setText(centerName);
+                    fitLabelToOriginalWidth(jLabel3, 18, 10);
                     // jLabel5 = المهنة / التخصص
                     jLabel5.setText(profession);
 
@@ -398,6 +415,26 @@ public class NewJFrame1 extends javax.swing.JFrame {
         }
 
         label.setBounds(newX, orig.y, newWidth, newHeight);
+    }
+
+    /**
+     * يصغّر خط الـ label تدريجياً حتى يتسع النص داخل عرض الخانة الأصلي
+     * (يُستخدم لاسم المركز حتى لا يركب على نص القالب المطبوع لو الاسم طويل)
+     */
+    private void fitLabelToOriginalWidth(javax.swing.JLabel label, int maxSize, int minSize) {
+        java.awt.Rectangle orig = originalBoundsMap.get(label);
+        if (orig == null) orig = label.getBounds();
+        String text = label.getText();
+        if (text == null || text.isEmpty()) return;
+
+        java.awt.Font base = label.getFont();
+        int size = maxSize;
+        while (size > minSize) {
+            java.awt.Font f = new java.awt.Font(base.getName(), base.getStyle(), size);
+            if (label.getFontMetrics(f).stringWidth(text) <= orig.width) break;
+            size--;
+        }
+        label.setFont(new java.awt.Font(base.getName(), base.getStyle(), size));
     }
 
     private void adjustAllDynamicLabels() {
@@ -612,27 +649,35 @@ public class NewJFrame1 extends javax.swing.JFrame {
             "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"
         };
 
-        String result = "";
-        int h = number / 100;
-        int remainder = number % 100;
+        java.util.List<String> parts = new java.util.ArrayList<>();
+
+        // الآلاف (نظام النهاية العظمى 1000 وما فوق)
+        int th = number / 1000;
+        if (th == 1) parts.add("ألف");
+        else if (th == 2) parts.add("ألفان");
+        else if (th >= 3) parts.add(ones[th] + " آلاف");
+
+        int rem = number % 1000;
+        int h = rem / 100;
+        int remainder = rem % 100;
 
         if (h > 0) {
-            result += hundreds[h];
+            parts.add(hundreds[h]);
         }
 
         if (remainder > 0) {
-            if (!result.isEmpty()) result += " و ";
             if (remainder < 20) {
-                result += ones[remainder];
+                parts.add(ones[remainder]);
             } else {
                 int o  = remainder % 10;
                 int tt = remainder / 10;
-                if (o > 0) result += ones[o] + " و ";
-                result += tens[tt];
+                if (o > 0) parts.add(ones[o]);
+                parts.add(tens[tt]);
             }
         }
 
-        return result;
+        // واو العطف ملتصقة بالكلمة التالية: «مائة وسبعة وثمانون»
+        return String.join(" و", parts);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
