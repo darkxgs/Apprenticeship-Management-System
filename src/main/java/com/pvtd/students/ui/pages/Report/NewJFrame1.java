@@ -153,10 +153,10 @@ public class NewJFrame1 extends javax.swing.JFrame {
         originalBoundsMap.put(jLabel45, dest45Bounds);
 
         // ── موضع jLabel43 (رقم القسيمة / "بموجب قسيمة رقم") ──────────────────
-        // الحافة اليمنى = 80 + 420 = 500 ← حيث تنتهي كلمة "رقم" في الصورة
-        // (نفس منطق jLabel45: الحافة اليمنى ثابتة، النص يمتد شمالًا حسب الطول)
-        //  لو لسه بعيد: زوّد عرض (420 → 440)  |  لو داخل كلمة "رقم": نقّص (420 → 400)
-        java.awt.Rectangle receipt43Bounds = new java.awt.Rectangle(80, 860, 420, 25);
+        // نص القالب المطبوع «... رقم ٤٣ ع ج.ج» ينتهي عند x=505 (مقاس بالبكسل)
+        // فالحافة اليمنى = 80 + 390 = 470 ← مسافة أمان ~35px حتى لا يلتصق
+        // الرقم المكتوب بنص القالب
+        java.awt.Rectangle receipt43Bounds = new java.awt.Rectangle(80, 860, 390, 25);
         jLabel43.setBounds(receipt43Bounds);
         originalBoundsMap.put(jLabel43, receipt43Bounds);
 
@@ -182,7 +182,10 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel42.setFont(bigFieldFont); // المبلغ كتابة (جنيهاً فقط)
         jLabel43.setFont(bigFieldFont); // رقم القسيمة
         jLabel44.setFont(bigFieldFont); // التاريخ
-        jLabel45.setFont(bigFieldFont); // جهة التقديم
+
+        // جهة التقديم أُلغيت (طلب إدارة الامتحانات — أُزيلت جملة
+        // «م ، وذلك لتقديمها إلى» من القالب فلا يُطبع ما يُكتب في الحقل)
+        jLabel45.setVisible(false);
     }
 
     // ── Receipt metadata fields ─────────────────────────────────────────────
@@ -201,12 +204,21 @@ public class NewJFrame1 extends javax.swing.JFrame {
         // jLabel42 = جنيهاً فقط (المبلغ كتابة)
         // jLabel43 = بموجب قسيمة رقم
         // jLabel44 = بتاريخ (التاريخ)
-        // jLabel45 = جهة التقديم
+        // jLabel45 = جهة التقديم (مخفي — لا يُطبع)
         jLabel42.setText(toArabic(this.extraPounds));
         jLabel43.setText(toArabic(this.extraReceiptNo));
-        jLabel44.setText(toArabic(this.extraDate));
+        jLabel44.setText(ltrText(toArabic(this.extraDate)));
         jLabel45.setText(toArabic(this.extraDestination));
         adjustAllDynamicLabels();
+    }
+
+    /**
+     * يجبر النص على الظهور بنفس ترتيب كتابته (يسار→يمين) — يمنع الـ bidi
+     * من قلب ترتيب مجموعات الأرقام في التاريخ مثل 10/8/2026 → 2026/8/10
+     */
+    private String ltrText(String s) {
+        if (s == null || s.isEmpty()) return "";
+        return "‭" + s + "‬";
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -469,7 +481,7 @@ public class NewJFrame1 extends javax.swing.JFrame {
         // إعادة تطبيق بيانات القسيمة إذا تم تعيينها
         jLabel42.setText(toArabic(extraPounds));
         jLabel43.setText(toArabic(extraReceiptNo));
-        jLabel44.setText(toArabic(extraDate));
+        jLabel44.setText(ltrText(toArabic(extraDate)));
         jLabel45.setText(toArabic(extraDestination));
         // jLabel46 = ١٠٠ (الدرجة العظمى للمجموع الكلي، ثابت)
         jLabel46.setText("١٠٠");
