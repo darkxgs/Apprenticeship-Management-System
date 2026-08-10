@@ -34,46 +34,147 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
     /**
      * Creates new form SecondCertificateOfSuccess
      */
+    /** أبعاد صفحة الشهادة الثابتة */
+    private static final int PAGE_W = 934;
+    private static final int PAGE_H = 686;
+    /** الحافة اليمنى لكل السطور الرئيسية */
+    private static final int RIGHT_EDGE = 894;
+    /** الحافة اليمنى لعمود (مركز / تخصص / بتقدير) على الشمال */
+    private static final int LEFT_COL_RIGHT_EDGE = 340;
+
     public SecondCertificateOfSuccess() {
         initComponents();
-        jSeparator1.setPreferredSize(new Dimension(0, 5));
-        jSeparator1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 5));
-        // ترك الجزء بعد النقطتين في "وقد منحت له هذه الشهادة..." فارغاً تماماً
-        jLabel19.setText("");
-        // تحويل الأرقام الإنجليزية في النصوص الثابتة إلى أرقام عربية
-        jLabel20.setText(toArabicNumerals(jLabel20.getText()));
-        jLabel22.setText(toArabicNumerals(jLabel22.getText()));
-        jLabel23.setText(toArabicNumerals(jLabel23.getText()));
-        jLabel16.setText(toArabicNumerals(jLabel16.getText()));
+        applyExactLayout();
     }
 
-    private String destinationText = "";
     private String receiptText = "";
+    private String groupText = "";
 
-    public void setCustomFields(String destination, String receipt) {
-        this.destinationText = destination != null ? destination.trim() : "";
-        this.receiptText = receipt != null ? receipt.trim() : "";
-        updateLabel19Text(this.destinationText);
-        // تحديث نص القسيمة
-        if (!this.receiptText.isEmpty()) {
-            jLabel20.setText(toArabicNumerals("وقد سدد الرسوم بموجب قسيمة رقم 33 ع.ح الحكوميه " + this.receiptText));
-        } else {
-            jLabel20.setText(toArabicNumerals("وقد سدد الرسوم بموجب قسيمة رقم 33 ع.ح الحكوميه رقم / "));
-        }
+    /**
+     * حقلا الإدخال الوحيدان في الشهادة (طلب إدارة الامتحانات):
+     * رقم القسيمة الحكومية + المجموعة — يُبنى بهما سطر الرسوم كاملاً.
+     */
+    public void setCustomFields(String receiptNo, String groupNo) {
+        this.receiptText = receiptNo != null ? receiptNo.trim() : "";
+        this.groupText   = groupNo   != null ? groupNo.trim()   : "";
+        // أرقام إنجليزية كما في النموذج الرسمي
+        jLabel20.setText(
+                "وقد سدد الرسوم وقدرها ستون جنيها لاغير بموجب قسيمة رقم 33 ع .ج الحكومية رقم / "
+                + this.receiptText + "   مجموعة " + this.groupText);
+        applyExactLayout();
     }
 
-    private void updateLabel19Text(String text) {
-        jLabel19.setText(text);
-        if (jLabel19.getFont() != null) {
-            java.awt.FontMetrics fm = jLabel19.getFontMetrics(jLabel19.getFont());
-            int textWidth = fm.stringWidth(text != null ? text : "");
-            int textHeight = fm.getHeight();
-            // إضافة هامش بسيط لمنع أي قص للنص
-            Dimension d = new Dimension(textWidth + 10, textHeight + 4);
-            jLabel19.setPreferredSize(d);
-            jLabel19.setMinimumSize(d);
-            jLabel19.revalidate();
-        }
+    /** يجبر التاريخ على الظهور بترتيب كتابته يوم/شهر/سنة دون قلب من الـ bidi */
+    private String ltrText(String s) {
+        if (s == null || s.isEmpty()) return "";
+        return "‭" + s + "‬";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // الرص الثابت طبقاً لنموذج شهادة إدارة الامتحانات الرسمي:
+    //   كل بيانات اليمين تبدأ من حافة يمنى ثابتة، وعمود (مركز/تخصص/بتقدير)
+    //   على يسار الصفحة كلٌ على نفس سطر نظيره الأيمن
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** يضع الـ label بحيث تكون حافته اليمنى عند rightX (نمو النص لليسار) */
+    private void placeRight(javax.swing.JLabel l, int rightX, int y) {
+        java.awt.FontMetrics fm = l.getFontMetrics(l.getFont());
+        int w = fm.stringWidth(l.getText() == null ? "" : l.getText()) + 8;
+        int h = fm.getHeight() + 2;
+        l.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        l.setBounds(rightX - w, y, w, h);
+    }
+
+    /** يضع الـ label ممركزاً حول centerX */
+    private void placeCenter(javax.swing.JLabel l, int centerX, int y) {
+        java.awt.FontMetrics fm = l.getFontMetrics(l.getFont());
+        int w = fm.stringWidth(l.getText() == null ? "" : l.getText()) + 8;
+        int h = fm.getHeight() + 2;
+        l.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        l.setBounds(centerX - w / 2, y, w, h);
+    }
+
+    private void applyExactLayout() {
+
+        // نصوص ثابتة مصححة طبقاً للنموذج الرسمي — بأرقام إنجليزية مثله تماماً
+        jLabel4.setText("شهـــــادة");
+        jLabel12.setText("تخصص /");
+        jLabel16.setText("دور / مايو عام 2026 الميلادية / الفان وسته وعشرون ،،،");
+        jLabel21.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية و التعليم");
+        jLabel22.setText("رقم ( 92 ) الصادر في " + ltrText("17/ 6/ 1968") + " وتم تعديله بالقرار رقم 57 لسنه 1969 م.");
+        jLabel23.setText("مصلحة الكفاية الانتاجية و التدريب المهني حاصلة علي نظام ادارة الجودة ISO 9001");
+        jLabel24.setText("عضو الامتحانات المسؤول");
+
+        // «تحريراً في» بتاريخ اليوم — بترتيب يوم/شهر/سنة صحيح
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String dateStr = today.getDayOfMonth() + "/ " + today.getMonthValue() + "/ " + today.getYear();
+        jLabel30.setText("تحريراً في  " + ltrText(dateStr));
+
+        // سطر «وقد منحت له هذه الشهادة... لتقديمها الي» أُلغي طبقاً للنموذج
+        jLabel17.setVisible(false);
+        jLabel19.setVisible(false);
+        المركز1.setVisible(false);
+
+        jPanel1.setLayout(null);
+        jPanel1.setPreferredSize(new Dimension(PAGE_W, PAGE_H));
+
+        // ── ترويسة يمين ──────────────────────────────────────────────────
+        placeRight(jLabel1, RIGHT_EDGE - 60, 26);
+        placeRight(jLabel2, RIGHT_EDGE - 8, 44);
+        placeRight(jLabel3, RIGHT_EDGE - 28, 62);
+        jSeparator1.setBounds(RIGHT_EDGE - 200, 82, 175, 4);
+
+        // ── الشعار أعلى الشمال ───────────────────────────────────────────
+        Dimension logoSize = المركز2.getPreferredSize();
+        المركز2.setBounds(60, 24, logoSize.width, logoSize.height);
+
+        // ── العنوان في المنتصف ───────────────────────────────────────────
+        placeCenter(jLabel4, PAGE_W / 2, 112);
+        placeCenter(jLabel5, PAGE_W / 2, 138);
+
+        // ── سطور البيانات ────────────────────────────────────────────────
+        int y1 = 200, y2 = 234, y3 = 268, y4 = 302, lh = 0;
+
+        // السطر 1: تشهد وزارة التجارة والصناعة بان السيد / [الاسم]
+        placeRight(jLabel6, RIGHT_EDGE, y1);
+        placeRight(الاسم, jLabel6.getX() - 4, y1);
+
+        // السطر 2: الرقم القومي / [الرقم]   |   مركز / "[المركز]"
+        placeRight(jLabel8, RIGHT_EDGE, y2);
+        placeRight(الرقم_القومي, jLabel8.getX() - 4, y2);
+        placeRight(jLabel10, LEFT_COL_RIGHT_EDGE, y2);
+        placeRight(المركز, jLabel10.getX() - 4, y2);
+
+        // السطر 3: قد نجح في امتحان... |   تخصص / "[التخصص]"
+        placeRight(jLabel18, RIGHT_EDGE, y3);
+        placeRight(jLabel12, LEFT_COL_RIGHT_EDGE, y3);
+        placeRight(تخصص, jLabel12.getX() - 4, y3);
+
+        // السطر 4: دور / ... الميلادية / ... |   بتقدير / "[التقدير]"
+        placeRight(jLabel16, RIGHT_EDGE, y4);
+        placeRight(jLabel14, LEFT_COL_RIGHT_EDGE, y4);
+        placeRight(تقدير, jLabel14.getX() - 4, y4);
+
+        // ── سطر الرسوم ثم المعادلة ثم القرار ثم الأيزو ───────────────────
+        placeRight(jLabel20, RIGHT_EDGE, 344);
+        placeRight(jLabel21, RIGHT_EDGE, 380);
+        placeRight(jLabel22, RIGHT_EDGE, 410);
+        placeRight(jLabel23, RIGHT_EDGE, 440);
+
+        // ── التوقيعات ───────────────────────────────────────────────────
+        placeRight(jLabel24, RIGHT_EDGE, 482);              // عضو الامتحانات المسؤول
+        placeCenter(jLabel25, RIGHT_EDGE - 90, 510);        // نقاط عضو الامتحانات
+        placeCenter(jLabel26, PAGE_W / 2, 482);             // المراجع المسؤول
+        placeCenter(jLabel27, PAGE_W / 2, 510);             // نقاط المراجع
+        placeCenter(jLabel28, 190, 490);                    // يعتمد ،
+        placeCenter(jLabel29, 190, 514);                    // مدير الادارة
+
+        // ── أسفل الشهادة ────────────────────────────────────────────────
+        placeRight(jLabel30, RIGHT_EDGE, 592);              // تحريراً في [التاريخ]
+        placeCenter(jLabel31, PAGE_W / 2, 592);             // خاتم شعار الجمهورية
+
+        jPanel1.revalidate();
+        jPanel1.repaint();
     }
 
     /**
@@ -98,14 +199,15 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
 
                 double percentage = getStudentPercentage(seatNo);
 
-                // ملء حقول الشهادة
+                // ملء حقول الشهادة — القيم بين علامتي تنصيص كما في النموذج الرسمي
                 الاسم.setText(rs.getString("name"));
-                الرقم_القومي.setText(toArabicNumerals(rs.getString("national_id")));
-                المركز.setText(rs.getString("center_name"));
+                الرقم_القومي.setText(rs.getString("national_id"));
+                String centerFromDB = rs.getString("center_name");
+                المركز.setText("\" " + (centerFromDB != null ? centerFromDB : "") + " \"");
 
                 String specializationFromDB = rs.getString("specialization");
                 if (specializationFromDB != null) {
-                    تخصص.setText(specializationFromDB);
+                    تخصص.setText("\" " + specializationFromDB + " \"");
                 }
 
                 // تقدير: نص التقدير بناءً على النسبة المئوية (كما في sucsseccFromPage)
@@ -121,9 +223,7 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
                 } else {
                     gradeText = "ناجح";
                 }
-                تقدير.setText(gradeText);
-
-                updateLabel19Text(destinationText);
+                تقدير.setText("\" " + gradeText + " \"");
             }
 
         } catch (Exception e) {
@@ -199,27 +299,12 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
                 Student s = students.get(i);
                 if (progressCallback != null) progressCallback.accept(i + 1, total);
 
-                // ─── تحميل بيانات الطالب ──────────────────────────────────
+                // ─── تحميل بيانات الطالب ثم إعادة الرص الثابت طبقاً للنموذج ──
                 loadStudentData(s.getSeatNo());
+                applyExactLayout();
 
-                // ─── حساب واستخراج المحتوى بكامل أبعاده الحقيقية دون قص ───
-                jPanel1.doLayout();
-                jPanel1.revalidate();
-
-                int contentWidth = jPanel1.getPreferredSize().width;
-                int contentHeight = jPanel1.getPreferredSize().height;
-                if (contentWidth <= 0) contentWidth = 934;
-                if (contentHeight <= 0) contentHeight = 686;
-
-                // التاكد من حساب Bounds لجميع العناصر الابنة لتغطية أي محتوى يتجاوز الحجم المفضل
-                for (java.awt.Component comp : jPanel1.getComponents()) {
-                    if (comp.isVisible()) {
-                        java.awt.Rectangle r = comp.getBounds();
-                        if (r.x + r.width > contentWidth) contentWidth = r.x + r.width;
-                        if (r.y + r.height > contentHeight) contentHeight = r.y + r.height;
-                    }
-                }
-
+                int contentWidth = PAGE_W;
+                int contentHeight = PAGE_H;
                 jPanel1.setSize(contentWidth, contentHeight);
                 jPanel1.doLayout();
 

@@ -466,23 +466,24 @@ public class StudentsPage extends JPanel {
                 return;
             }
 
-            // ── نافذة إدخال الحقول المطلوبة لشهادة إدارة الامتحانات ──
-            JTextField txtDestination = new JTextField(20);
+            // ── نافذة إدخال الحقلين الوحيدين لشهادة إدارة الامتحانات ──
+            // «... بموجب قسيمة رقم 33 ع .ج الحكومية رقم / [؟]   مجموعة [؟]»
             JTextField txtReceipt = new JTextField(20);
+            JTextField txtGroup = new JTextField(20);
 
             JPanel inputPanel = new JPanel(new java.awt.GridLayout(4, 1, 5, 5));
             inputPanel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
 
-            JLabel lblDestination = new JLabel("تقديمها إلى (بعد النقطتين :) :");
-            lblDestination.setHorizontalAlignment(SwingConstants.RIGHT);
-            
-            JLabel lblReceipt = new JLabel("القيمة الموجودة بعد كلمة الحكومية (قسيمة/رسوم):");
+            JLabel lblReceipt = new JLabel("الحكومية رقم / :");
             lblReceipt.setHorizontalAlignment(SwingConstants.RIGHT);
 
-            inputPanel.add(lblDestination);
-            inputPanel.add(txtDestination);
+            JLabel lblGroup = new JLabel("مجموعة :");
+            lblGroup.setHorizontalAlignment(SwingConstants.RIGHT);
+
             inputPanel.add(lblReceipt);
             inputPanel.add(txtReceipt);
+            inputPanel.add(lblGroup);
+            inputPanel.add(txtGroup);
 
             int option = JOptionPane.showConfirmDialog(
                 this,
@@ -496,8 +497,8 @@ public class StudentsPage extends JPanel {
                 return;
             }
 
-            String destinationValue = txtDestination.getText();
             String receiptValue = txtReceipt.getText();
+            String groupValue = txtGroup.getText();
 
             List<Student> selectedStudents = new ArrayList<>();
             for (int modelRow : selectedRows) {
@@ -513,7 +514,7 @@ public class StudentsPage extends JPanel {
 
             new Thread(() -> {
                 SecondCertificateOfSuccess cert = new SecondCertificateOfSuccess();
-                cert.setCustomFields(destinationValue, receiptValue);
+                cert.setCustomFields(receiptValue, groupValue);
                 cert.printCertificates(selectedStudents, (current, total) -> {
                     loading.setProgress((int) ((current * 100.0) / total));
                     loading.setStatus("جاري معالجة الطالب " + current + " من " + total);
