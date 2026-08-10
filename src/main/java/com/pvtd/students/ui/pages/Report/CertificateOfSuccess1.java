@@ -278,20 +278,15 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         File certFolder = new File(mainFolder, "الشهادة");
         if (!certFolder.exists()) certFolder.mkdirs();
 
-        // 🔥 نخلي الصفحة نفس مقاس الشهادة
+        // مقاس الشهادة
         com.itextpdf.text.Rectangle pageSize = new com.itextpdf.text.Rectangle(934, 686);
 
-
-        // 🌟 تجهيز هيكل لتخزين الملفات المجمعة لكل مركز
-        java.util.Map<String, Document> combinedDocs = new java.util.HashMap<>();
-        
-        // 🌟 ملف مجمع لكل الطلاب المختارين
-        Document allSelectedDoc = new Document(pageSize);
-        String allSelectedPath = certFolder.getAbsolutePath() + File.separator + "شهادات الطلاب المختارين.pdf";
-        PdfWriter.getInstance(allSelectedDoc, new FileOutputStream(allSelectedPath));
-        allSelectedDoc.open();
-        
-        String lastSinglePath = "";
+        // خريطة: اسم المركز → Document (ملف PDF مجمع لكل مركز)
+        java.util.Map<String, Document>  combinedDocs  = new java.util.LinkedHashMap<>();
+        // خريطة: اسم المركز → مسار ملف PDF المجمع
+        java.util.Map<String, String>    combinedPaths = new java.util.LinkedHashMap<>();
+        // خريطة: اسم المركز → مجلد المركز
+        java.util.Map<String, File>      centerFolders = new java.util.LinkedHashMap<>();
 
         int total = students.size();
         for (int i = 0; i < total; i++) {
@@ -303,7 +298,6 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
             // تحميل بيانات الطالب
             loadStudentData(s.getSeatNo());
 
-            // ✅ لو التخصص جاي من الجدول حطه
             if (s.getProfession() != null && !s.getProfession().trim().isEmpty()) {
                 lblProfession.setText(s.getProfession());
             } else if (lblProfession.getText() == null || lblProfession.getText().equals("null")) {
@@ -311,94 +305,80 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
             }
             String nationalId = lblNationalId.getText();
 
-            // 🔥 رسم الشهادة كصورة
+            // رسم الشهادة كصورة
             BufferedImage image = new BufferedImage(934, 686, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2 = image.createGraphics();
 
-            jPanel2.setSize(934, 686); // مهم جداً
+            jPanel2.setSize(934, 686);
             jPanel2.revalidate();
             jPanel2.repaint();
             jPanel2.doLayout();
             jPanel2.printAll(g2);
-
             g2.dispose();
 
-            Image img = Image.getInstance(image, null);
-
-            // 🔥 نحط الصورة تملى الصفحة بالظبط
-            img.scaleAbsolute(934, 686);
-            img.setAbsolutePosition(0, 0);
-
-            // -----------------------
-            // 2️⃣ ملف لكل طالب (منظم داخل مجلد باسم المركز)
-            // -----------------------
+            // تحديد اسم المركز وتنظيفه
             String centerName = lblcenter.getText() != null ? lblcenter.getText().trim() : "بدون مركز";
-            // تنظيف اسم المجلد من الأحرف غير المسموح بها
+            if (centerName.isEmpty()) centerName = "بدون مركز";
             centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
-            File centerFolder = new File(certFolder, centerName);
-            if (!centerFolder.exists()) centerFolder.mkdirs();
 
-            String fileName = (nationalId != null && !nationalId.trim().isEmpty()) ? nationalId : "student_" + s.getSeatNo();
+            // إنشاء مجلد المركز إن لم يكن موجوداً
+            if (!centerFolders.containsKey(centerName)) {
+                File centerFolder = new File(certFolder, centerName);
+                if (!centerFolder.exists()) centerFolder.mkdirs();
+                centerFolders.put(centerName, centerFolder);
+            }
+            File centerFolder = centerFolders.get(centerName);
+
+            // ملف PDF فردي لكل طالب داخل مجلد المركز
+            String fileName = (nationalId != null && !nationalId.trim().isEmpty())
+                    ? nationalId : "student_" + s.getSeatNo();
             String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
 
             Document singleDoc = new Document(pageSize);
             PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
             singleDoc.open();
-
-            Image img2 = Image.getInstance(image, null);
-            img2.scaleAbsolute(934, 686);
-            img2.setAbsolutePosition(0, 0);
-
-            singleDoc.add(img2);
+            Image imgSingle = Image.getInstance(image, null);
+            imgSingle.scaleAbsolute(934, 686);
+            imgSingle.setAbsolutePosition(0, 0);
+            singleDoc.add(imgSingle);
             singleDoc.close();
-            lastSinglePath = singlePath;
 
-            // 2.5️⃣ إضافة للطالب للملف المجمع العام
-            if (i > 0) allSelectedDoc.newPage();
-            Image imgForAll = Image.getInstance(image, null);
-            imgForAll.scaleAbsolute(934, 686);
-            imgForAll.setAbsolutePosition(0, 0);
-            allSelectedDoc.add(imgForAll);
-            
-            // 3️⃣ إضافة الشهادة إلى الملف المجمع الخاص بالمركز
-            Document combinedDoc = combinedDocs.get(centerName);
-            if (combinedDoc == null) {
-                combinedDoc = new Document(pageSize);
-                String combinedFileName = "شهادات طلاب مركز " + centerName + ".pdf";
-                String combinedPath = certFolder.getAbsolutePath() + File.separator + combinedFileName;
-                PdfWriter.getInstance(combinedDoc, new FileOutputStream(combinedPath));
-                combinedDoc.open();
-                combinedDocs.put(centerName, combinedDoc);
+            // إنشاء ملف PDF مجمع للمركز داخل مجلد المركز (أو إضافة صفحة إن كان موجوداً)
+            if (!combinedDocs.containsKey(centerName)) {
+                Document doc = new Document(pageSize);
+                String pdfPath = centerFolder.getAbsolutePath() + File.separator
+                        + "شهادات طلاب مركز " + centerName + ".pdf";
+                PdfWriter.getInstance(doc, new FileOutputStream(pdfPath));
+                doc.open();
+                combinedDocs.put(centerName, doc);
+                combinedPaths.put(centerName, pdfPath);
             } else {
-                combinedDoc.newPage();
+                combinedDocs.get(centerName).newPage();
             }
-            
-            Image imgForCombined = Image.getInstance(image, null);
-            imgForCombined.scaleAbsolute(934, 686);
-            imgForCombined.setAbsolutePosition(0, 0);
-            combinedDoc.add(imgForCombined);
+
+            Image imgForCenter = Image.getInstance(image, null);
+            imgForCenter.scaleAbsolute(934, 686);
+            imgForCenter.setAbsolutePosition(0, 0);
+            combinedDocs.get(centerName).add(imgForCenter);
         }
 
-        // إغلاق جميع الملفات المجمعة بعد انتهاء كل الطلاب
+        // إغلاق جميع ملفات PDF المجمعة
         for (Document doc : combinedDocs.values()) {
-            if (doc.isOpen()) {
-                doc.close();
-            }
-        }
-        
-        if (allSelectedDoc.isOpen()) {
-            allSelectedDoc.close();
+            if (doc.isOpen()) doc.close();
         }
 
-        final String finalLastSinglePath = lastSinglePath;
+        // فتح المجلدات والملفات عند الانتهاء
+        java.util.List<String> finalPaths   = new java.util.ArrayList<>(combinedPaths.values());
+        java.util.List<File>   finalFolders = new java.util.ArrayList<>(centerFolders.values());
         SwingUtilities.invokeLater(() -> {
             try {
-                if (total == 1 && !finalLastSinglePath.isEmpty()) {
-                    Desktop.getDesktop().open(new File(finalLastSinglePath));
-                } else {
-                    Desktop.getDesktop().open(certFolder);
-                    JOptionPane.showMessageDialog(null, "تم إنشاء الشهادات بنجاح وتجميعها في المجلدات");
+                for (File folder : finalFolders) {
+                    Desktop.getDesktop().open(folder);
                 }
+                if (!finalPaths.isEmpty()) {
+                    Desktop.getDesktop().open(new File(finalPaths.get(finalPaths.size() - 1)));
+                }
+                JOptionPane.showMessageDialog(null, "تم إنشاء الشهادات بنجاح وتجميعها في المجلدات");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }

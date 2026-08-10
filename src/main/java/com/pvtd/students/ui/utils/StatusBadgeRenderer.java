@@ -30,6 +30,8 @@ public class StatusBadgeRenderer extends DefaultTableCellRenderer {
         FIXED_COLORS.put("مفصول", new Color[] { new Color(0xFEE2E2), new Color(0x991B1B) }); // Dark Red
         FIXED_COLORS.put("تحت الدراسة", new Color[] { new Color(0xF3E8FF), new Color(0x7E22CE) }); // Purple
         FIXED_COLORS.put("غير محدد", new Color[] { new Color(0xF8FAFC), new Color(0x94A3B8) }); // Light Slate
+        FIXED_COLORS.put("ناجح من الدور الثاني", new Color[] { new Color(0xCCFBF1), new Color(0x0F766E) }); // Teal
+        FIXED_COLORS.put("راسب من الدور الثاني", new Color[] { new Color(0xFEF3C7), new Color(0xB45309) }); // Amber
     }
 
     // Auto-generated palette for unknown dynamic statuses

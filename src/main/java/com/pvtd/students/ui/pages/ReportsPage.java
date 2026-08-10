@@ -16,6 +16,9 @@ import com.pvtd.students.ui.pages.Report.delayedFramePage;
 import com.pvtd.students.ui.pages.Report.sucsseccFromPage;
 import com.pvtd.students.ui.pages.Report.EltaSoeda;
 import com.pvtd.students.ui.pages.Report.WithdrawalFramePage;
+import com.pvtd.students.ui.pages.Report.SecondRoundPassedFramePage;
+import com.pvtd.students.ui.pages.Report.SecondRoundFailedFramePage;
+import com.pvtd.students.ui.pages.Report.NewJFrame1;
 
 public class ReportsPage extends JPanel {
 
@@ -168,6 +171,34 @@ public class ReportsPage extends JPanel {
                    e.setVisible(true);
                    e.setExtendedState(JFrame.MAXIMIZED_BOTH);
                 }));
+
+        gridPanel.add(createReportCard("كشف ناجحي الدور الثاني",
+                "استخراج تقرير بجميع الطلاب الناجحين من الدور الثاني",
+                "icons/dashboard.svg", () -> {
+                    SecondRoundPassedFramePage sp = new SecondRoundPassedFramePage();
+                    sp.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    sp.setVisible(true);
+                    sp.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
+        gridPanel.add(createReportCard("كشف راسبي الدور الثاني",
+                "استخراج تقرير بجميع الطلاب الراسبين من الدور الثاني",
+                "icons/reports.svg", () -> {
+                    SecondRoundFailedFramePage sf = new SecondRoundFailedFramePage();
+                    sf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    sf.setVisible(true);
+                    sf.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
+        gridPanel.add(createReportCard("استمارة إدارة الامتحانات",
+                "توليد استمارات إدارة الامتحانات للطلاب منظمة حسب المركز",
+                "icons/reports.svg", () -> {
+                    NewJFrame1 ef = new NewJFrame1();
+                    ef.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    ef.setVisible(true);
+                    ef.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
         // ScrollPane
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);

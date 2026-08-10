@@ -264,7 +264,9 @@ public class DatabaseConnection {
                     { "ناجح", "NULL" },
                     { "راسب", "NULL" },
                     { "دور ثاني", "NULL" },
-                    { "ناجح دور ثاني", "NULL" }
+                    { "ناجح دور ثاني", "NULL" },
+                    { "ناجح من الدور الثاني", "NULL" },
+                    { "راسب من الدور الثاني", "NULL" }
             };
             for (String[] s : defaultStatuses) {
                 try {

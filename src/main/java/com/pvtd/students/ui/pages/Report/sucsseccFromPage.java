@@ -546,18 +546,14 @@ public class sucsseccFromPage extends javax.swing.JFrame {
             if (!formFolder.exists())
                 formFolder.mkdir();
 
-            // 🌟 تجهيز هيكل لتخزين الملفات المجمعة لكل مركز
-            java.util.Map<String, Document> combinedDocs = new java.util.HashMap<>();
+            // خريطة: اسم المركز → Document (ملف PDF مجمع لكل مركز)
+            java.util.Map<String, Document>  combinedDocs  = new java.util.LinkedHashMap<>();
+            // خريطة: اسم المركز → مسار ملف PDF
+            java.util.Map<String, String>    combinedPaths = new java.util.LinkedHashMap<>();
+            // خريطة: اسم المركز → مجلد المركز
+            java.util.Map<String, File>      centerFolders = new java.util.LinkedHashMap<>();
 
-            // 🌟 ملف مجمع لكل الطلاب المختارين
-            Document allSelectedDoc = new Document(PageSize.A4);
-            String allSelectedPath = formFolder.getAbsolutePath() + File.separator + "استمارات الطلاب المختارين.pdf";
-            PdfWriter.getInstance(allSelectedDoc, new FileOutputStream(allSelectedPath));
-            allSelectedDoc.open();
-
-            String lastSinglePath = "";
-
-            int width = 800;
+            int width  = 800;
             int height = 1300;
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2 = image.createGraphics();
@@ -565,7 +561,6 @@ public class sucsseccFromPage extends javax.swing.JFrame {
             jPanel1.setSize(width, height);
             jPanel1.setDoubleBuffered(false);
 
-            // 🔥 اللوب الجديد
             int total = studentsData.size();
             for (int i = 0; i < total; i++) {
                 String[] student = studentsData.get(i);
@@ -573,112 +568,95 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                     progressCallback.accept(i + 1, total);
                 }
 
-                String seatNo = student[0];
+                String seatNo    = student[0];
                 String profession = student[1];
 
-                // 👇 تنظيف البيانات القديمة
+                // تنظيف البيانات القديمة
                 clearLabels();
-
-                // 👇 حط المهنة من الجدول
                 specLbl.setText(profession);
 
-                // تحميل باقي البيانات من DB
+                // تحميل البيانات من DB
                 loadStudentInfo(seatNo, con);
                 loadStudentSubjects(seatNo, con);
                 loadStudentImage(currentImagePath);
 
-                // 🔥 Ensure layout is updated for absolute positions
+                // تحديث الـ layout
                 jPanel1.revalidate();
                 jPanel1.repaint();
                 jPanel1.doLayout();
 
-                // تنظيف الصورة
+                // رسم الاستمارة على الصورة
                 g2.clearRect(0, 0, width, height);
-
-                // رسم
                 jPanel1.printAll(g2);
 
-                Image img = Image.getInstance(image, null);
-
-                img.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
-                img.setAbsolutePosition(0, 0);
-
-                // 2️⃣ ملف لكل طالب (منظم داخل مجلد باسم المركز)
+                // تحديد اسم المركز وتنظيفه
                 String centerName = centerLbl.getText() != null ? centerLbl.getText().trim() : "بدون مركز";
-                // تنظيف اسم المجلد من الأحرف غير المسموح بها
+                if (centerName.isEmpty()) centerName = "بدون مركز";
                 centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
-                File centerFolder = new File(formFolder, centerName);
-                if (!centerFolder.exists())
-                    centerFolder.mkdirs();
 
-                String fileName = (currentNationalId != null && !currentNationalId.isEmpty()) ? currentNationalId
-                        : "student_" + seatNo;
+                // إنشاء مجلد المركز إن لم يكن موجوداً
+                if (!centerFolders.containsKey(centerName)) {
+                    File centerFolder = new File(formFolder, centerName);
+                    if (!centerFolder.exists()) centerFolder.mkdirs();
+                    centerFolders.put(centerName, centerFolder);
+                }
+                File centerFolder = centerFolders.get(centerName);
+
+                // إنشاء ملف PDF للمركز إن لم يكن موجوداً بعد
+                if (!combinedDocs.containsKey(centerName)) {
+                    Document doc = new Document(PageSize.A4);
+                    String pdfPath = centerFolder.getAbsolutePath() + File.separator
+                            + "استمارة طلاب مركز " + centerName + ".pdf";
+                    PdfWriter.getInstance(doc, new FileOutputStream(pdfPath));
+                    doc.open();
+                    combinedDocs.put(centerName, doc);
+                    combinedPaths.put(centerName, pdfPath);
+                } else {
+                    // صفحة جديدة لكل طالب إضافي في نفس المركز
+                    combinedDocs.get(centerName).newPage();
+                }
+
+                // إضافة صورة الاستمارة إلى ملف PDF الخاص بالمركز
+                Image imgForCenter = Image.getInstance(image, null);
+                imgForCenter.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+                imgForCenter.setAbsolutePosition(0, 0);
+                combinedDocs.get(centerName).add(imgForCenter);
+
+                // إنشاء ملف PDF فردي لكل طالب داخل مجلد المركز
+                String fileName = (currentNationalId != null && !currentNationalId.isEmpty())
+                        ? currentNationalId : "student_" + seatNo;
                 String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
-
                 Document singleDoc = new Document(PageSize.A4);
                 PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
                 singleDoc.open();
-
                 Image imgForSingle = Image.getInstance(image, null);
                 imgForSingle.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
                 imgForSingle.setAbsolutePosition(0, 0);
                 singleDoc.add(imgForSingle);
                 singleDoc.close();
-                lastSinglePath = singlePath;
-
-                // 2.5️⃣ إضافة للطالب للملف المجمع العام
-                if (i > 0)
-                    allSelectedDoc.newPage();
-                Image imgForAll = Image.getInstance(image, null);
-                imgForAll.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
-                imgForAll.setAbsolutePosition(0, 0);
-                allSelectedDoc.add(imgForAll);
-
-                // 3️⃣ إضافة الاستمارة إلى الملف المجمع الخاص بالمركز
-                Document combinedDoc = combinedDocs.get(centerName);
-                if (combinedDoc == null) {
-                    combinedDoc = new Document(PageSize.A4);
-                    String combinedFileName = "استمارة طلاب مركز " + centerName + ".pdf";
-                    String combinedPath = formFolder.getAbsolutePath() + File.separator + combinedFileName;
-                    PdfWriter.getInstance(combinedDoc, new FileOutputStream(combinedPath));
-                    combinedDoc.open();
-                    combinedDocs.put(centerName, combinedDoc);
-                } else {
-                    combinedDoc.newPage();
-                }
-
-                Image imgForCombined = Image.getInstance(image, null);
-                imgForCombined.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
-                imgForCombined.setAbsolutePosition(0, 0);
-                combinedDoc.add(imgForCombined);
-
             }
 
-            // إغلاق جميع الملفات المجمعة بعد انتهاء كل الطلاب
+            // إغلاق جميع ملفات PDF بعد انتهاء معالجة جميع الطلاب
             for (Document doc : combinedDocs.values()) {
-                if (doc.isOpen()) {
-                    doc.close();
-                }
-            }
-
-            if (allSelectedDoc.isOpen()) {
-                allSelectedDoc.close();
+                if (doc.isOpen()) doc.close();
             }
 
             g2.dispose();
 
-            // Desktop.getDesktop().open(new File(allPath));
-
-            String finalSinglePath = lastSinglePath;
+            // فتح المجلدات وملفات PDF عند الانتهاء
+            java.util.List<String> finalPaths = new java.util.ArrayList<>(combinedPaths.values());
+            java.util.List<File>   finalFolders = new java.util.ArrayList<>(centerFolders.values());
             javax.swing.SwingUtilities.invokeLater(() -> {
                 try {
-                    if (total == 1 && !finalSinglePath.isEmpty()) {
-                        Desktop.getDesktop().open(new File(finalSinglePath));
-                    } else {
-                        Desktop.getDesktop().open(formFolder);
-                        Desktop.getDesktop().open(new File(allSelectedPath));
+                    // فتح مجلد كل مركز
+                    for (File folder : finalFolders) {
+                        Desktop.getDesktop().open(folder);
                     }
-                    JOptionPane.showMessageDialog(this, "تم إنشاء كل الاستمارات بنجاح");
+                    // فتح آخر ملف PDF مركز (أو الوحيد في حالة مركز واحد)
+                    if (!finalPaths.isEmpty()) {
+                        Desktop.getDesktop().open(new File(finalPaths.get(finalPaths.size() - 1)));
+                    }
+                    JOptionPane.showMessageDialog(null, "تم إنشاء كل الاستمارات بنجاح");
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

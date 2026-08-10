@@ -124,7 +124,7 @@ public class gradReportSequential extends JFrame {
 
     private int[] calcTotals(Student st) {
         String status = st.getStatus();
-        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status) || "ناجح من الدور الثاني".equals(status) || "راسب من الدور الثاني".equals(status);
         if (!isAllowed) return new int[]{0, 0, 0};
 
         List<Subject> allSubs = subjectsFor(st.getProfession());
@@ -156,7 +156,7 @@ public class gradReportSequential extends JFrame {
     }
 
     private String failedSubjects(Student st) {
-        if (!"راسب".equals(st.getStatus()) && !"دور ثاني".equals(st.getStatus())) return "";
+        if (!"راسب".equals(st.getStatus()) && !"دور ثاني".equals(st.getStatus()) && !"راسب من الدور الثاني".equals(st.getStatus())) return "";
         List<Subject> allSubs = subjectsFor(st.getProfession());
         Map<Integer, List<Subject>> childMap = new HashMap<>();
         List<Subject> parents = new ArrayList<>();
@@ -537,7 +537,7 @@ public class gradReportSequential extends JFrame {
         }
         
         String status = st.getStatus();
-        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status);
+        boolean isAllowed = "ناجح".equals(status) || "راسب".equals(status) || "دور ثاني".equals(status) || "ناجح من الدور الثاني".equals(status) || "راسب من الدور الثاني".equals(status);
         if (!isAllowed) return "0";
 
         return String.valueOf(mark);

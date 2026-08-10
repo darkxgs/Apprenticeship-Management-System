@@ -40,7 +40,9 @@ import com.pvtd.students.services.StatusesService;
 import com.pvtd.students.services.StudentService;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.pages.Report.CertificateOfSuccess1;
+import com.pvtd.students.ui.pages.Report.SecondCertificateOfSuccess;
 import com.pvtd.students.ui.pages.Report.sucsseccFromPage;
+import com.pvtd.students.ui.pages.Report.NewJFrame1;
 import com.pvtd.students.ui.components.LoadingDialog;
 import com.pvtd.students.ui.utils.DropShadowBorder;
 import com.pvtd.students.ui.utils.UITheme;
@@ -375,11 +377,13 @@ public class StudentsPage extends JPanel {
         JButton btnDelete = actionBtn("حذف", new Color(0xFEF2F2), UITheme.DANGER, false);
         JButton btnSelectAll = actionBtn("تحديد الكل", new Color(0xF1F5F9), UITheme.TEXT_PRIMARY, false);
         JButton btnPdf = actionBtn("شهادة نجاح", new Color(0xF0FDF4), new Color(0x15803D), false);
+        JButton btnSecondCert = actionBtn("شهادة إدارة الامتحانات", new Color(0xEFF6FF), new Color(0x1D4ED8), false);
         JButton btnExportExcel = actionBtn("تصدير إكسيل", new Color(0xECFDF5), new Color(0x065F46), false);
         JButton btnForm = actionBtn("استمارة طالب", new Color(0xFEF3C7), new Color(0xB45309), false);
         JButton btnIdCard = actionBtn("عرض الهوية", new Color(0xFAFAF9), UITheme.TEXT_SECONDARY, false);
         JButton btnNoImages = actionBtn("الطلاب بدون صور", new Color(0xFFF1F2), new Color(0xBE123C), false);
         JButton btnRecalc = actionBtn("إعادة حساب الحالات", new Color(0xF5F3FF), new Color(0x6D28D9), false);
+        JButton btnExamAdmin = actionBtn("استمارة إدارة الامتحانات", new Color(0xFFF7ED), new Color(0x9A3412), false);
 
         // ── Actions ───────────────────────────────────────────────────────────
         btnSelectAll.addActionListener(e -> {
@@ -455,6 +459,71 @@ public class StudentsPage extends JPanel {
             loading.setVisible(true);
         });
 
+        btnSecondCert.addActionListener(e -> {
+            List<Integer> selectedRows = getSelectedRowIndexes();
+            if (selectedRows.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "اختار طالب واحد على الأقل");
+                return;
+            }
+
+            // ── نافذة إدخال الحقول المطلوبة لشهادة إدارة الامتحانات ──
+            JTextField txtDestination = new JTextField(20);
+            JTextField txtReceipt = new JTextField(20);
+
+            JPanel inputPanel = new JPanel(new java.awt.GridLayout(4, 1, 5, 5));
+            inputPanel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+
+            JLabel lblDestination = new JLabel("تقديمها إلى (بعد النقطتين :) :");
+            lblDestination.setHorizontalAlignment(SwingConstants.RIGHT);
+            
+            JLabel lblReceipt = new JLabel("القيمة الموجودة بعد كلمة الحكومية (قسيمة/رسوم):");
+            lblReceipt.setHorizontalAlignment(SwingConstants.RIGHT);
+
+            inputPanel.add(lblDestination);
+            inputPanel.add(txtDestination);
+            inputPanel.add(lblReceipt);
+            inputPanel.add(txtReceipt);
+
+            int option = JOptionPane.showConfirmDialog(
+                this,
+                inputPanel,
+                "إدخال بيانات شهادة إدارة الامتحانات",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (option != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            String destinationValue = txtDestination.getText();
+            String receiptValue = txtReceipt.getText();
+
+            List<Student> selectedStudents = new ArrayList<>();
+            for (int modelRow : selectedRows) {
+                String seatNo = tableModel.getValueAt(modelRow, 4).toString();
+                String profession = tableModel.getValueAt(modelRow, 8) != null ? tableModel.getValueAt(modelRow, 8).toString() : "";
+                Student s = new Student();
+                s.setSeatNo(seatNo);
+                s.setProfession(profession);
+                selectedStudents.add(s);
+            }
+
+            LoadingDialog loading = new LoadingDialog(parentFrame, "توليد شهادات إدارة الامتحانات");
+
+            new Thread(() -> {
+                SecondCertificateOfSuccess cert = new SecondCertificateOfSuccess();
+                cert.setCustomFields(destinationValue, receiptValue);
+                cert.printCertificates(selectedStudents, (current, total) -> {
+                    loading.setProgress((int) ((current * 100.0) / total));
+                    loading.setStatus("جاري معالجة الطالب " + current + " من " + total);
+                });
+                SwingUtilities.invokeLater(loading::dispose);
+            }).start();
+
+            loading.setVisible(true);
+        });
+
         btnForm.addActionListener(e -> {
             List<Integer> selectedRows = getSelectedRowIndexes();
 
@@ -488,6 +557,163 @@ public class StudentsPage extends JPanel {
             }).start();
 
             loading.setVisible(true);
+        });
+
+        // ── استمارة إدارة الامتحانات ───────────────────────────────────────────
+        btnExamAdmin.addActionListener(e -> {
+            List<Integer> selectedRows = getSelectedRowIndexes();
+            if (selectedRows.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "اختار طالب واحد على الأقل");
+                return;
+            }
+
+            // ── نافذة إدخال البيانات قبل استخراج الـPDF ─────────────────────────
+            java.awt.Font dlgFont  = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 15);
+            java.awt.Font dlgBold  = new java.awt.Font("Segoe UI", java.awt.Font.BOLD,  15);
+            java.awt.Font ttlFont  = new java.awt.Font("Segoe UI", java.awt.Font.BOLD,  18);
+
+            javax.swing.JDialog inputDialog = new javax.swing.JDialog(
+                    parentFrame, "بيانات استمارة إدارة الامتحانات", true);
+            inputDialog.setDefaultCloseOperation(javax.swing.JDialog.DISPOSE_ON_CLOSE);
+            inputDialog.setSize(520, 370);
+            inputDialog.setLocationRelativeTo(parentFrame);
+            inputDialog.setResizable(false);
+
+            JPanel mainPanel = new JPanel(new java.awt.BorderLayout(0, 0));
+            mainPanel.setBackground(java.awt.Color.WHITE);
+            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 25, 15, 25));
+
+            JLabel titleLbl = new JLabel("بيانات استمارة إدارة الامتحانات",
+                    javax.swing.SwingConstants.CENTER);
+            titleLbl.setFont(ttlFont);
+            titleLbl.setForeground(new java.awt.Color(0x1a, 0x5f, 0x7a));
+            titleLbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 18, 0));
+            mainPanel.add(titleLbl, java.awt.BorderLayout.NORTH);
+
+            JPanel fieldsPanel = new JPanel(new java.awt.GridBagLayout());
+            fieldsPanel.setBackground(java.awt.Color.WHITE);
+            fieldsPanel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+            java.awt.GridBagConstraints gc = new java.awt.GridBagConstraints();
+            gc.insets = new java.awt.Insets(7, 8, 7, 8);
+
+            JTextField txtPounds2      = new JTextField(20);
+            JTextField txtReceiptNo2   = new JTextField(20);
+            JTextField txtDate2        = new JTextField(20);
+            JTextField txtDestination2 = new JTextField(20);
+            for (JTextField tf : new JTextField[]{ txtPounds2, txtReceiptNo2, txtDate2, txtDestination2 }) {
+                tf.setFont(dlgFont);
+                tf.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+                tf.setHorizontalAlignment(JTextField.RIGHT);
+            }
+
+            String[][]  rowDefs = {
+                { "المبلغ كتابةً:",    "جنيهاً فقط"       },
+                { "رقم القسيمة:",   "بموجب قسيمة رقم"  },
+                { "التاريخ:",        "بتاريخ"            },
+                { "جهة التقديم:",   "وذلك لتقديمه إلى" }
+            };
+            JTextField[] flds = { txtPounds2, txtReceiptNo2, txtDate2, txtDestination2 };
+
+            for (int i = 0; i < rowDefs.length; i++) {
+                JLabel lbl  = new JLabel(rowDefs[i][0]);
+                lbl.setFont(dlgBold);
+                lbl.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+                lbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+
+                JLabel hint = new JLabel(rowDefs[i][1]);
+                hint.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 12));
+                hint.setForeground(java.awt.Color.GRAY);
+
+                gc.gridx = 2; gc.gridy = i; gc.weightx = 0;
+                gc.fill  = java.awt.GridBagConstraints.NONE;
+                gc.anchor = java.awt.GridBagConstraints.EAST;
+                fieldsPanel.add(lbl, gc);
+
+                gc.gridx = 1; gc.weightx = 1;
+                gc.fill  = java.awt.GridBagConstraints.HORIZONTAL;
+                fieldsPanel.add(flds[i], gc);
+
+                gc.gridx = 0; gc.weightx = 0;
+                gc.fill  = java.awt.GridBagConstraints.NONE;
+                gc.anchor = java.awt.GridBagConstraints.WEST;
+                fieldsPanel.add(hint, gc);
+            }
+            mainPanel.add(fieldsPanel, java.awt.BorderLayout.CENTER);
+
+            JPanel btnPanel = new JPanel(
+                    new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 15, 5));
+            btnPanel.setBackground(java.awt.Color.WHITE);
+
+            JButton btnConfirm = new JButton("تأكيد واستخراج PDF");
+            btnConfirm.setFont(dlgBold);
+            btnConfirm.setBackground(new java.awt.Color(0x1a, 0x5f, 0x7a));
+            btnConfirm.setForeground(java.awt.Color.WHITE);
+            btnConfirm.setFocusPainted(false);
+            btnConfirm.setOpaque(true);
+            btnConfirm.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnConfirm.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 20, 8, 20));
+
+            JButton btnCancel2 = new JButton("إلغاء");
+            btnCancel2.setFont(dlgFont);
+            btnCancel2.setFocusPainted(false);
+            btnCancel2.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+            boolean[] confirmed = { false };
+            btnConfirm.addActionListener(ev -> { confirmed[0] = true;  inputDialog.dispose(); });
+            btnCancel2.addActionListener(ev -> { confirmed[0] = false; inputDialog.dispose(); });
+
+            // Enter في أي حقل يؤكد
+            javax.swing.Action confirmAction = new javax.swing.AbstractAction() {
+                public void actionPerformed(java.awt.event.ActionEvent ev) {
+                    confirmed[0] = true; inputDialog.dispose();
+                }
+            };
+            for (JTextField tf : flds) {
+                tf.addActionListener(confirmAction);
+            }
+
+            btnPanel.add(btnCancel2);
+            btnPanel.add(btnConfirm);
+            mainPanel.add(btnPanel, java.awt.BorderLayout.SOUTH);
+
+            inputDialog.setContentPane(mainPanel);
+            inputDialog.setVisible(true); // modal — blocks here until closed
+
+            if (!confirmed[0]) return; // المستخدم ضغط إلغاء أو أغلق النافذة
+
+            final String poundsVal      = txtPounds2.getText().trim();
+            final String receiptNoVal   = txtReceiptNo2.getText().trim();
+            final String dateVal        = txtDate2.getText().trim();
+            final String destinationVal = txtDestination2.getText().trim();
+
+            // ── build student list ────────────────────────────────────────────
+            List<String[]> studentsData2 = new ArrayList<>();
+            for (int modelRow : selectedRows) {
+                String seatNo = tableModel.getValueAt(modelRow, 4).toString();
+                studentsData2.add(new String[]{ seatNo });
+            }
+
+            LoadingDialog loading2 = new LoadingDialog(parentFrame, "توليد استمارات إدارة الامتحانات");
+
+            new Thread(() -> {
+                try {
+                    NewJFrame1 examForm = new NewJFrame1();
+                    examForm.setReceiptMetadata(poundsVal, receiptNoVal, dateVal, destinationVal);
+                    examForm.printForms(
+                        studentsData2,
+                        (current, total) -> {
+                            loading2.setProgress((int) ((current * 100.0) / total));
+                            loading2.setStatus("جاري معالجة الاستمارة " + current + " من " + total);
+                        }
+                    );
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                } finally {
+                    SwingUtilities.invokeLater(loading2::dispose);
+                }
+            }).start();
+
+            loading2.setVisible(true);
         });
 
         btnIdCard.addActionListener(e -> {
@@ -591,12 +817,14 @@ public class StudentsPage extends JPanel {
             loading.setVisible(true);
         });
 
+        bar.add(btnExamAdmin);
         bar.add(btnRecalc);
         bar.add(btnExportExcel);
         bar.add(btnSelectAll);
         bar.add(btnNoImages);
         bar.add(btnIdCard);
         bar.add(btnForm);
+        bar.add(btnSecondCert);
         bar.add(btnPdf);
         bar.add(btnDelete);
         bar.add(btnEdit);

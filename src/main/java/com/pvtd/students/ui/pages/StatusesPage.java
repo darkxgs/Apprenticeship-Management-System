@@ -130,6 +130,8 @@ public class StatusesPage extends JPanel {
         if (!statusesWithCodes.containsKey("راسب")) statusesWithCodes.put("راسب", null);
         if (!statusesWithCodes.containsKey("دور ثاني")) statusesWithCodes.put("دور ثاني", null);
         if (!statusesWithCodes.containsKey("سحب الملف")) statusesWithCodes.put("سحب الملف", null);
+        if (!statusesWithCodes.containsKey("ناجح من الدور الثاني")) statusesWithCodes.put("ناجح من الدور الثاني", null);
+        if (!statusesWithCodes.containsKey("راسب من الدور الثاني")) statusesWithCodes.put("راسب من الدور الثاني", null);
 
         for (Map.Entry<String, Integer> entry : statusesWithCodes.entrySet()) {
             String status = entry.getKey();
