@@ -160,11 +160,18 @@ public class NewJFrame1 extends javax.swing.JFrame {
         originalBoundsMap.put(jLabel43, receipt43Bounds);
 
         // ── موضع jLabel3 (اسم المركز — خانة «التابع لمركز/ "..."») ───────────
-        // الفراغ بين علامتي التنصيص في القالب يمتد من x=700 إلى x=879 (مقاس بالبكسل)
-        // والسطر المطبوع عند y≈308-333 بعد إزاحة الخلفية — لذا نرفع الخانة لمستواه
-        java.awt.Rectangle center3Bounds = new java.awt.Rectangle(707, 305, 170, 25);
+        // جملة «قد نجح...» أُعيد رسمها في القالب حتى x=560، فخانة المركز
+        // اتّسعت من x=570 إلى x=877 (~307px) ليظهر الاسم بخط كبير
+        java.awt.Rectangle center3Bounds = new java.awt.Rectangle(570, 303, 307, 30);
         jLabel3.setBounds(center3Bounds);
         originalBoundsMap.put(jLabel3, center3Bounds);
+
+        // ── موضع jLabel44 (التاريخ) ──────────────────────────────────────────
+        // كلمة «بتاريخ» المطبوعة قاعدتها عند y≈925 — نرفع خانة التاريخ
+        // لتحاذيها على نفس السطر بدلاً من النزول تحتها
+        java.awt.Rectangle date44Bounds = new java.awt.Rectangle(880, 903, 70, 28);
+        jLabel44.setBounds(date44Bounds);
+        originalBoundsMap.put(jLabel44, date44Bounds);
 
         // ── موضع jLabel41 (مجموع درجات التلميذ بالكتابة — التفقيطة) ──────────
         // الكلام المطبوع «مجموع درجات التلميذ بالكتابة :» يمتد من x=746 إلى x=1008
@@ -263,7 +270,7 @@ public class NewJFrame1 extends javax.swing.JFrame {
                     jLabel1.setText(name);
                     // jLabel3 = اسم المركز — خانة «التابع لمركز/ "..."» في القالب
                     jLabel3.setText(centerName);
-                    fitLabelToOriginalWidth(jLabel3, 18, 10);
+                    fitLabelToOriginalWidth(jLabel3, 22, 13);
                     // jLabel5 = المهنة / التخصص
                     jLabel5.setText(profession);
 
