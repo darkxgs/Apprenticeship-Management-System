@@ -125,14 +125,14 @@ public class NewJFrame1 extends javax.swing.JFrame {
         // رقم 100 الثابت بالأرقام العربية
         jLabel46.setText("١٠٠");
 
-        // ضبط خانات الشرطة (الأعمدة 5 و6 و7): خط عريض وأسود ومحاذاة وسط
-        // ملاحظة: jLabel39 أصبح يحمل مجموع العملي (عمود 8) فلم يعد شرطة
+        // ضبط خانات الشرطة (العمودان 5 و6): خط عريض وأسود ومحاذاة وسط
+        // ملاحظة: العمود 7 أصبح «مجموع الدرجات النظرية» والعمود 8 مجموع العملي
         java.awt.Font dashFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 20);
         javax.swing.JLabel[] dashLabels = {
-            jLabel10, jLabel11, jLabel12, // أسماء المواد (الأعمدة 5 و6 و7)
-            jLabel19, jLabel20, jLabel21, // الدرجة العظمى
-            jLabel28, jLabel29, jLabel30, // الدرجة الصغرى
-            jLabel46, jLabel37, jLabel38  // درجة الطالب (العمود 5=jLabel46, 6=jLabel37, 7=jLabel38)
+            jLabel10, jLabel11, // أسماء المواد (العمودان 5 و6)
+            jLabel19, jLabel20, // الدرجة العظمى
+            jLabel28, jLabel29, // الدرجة الصغرى
+            jLabel46, jLabel37  // درجة الطالب (العمود 5=jLabel46, 6=jLabel37)
         };
         for (javax.swing.JLabel lbl : dashLabels) {
             lbl.setFont(dashFont);
@@ -307,11 +307,48 @@ public class NewJFrame1 extends javax.swing.JFrame {
             markLbls[i].setText("");
         }
 
-        // الأعمدة 5 و6 و7: شرطة في جميع خانات الأعمدة الثلاثة (اسم المادة، العظمى، الصغرى، درجة الطالب)
-        jLabel10.setText("-"); jLabel11.setText("-"); jLabel12.setText("-");
-        jLabel19.setText("-"); jLabel20.setText("-"); jLabel21.setText("-");
-        jLabel28.setText("-"); jLabel29.setText("-"); jLabel30.setText("-");
-        jLabel46.setText("-"); jLabel37.setText("-"); jLabel38.setText("-");
+        // العمودان 5 و6: شرطة في جميع الخانات (اسم المادة، العظمى، الصغرى، درجة الطالب)
+        jLabel10.setText("-"); jLabel11.setText("-");
+        jLabel19.setText("-"); jLabel20.setText("-");
+        jLabel28.setText("-"); jLabel29.setText("-");
+        jLabel46.setText("-"); jLabel37.setText("-");
+
+        // ── العمود 7: مجموع الدرجات النظرية (كما في الورقة المؤمنة) ──────────
+        String theorySql =
+            "SELECT sub.max_mark, sub.pass_mark, sg.obtained_mark " +
+            "FROM subjects sub " +
+            "CROSS JOIN students s " +
+            "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
+            "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) " +
+            "AND (LOWER(sub.type) LIKE '%نظري%' OR LOWER(sub.type) LIKE '%theory%')";
+
+        int theoryMax = 0, theoryPass = 0, theoryObtained = 0;
+        boolean hasTheoryData = false;
+
+        try (PreparedStatement psTheory = con.prepareStatement(theorySql)) {
+            psTheory.setString(1, seatNo);
+            try (ResultSet rsTheory = psTheory.executeQuery()) {
+                while (rsTheory.next()) {
+                    hasTheoryData = true;
+                    theoryMax      += rsTheory.getInt("max_mark");
+                    theoryPass     += rsTheory.getInt("pass_mark");
+                    theoryObtained += Math.max(rsTheory.getInt("obtained_mark"), 0);
+                }
+            }
+        }
+
+        // jLabel12 = رأس عمود «مجموع الدرجات النظرية» (رأسي، سطران)
+        jLabel12.setText("مجموع الدرجات\nالنظرية");
+
+        if (hasTheoryData) {
+            jLabel21.setText(toArabic(String.valueOf(theoryMax)));
+            jLabel30.setText(toArabic(String.valueOf(theoryPass)));
+            jLabel38.setText(toArabic(String.valueOf(theoryObtained)));
+        } else {
+            jLabel21.setText("-");
+            jLabel30.setText("-");
+            jLabel38.setText("-");
+        }
 
         // ── العمود 9: المجموع الكلي لكافة المواد ──────────────────────────────
         String grandTotalSql =
@@ -799,7 +836,7 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel9 = new VerticalJLabel();
         jLabel10 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
-        jLabel12 = new javax.swing.JLabel();
+        jLabel12 = new VerticalJLabel();
         jLabel13 = new VerticalJLabel();
         jLabel14 = new VerticalJLabel();
         jLabel15 = new javax.swing.JLabel();
