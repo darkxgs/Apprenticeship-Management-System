@@ -39,8 +39,8 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
     private static final int PAGE_H = 686;
     /** الحافة اليمنى لكل السطور الرئيسية */
     private static final int RIGHT_EDGE = 894;
-    /** الحافة اليمنى لعمود (مركز / تخصص / بتقدير) على الشمال */
-    private static final int LEFT_COL_RIGHT_EDGE = 340;
+    /** الحافة اليمنى لعمود (مركز / تخصص / بتقدير) — قريبة من نصوص اليمين */
+    private static final int LEFT_COL_RIGHT_EDGE = 420;
 
     public SecondCertificateOfSuccess() {
         initComponents();
@@ -96,19 +96,38 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
 
     private void applyExactLayout() {
 
+        // أحجام الخطوط (طلب إدارة الامتحانات): عنوان أكبر + متن أكبر درجة
+        java.awt.Font titleFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24);
+        java.awt.Font bodyFont  = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16);
+        java.awt.Font longFont  = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15);
+
+        jLabel4.setFont(titleFont);
+        jLabel5.setFont(titleFont);
+        javax.swing.JLabel[] bodyLbls = {
+            jLabel6, الاسم, jLabel8, الرقم_القومي, jLabel10, المركز,
+            jLabel12, تخصص, jLabel14, تقدير, jLabel16, jLabel20,
+            jLabel24, jLabel25, jLabel26, jLabel27, jLabel28, jLabel29,
+            jLabel30, jLabel31
+        };
+        for (javax.swing.JLabel l : bodyLbls) l.setFont(bodyFont);
+        jLabel21.setFont(longFont);
+        jLabel22.setFont(longFont);
+        jLabel23.setFont(longFont);
+
         // نصوص ثابتة مصححة طبقاً للنموذج الرسمي — بأرقام إنجليزية مثله تماماً
         jLabel4.setText("شهـــــادة");
         jLabel12.setText("تخصص /");
         jLabel16.setText("دور / مايو عام 2026 الميلادية / الفان وسته وعشرون ،،،");
         jLabel21.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية و التعليم");
-        jLabel22.setText("رقم ( 92 ) الصادر في " + ltrText("17/ 6/ 1968") + " وتم تعديله بالقرار رقم 57 لسنه 1969 م.");
+        // النقطة الأخيرة مفصولة عن «م» بمسافة حتى لا تلتصق بها
+        jLabel22.setText("رقم ( 92 ) الصادر في " + ltrText("17/ 6/ 1968") + " وتم تعديله بالقرار رقم 57 لسنه 1969 م .");
         jLabel23.setText("مصلحة الكفاية الانتاجية و التدريب المهني حاصلة علي نظام ادارة الجودة ISO 9001");
         jLabel24.setText("عضو الامتحانات المسؤول");
 
-        // «تحريراً في» بتاريخ اليوم — بترتيب يوم/شهر/سنة صحيح
+        // «تحريراً في» بتاريخ اليوم — يُقرأ من اليمين يوم/شهر/سنة (١١ ثم ٨ ثم ٢٠٢٦)
         java.time.LocalDate today = java.time.LocalDate.now();
-        String dateStr = today.getDayOfMonth() + "/ " + today.getMonthValue() + "/ " + today.getYear();
-        jLabel30.setText("تحريراً في  " + ltrText(dateStr));
+        String dateStr = today.getDayOfMonth() + " / " + today.getMonthValue() + " / " + today.getYear();
+        jLabel30.setText("تحريراً في  " + "‫" + dateStr + "‬");
 
         // سطر «وقد منحت له هذه الشهادة... لتقديمها الي» أُلغي طبقاً للنموذج
         jLabel17.setVisible(false);
@@ -201,7 +220,9 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
 
                 // ملء حقول الشهادة — القيم بين علامتي تنصيص كما في النموذج الرسمي
                 الاسم.setText(rs.getString("name"));
-                الرقم_القومي.setText(rs.getString("national_id"));
+                // الرقم القومي بأرقام عربية ليكون مقروءاً
+                String nid = rs.getString("national_id");
+                الرقم_القومي.setText(toArabicNumerals(nid != null ? nid.trim() : ""));
                 String centerFromDB = rs.getString("center_name");
                 المركز.setText("\" " + (centerFromDB != null ? centerFromDB : "") + " \"");
 
