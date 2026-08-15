@@ -1,0 +1,690 @@
+package com.pvtd.students.ui.pages.Report;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.ComponentOrientation;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.pvtd.students.models.Student;
+import com.pvtd.students.models.Subject;
+import com.pvtd.students.services.SubjectService;
+
+/**
+ * Report: تسويدة رصد الدرجات (30/70)
+ * Supports splitting composite subjects into 30/70 columns.
+ */
+public class gradReportTasoeda extends JFrame {
+
+    private final String profession;
+    private final String center;
+    private final String region;
+    private final List<Student> students;
+    private final List<Subject> allSubjects;
+    private final List<Subject> displayColumns;
+    private boolean is3070;
+    private final String examMonth;
+    private final String examYear;
+    private final String admissionMonth;
+
+    private String centerCode = "  ";
+    private int dynamicRowHeight = 140; // auto-calculated to fill A3 page
+    private int startingIndex = 0;
+
+    public void setStartingIndex(int startingIndex) {
+        this.startingIndex = startingIndex;
+    }
+
+    public gradReportTasoeda(String profession, String center, String region, List<Student> students, boolean is3070,
+            String examMonth, String examYear, String admissionMonth) {
+
+        this.profession = profession;
+        this.center = center;
+        this.region = region;
+        this.students = students;
+        this.examMonth = (examMonth != null) ? examMonth : "........";
+        this.examYear = (examYear != null) ? examYear : "........";
+        this.admissionMonth = (admissionMonth != null) ? admissionMonth : "أكتوبر";
+        this.is3070 = is3070;
+
+
+        // FORCE INTERNAL SORT BY SEAT NUMBER (Smallest First)
+        if (this.students != null) {
+            this.students.sort((s1, s2) -> {
+                String sn1 = s1.getSeatNo() != null ? s1.getSeatNo().trim() : "";
+                String sn2 = s2.getSeatNo() != null ? s2.getSeatNo().trim() : "";
+                
+                // Robust normalization: Replace Arabic/Indian digits with English
+                String sn1Normalized = sn1.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                          .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+                String sn2Normalized = sn2.replace("٠", "0").replace("١", "1").replace("٢", "2").replace("٣", "3").replace("٤", "4")
+                                          .replace("٥", "5").replace("٦", "6").replace("٧", "7").replace("٨", "8").replace("٩", "9");
+
+                // Extract only digits
+                String sn1Clean = sn1Normalized.replaceAll("\\D", "");
+                String sn2Clean = sn2Normalized.replaceAll("\\D", "");
+
+                if (!sn1Clean.isEmpty() && !sn2Clean.isEmpty()) {
+                    try {
+                        return Long.compare(Long.parseLong(sn1Clean), Long.parseLong(sn2Clean));
+                    } catch (Exception ex) {}
+                }
+                return sn1Normalized.compareTo(sn2Normalized);
+            });
+        }
+
+        // Fetch center code from database
+        try (Connection conn = com.pvtd.students.db.DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement("SELECT code FROM centers WHERE TRIM(name) = TRIM(?)")) {
+            stmt.setString(1, center);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    this.centerCode = rs.getString("code");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        this.allSubjects = com.pvtd.students.services.SubjectService.getSubjectsByProfession(profession);
+        this.displayColumns = calculateDisplayColumns();
+
+        setTitle("تسويدة رصد الدرجات - " + profession);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setExtendedState(MAXIMIZED_BOTH);
+        setBackground(Color.WHITE);
+        initUI();
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    private List<Subject> calculateDisplayColumns() {
+        List<Subject> cols = new ArrayList<>();
+        for (Subject s : allSubjects) {
+            if (s.getParentSubjectId() == null) {
+                List<Subject> children = allSubjects.stream()
+                        .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                if (children.isEmpty()) {
+                    cols.add(s);
+                } else {
+                    cols.addAll(children);
+                }
+            }
+        }
+        return cols;
+    }
+
+    private void initUI() {
+        JPanel uiRootPanel = new JPanel();
+        uiRootPanel.setLayout(new BoxLayout(uiRootPanel, BoxLayout.Y_AXIS));
+        uiRootPanel.setBackground(Color.WHITE);
+        uiRootPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        int totalPages = (int) Math.ceil(students.size() / 10.0);
+        if (totalPages == 0)
+            totalPages = 1;
+
+        uiRootPanel.add(buildHeader(1, totalPages));
+        uiRootPanel.add(buildTable(students.subList(0, Math.min(10, students.size()))));
+        uiRootPanel.add(buildFooter());
+
+        JScrollPane mainScroll = new JScrollPane(uiRootPanel);
+        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+        setContentPane(mainScroll);
+    }
+
+    private JPanel buildHeader(int pageNum, int totalPages) {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(Color.WHITE);
+        p.setBorder(new EmptyBorder(10, 30, 20, 30));
+        p.setPreferredSize(new Dimension(4900, 660));
+
+        Font fontBold = new Font("Arial", Font.BOLD, 56);
+        Font fontTitle = new Font("Arial", Font.BOLD, 74);
+
+        // --- RIGHT PANEL (Committee & Special Table) ---
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setOpaque(false);
+        rightPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JLabel committeeLbl = new JLabel("لجنة مركز / " + (center != null ? center : ""), SwingConstants.RIGHT);
+        committeeLbl.setFont(fontBold);
+        committeeLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        rightPanel.add(committeeLbl);
+        rightPanel.add(Box.createVerticalStrut(30));
+
+        // Small 6-row table on the right
+        JPanel smallTable = new JPanel(new GridBagLayout());
+        smallTable.setOpaque(false);
+        smallTable.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+
+        String[] labels = { "ناجحون", "راسبون", "دور ثاني", "محرومون", "غائبون", "توقيع" };
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridy = i;
+
+            // Value cell (Empty box with border)
+            gbc.gridx = 0;
+            gbc.weightx = 0.6;
+            JPanel valCell = new JPanel();
+            valCell.setBackground(Color.WHITE);
+            valCell.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+            valCell.setPreferredSize(new Dimension(380, 60));
+            smallTable.add(valCell, gbc);
+
+            // Label cell
+            gbc.gridx = 1;
+            gbc.weightx = 0.4;
+            JLabel label = new JLabel(labels[i] + "  ", SwingConstants.RIGHT);
+            label.setFont(new Font("Arial", Font.BOLD, 48));
+            label.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+            label.setPreferredSize(new Dimension(280, 60));
+            smallTable.add(label, gbc);
+        }
+        rightPanel.add(smallTable);
+
+        // --- CENTER PANEL (Multi-line titles and center code boxes) ---
+        JPanel centerTitlesPanel = new JPanel();
+        centerTitlesPanel.setLayout(new BoxLayout(centerTitlesPanel, BoxLayout.Y_AXIS));
+        centerTitlesPanel.setOpaque(false);
+        centerTitlesPanel.add(Box.createVerticalStrut(20));
+
+        String[] centerLines = {
+                " مسودة نتائج الصف الثالث ",
+                " دبلوم التلمذة الصناعية ",
+                " دفعة قبول " + admissionMonth + " وما قبلها ",
+                " المنعقد في " + examMonth + " "
+        };
+
+
+        for (String line : centerLines) {
+            JLabel lbl = new JLabel(line, SwingConstants.CENTER);
+            lbl.setFont(fontTitle);
+            lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+            centerTitlesPanel.add(lbl);
+            centerTitlesPanel.add(Box.createVerticalStrut(12));
+        }
+
+        JPanel centerPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 350, 0));
+        centerPanel.setOpaque(false);
+        centerPanel.add(createCenterCodeBox(pageNum));
+        centerPanel.add(centerTitlesPanel);
+        centerPanel.add(createCenterCodeBox(pageNum));
+
+        // --- LEFT PANEL (Empty) ---
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+        leftPanel.setOpaque(false);
+        leftPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        leftPanel.add(Box.createVerticalStrut(100));
+
+        p.add(rightPanel, BorderLayout.EAST);
+        p.add(centerPanel, BorderLayout.CENTER);
+        p.add(leftPanel, BorderLayout.WEST);
+
+        return p;
+    }
+
+    private JPanel createCenterCodeBox(int pageNum) {
+        JPanel pageBox = new JPanel();
+        pageBox.setOpaque(false);
+        pageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+        pageBox.setLayout(new BoxLayout(pageBox, BoxLayout.Y_AXIS));
+        // Increased height to 160 to prevent clipping of the bottom label
+        pageBox.setPreferredSize(new Dimension(140, 160));
+        pageBox.setMaximumSize(new Dimension(140, 160));
+
+        // Top: Center Code | Middle: Line | Bottom: Page Number
+        JLabel pCenter = new JLabel(toArabicNumbers(centerCode), SwingConstants.CENTER);
+        JLabel pLine = new JLabel("-------", SwingConstants.CENTER);
+        JLabel pPage = new JLabel(toArabicNumbers(String.valueOf(pageNum)), SwingConstants.CENTER);
+        
+        pCenter.setFont(new Font("Arial", Font.BOLD, 52));
+        pLine.setFont(new Font("Arial", Font.BOLD, 26));
+        pPage.setFont(new Font("Arial", Font.BOLD, 52));
+        
+        pCenter.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pLine.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pPage.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        pCenter.setForeground(Color.BLACK);
+        pLine.setForeground(Color.BLACK);
+        pPage.setForeground(Color.BLACK);
+        
+        pageBox.add(Box.createVerticalGlue());
+        pageBox.add(pCenter);
+        pageBox.add(pLine);
+        pageBox.add(pPage);
+        pageBox.add(Box.createVerticalGlue());
+        
+        return pageBox;
+    }
+
+    private JLabel createLabel(String text, Font f) {
+        JLabel l = new JLabel(text);
+        l.setFont(f);
+        l.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        return l;
+    }
+
+    private JPanel buildTable(List<Student> chunk) {
+        List<Subject> theoryCols = displayColumns.stream()
+                .filter(s -> "نظري".equals(s.getType()))
+                .collect(Collectors.toList());
+        int theoryCount = theoryCols.size();
+
+        // New Column Order:
+        // م, الاسم, الحرفة, رقم التسجيل, الرقم السري 1, " ", الرقم السري 2, [Theory
+        // Subjects], مجموع النظري, العملي, تطبيقي, مجموع عملي وتطبيقي, المجموع الكلي,
+        // ملاحظات, التقدير
+        int totalCols = 8 + theoryCount + 7;
+        String[] cols = new String[totalCols];
+        int i = 0;
+        cols[i++] = "م";
+        cols[i++] = "الاسم";
+        cols[i++] = "الحرفة";
+        cols[i++] = "رقم التسجيل";
+        cols[i++] = "رقم الجلوس";
+        cols[i++] = "الرقم السري 1";
+        cols[i++] = " ";
+        cols[i++] = "الرقم السري 2";
+
+        for (Subject s : theoryCols) {
+            String displayName = s.getName();
+            if (displayName != null && displayName.length() > 10) {
+                cols[i++] = "<html><center>" + displayName.replace(" ", "<br/>") + "</center></html>";
+            } else {
+                cols[i++] = (displayName != null ? displayName : "");
+            }
+        }
+
+        cols[i++] = "<html><center>مجموع<br/>النظري</center></html>";
+        cols[i++] = "عملي";
+        cols[i++] = "تطبيقي";
+        cols[i++] = "<html><center>مجموع عملي<br/>وتطبيقي</center></html>";
+        cols[i++] = "<html><center>المجموع<br/>الكلي</center></html>";
+        cols[i++] = "ملاحظات";
+        cols[i++] = "حالة التلميذ";
+
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+
+        // Pre-calculate total Max
+        int theoryMaxSum = 0;
+        int practicalMax = 0;
+        int appliedMax = 0;
+        int practicalPass = 0;
+        int appliedPass = 0;
+        
+        for (Subject s : allSubjects) {
+            if ("عملي".equals(s.getType()) || (s.getName() != null && s.getName().contains("عملي"))) {
+                practicalMax += s.getMaxMark();
+                practicalPass += s.getPassMark();
+            } else if ("تطبيقي".equals(s.getType()) || (s.getName() != null && s.getName().contains("تطبيقي"))) {
+                appliedMax += s.getMaxMark();
+                appliedPass += s.getPassMark();
+            }
+        }
+
+        for (Subject s : theoryCols) {
+            List<Subject> children = allSubjects.stream()
+                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                    .collect(Collectors.toList());
+            theoryMaxSum += (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getMaxMark).sum()
+                    : s.getMaxMark();
+        }
+
+        Object[] maxRow = new Object[totalCols];
+        maxRow[1] = "النهاية العظمى";
+        int subIdx = 8;
+        for (Subject s : theoryCols) {
+            List<Subject> children = allSubjects.stream()
+                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                    .collect(Collectors.toList());
+            maxRow[subIdx++] = (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getMaxMark).sum()
+                    : s.getMaxMark();
+        }
+        maxRow[subIdx++] = theoryMaxSum;
+        maxRow[subIdx++] = String.valueOf(practicalMax); // العملي
+        maxRow[subIdx++] = String.valueOf(appliedMax); // تطبيقي
+        maxRow[subIdx++] = String.valueOf(practicalMax + appliedMax); // مجموع عملي وتطبيقي
+        maxRow[subIdx++] = String.valueOf(theoryMaxSum + practicalMax + appliedMax); // المجموع الكلي
+        maxRow[subIdx++] = " "; // ملاحظات
+        maxRow[subIdx] = " "; // التقدير
+        model.addRow(maxRow);
+
+        Object[] minRow = new Object[totalCols];
+        minRow[1] = "النهاية الصغرى";
+        subIdx = 8;
+        int theoryPassSum = 0;
+        for (Subject s : theoryCols) {
+            List<Subject> children = allSubjects.stream()
+                    .filter(c -> c.getParentSubjectId() != null && c.getParentSubjectId().equals(s.getId()))
+                    .collect(Collectors.toList());
+            int curPass = (children != null && !children.isEmpty())
+                    ? children.stream().mapToInt(Subject::getPassMark).sum()
+                    : s.getPassMark();
+            minRow[subIdx++] = curPass;
+            theoryPassSum += curPass;
+        }
+        minRow[subIdx++] = theoryPassSum;
+        minRow[subIdx++] = String.valueOf(practicalPass); // العملي
+        minRow[subIdx++] = String.valueOf(appliedPass); // تطبيقي
+        minRow[subIdx++] = String.valueOf(practicalPass + appliedPass); // مجموع عملي وتطبيقي
+        minRow[subIdx++] = String.valueOf(theoryPassSum + practicalPass + appliedPass); // المجموع الكلي
+        minRow[subIdx++] = " "; // ملاحظات
+        minRow[subIdx] = " "; // التقدير
+        model.addRow(minRow);
+
+        for (int i_chunk = 0; i_chunk < 10; i_chunk++) {
+            Object[] row = new Object[totalCols];
+            if (i_chunk < chunk.size()) {
+                Student st = chunk.get(i_chunk);
+                int colIdx = 0;
+                row[colIdx++] = startingIndex + students.indexOf(st) + 1;
+                row[colIdx++] = st.getName();
+                row[colIdx++] = "<html><div align='right' style='padding-right: 50px;'>" + (st.getProfession() != null ? st.getProfession() : "")
+                        + "</div></html>";
+                row[colIdx++] = st.getRegistrationNo();
+                row[colIdx++] = st.getSeatNo();
+                row[colIdx++] = st.getSecretNo();
+                row[colIdx++] = " "; // Empty column
+                row[colIdx++] = st.getSecretNo();
+
+                for (int j = 0; j < theoryCount; j++) {
+                    row[colIdx++] = " ";
+                }
+                row[colIdx++] = " "; // مجموع النظري
+                row[colIdx++] = " "; // العملي
+                row[colIdx++] = " "; // تطبيقي
+                row[colIdx++] = " "; // مجموع عملي وتطبيقي
+                row[colIdx++] = " "; // المجموع الكلي
+                row[colIdx++] = " "; // ملاحظات
+                row[colIdx] = " ";   // حالة التلميذ / الناجح
+            } else {
+                for (int c = 0; c < totalCols; c++) {
+                    row[c] = " ";
+                }
+            }
+            model.addRow(row);
+        }
+
+        JTable table = new JTable(model);
+        styleTable(table);
+        table.setDefaultRenderer(Object.class, new TasoedaCellRenderer());
+
+        JPanel tableCont = new JPanel(new BorderLayout());
+        tableCont.add(table.getTableHeader(), BorderLayout.NORTH);
+        tableCont.add(table, BorderLayout.CENTER);
+        return tableCont;
+    }
+
+    private void styleTable(JTable table) {
+        table.setRowHeight(dynamicRowHeight);
+        table.setFont(new Font("Arial", Font.PLAIN, 52));
+        table.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        table.getTableHeader().setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 47));
+        table.getTableHeader().setBackground(new Color(204, 255, 255));
+        table.getTableHeader().setForeground(Color.BLACK);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 380));
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        int theoryCount = displayColumns.stream()
+                .filter(s -> "نظري".equals(s.getType()))
+                .collect(Collectors.toList()).size();
+        
+        int theoryWidth = theoryCount > 0 ? (1000 / theoryCount) : 1000;
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setPreferredWidth(theoryWidth);
+        }
+
+        try { table.getColumn("م").setPreferredWidth(80); } catch (Exception e) {}
+        try { table.getColumn("الاسم").setPreferredWidth(1000); } catch (Exception e) {}
+        try { table.getColumn("الحرفة").setPreferredWidth(700); } catch (Exception e) {}
+        try { table.getColumn("رقم التسجيل").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("رقم الجلوس").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("الرقم السري 1").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumnModel().getColumn(6).setPreferredWidth(100); } catch (Exception e) {} // The empty column
+        try { table.getColumn("الرقم السري 2").setPreferredWidth(220); } catch (Exception e) {}
+        
+        try { table.getColumn("<html><center>مجموع<br/>النظري</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("عملي").setPreferredWidth(180); } catch (Exception e) {}
+        try { table.getColumn("تطبيقي").setPreferredWidth(180); } catch (Exception e) {}
+        try { table.getColumn("<html><center>مجموع عملي<br/>وتطبيقي</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("<html><center>المجموع<br/>الكلي</center></html>").setPreferredWidth(220); } catch (Exception e) {}
+        try { table.getColumn("ملاحظات").setPreferredWidth(350); } catch (Exception e) {}
+        try { table.getColumn("حالة التلميذ").setPreferredWidth(220); } catch (Exception e) {}
+    }
+
+    private JPanel buildFooter() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBackground(Color.WHITE);
+        p.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, Color.BLACK));
+        p.setPreferredSize(new Dimension(3500, 380));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        String[] sigs = { "رئيس لجنة النظام والمراقبة", "راجع المراجعة", "راجع الدوائر الحمراء والرصد",
+                "رصد ووضع الدوائر الحمراء", "راجع الاملاء", "راجعه", "كتبه" };
+        for (int c = 0; c < sigs.length; c++) {
+            gbc.gridx = c;
+            p.add(sigBlock(sigs[c]), gbc);
+        }
+        return p;
+    }
+
+    private JPanel sigBlock(String title) {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        JLabel t = new JLabel(title, SwingConstants.CENTER);
+        t.setFont(new Font("Arial", Font.BOLD, 46));
+        t.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel line = new JLabel(".............................................", SwingConstants.CENTER);
+        line.setFont(new Font("Arial", Font.PLAIN, 40));
+        line.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(Box.createVerticalStrut(20));
+        p.add(t);
+        p.add(line);
+        return p;
+    }
+
+    public int[] createPDF(com.itextpdf.text.Document combinedDoc, int startPageNum, int startStudentIdx) {
+        this.startingIndex = startStudentIdx;
+        int currentPageNum = startPageNum;
+        int nextStudentIdx = startStudentIdx + students.size();
+        try {
+            // إنشاء الفولدرات
+            File mainFolder = new File("التقارير");
+            if (!mainFolder.exists()) mainFolder.mkdirs();
+
+            File tasoedaFolder = new File(mainFolder, "تسويدة");
+            if (!tasoedaFolder.exists()) tasoedaFolder.mkdirs();
+
+            int pageSizeCount = 10;
+            int totalCount = students.size();
+            int totalPages = (int) Math.ceil(totalCount / (double) pageSizeCount);
+            if (totalPages == 0) totalPages = 1;
+
+            String sanitizedProfession = profession.replace("/", "_").replace("\\", "_").replace(":", "_");
+            String typeSuffix = is3070 ? "_30_70" : "";
+
+            for (int pIdx = 0; pIdx < totalPages; pIdx++) {
+                int start = pIdx * pageSizeCount;
+                int end = Math.min(start + pageSizeCount, totalCount);
+                List<Student> chunk = students.subList(start, end);
+
+                JPanel pagePanel = buildPagePanel(chunk, currentPageNum++, totalPages);
+                
+                int scale = 2; // High resolution
+                BufferedImage img = new BufferedImage(pagePanel.getWidth() * scale, pagePanel.getHeight() * scale, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g2 = img.createGraphics();
+                g2.scale(scale, scale);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                g2.setPaint(Color.WHITE);
+                g2.fillRect(0, 0, pagePanel.getWidth(), pagePanel.getHeight());
+                pagePanel.printAll(g2);
+                g2.dispose();
+
+                // 1. Create individual page file ONLY if combinedDoc is null
+                if (combinedDoc == null) {
+                    String pageSuffix = (totalPages > 1) ? "_صفحة_" + (pIdx + 1) : "";
+                    String fn = tasoedaFolder.getAbsolutePath() + "/" + sanitizedProfession + typeSuffix + pageSuffix + ".pdf";
+                    
+                    Document doc = new Document(PageSize.A3.rotate());
+                    PdfWriter.getInstance(doc, new FileOutputStream(fn));
+                    doc.open();
+
+                    Image pImg = Image.getInstance(img, null);
+                    pImg.scaleAbsolute(doc.getPageSize().getWidth(), doc.getPageSize().getHeight());
+                    pImg.setAbsolutePosition(0, 0);
+                    doc.add(pImg);
+                    doc.close();
+                }
+
+                // 2. Add to combined document if provided
+                if (combinedDoc != null) {
+                    combinedDoc.setPageSize(PageSize.A3.rotate());
+                    combinedDoc.newPage();
+                    Image combinedImg = Image.getInstance(img, null);
+                    combinedImg.scaleAbsolute(combinedDoc.getPageSize().getWidth(), combinedDoc.getPageSize().getHeight());
+                    combinedImg.setAbsolutePosition(0, 0);
+                    combinedDoc.add(combinedImg);
+                }
+                
+                pagePanel.removeNotify();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new int[] { currentPageNum, nextStudentIdx };
+    }
+
+    public void createPDF() {
+        createPDF(null, 1, 0);
+    }
+
+    private JPanel buildPagePanel(List<Student> chunk, int pageNum, int totalPages) {
+        JPanel page = new JPanel();
+        page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
+        page.setBackground(Color.WHITE);
+        page.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        // Fixed A3 landscape dimensions at high resolution
+        int panelWidth = 4900;
+        int panelHeight = (int) (panelWidth / 1.4142); // ~3465px
+
+        // Calculate row height to fill available space dynamically
+        int headerH = 660, footerH = 380, tableHeaderH = 380;
+        int available = panelHeight - headerH - footerH - tableHeaderH - 50; // 50px safety margin for borders
+        int totalRows = 10 + 2; // +2 for النهاية العظمى / الصغرى rows
+        dynamicRowHeight = Math.max(80, available / totalRows);
+
+        page.add(buildHeader(pageNum, totalPages));
+        JPanel tablePanel = buildTable(chunk);
+        page.add(tablePanel);
+        page.add(buildFooter());
+
+        page.setSize(new Dimension(panelWidth, panelHeight));
+        page.addNotify();
+        page.validate();
+        return page;
+    }
+    private String toArabicNumbers(String number) {
+        if (number == null)
+            return "";
+        return number
+                .replace("0", "٠")
+                .replace("1", "١")
+                .replace("2", "٢")
+                .replace("3", "٣")
+                .replace("4", "٤")
+                .replace("5", "٥")
+                .replace("6", "٦")
+                .replace("7", "٧")
+                .replace("8", "٨")
+                .replace("9", "٩");
+    }
+
+    private String toAr(Object val) {
+        if (val == null) return "";
+        return toArabicNumbers(val.toString());
+    }
+
+    private class TasoedaCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(JTable table, Object val, boolean isSelected, boolean hasFocus, int row, int col) {
+            String arText = toAr(val);
+            String htmlVal = arText.toLowerCase().startsWith("<html>")
+                    ? arText
+                    : "<html><div align='right' style='padding-right:10px;'>" + arText + "</div></html>";
+            java.awt.Component comp = super.getTableCellRendererComponent(table, htmlVal, isSelected, hasFocus, row, col);
+            comp.setBackground(Color.WHITE);
+            comp.setForeground(Color.BLACK);
+            // Auto-shrink font
+            String plain = arText.replaceAll("<[^>]*>", "");
+            int baseSize = 52, minSize = 25;
+            int colW = table.getColumnModel().getColumn(col).getWidth() - 20;
+            Font useFont = new Font("Arial", Font.PLAIN, baseSize);
+            if (colW > 0 && !plain.isEmpty()) {
+                java.awt.FontMetrics fm = table.getFontMetrics(useFont);
+                int sz = baseSize;
+                while (fm.stringWidth(plain) > colW && sz > minSize) {
+                    sz--;
+                    useFont = new Font("Arial", Font.PLAIN, sz);
+                    fm = table.getFontMetrics(useFont);
+                }
+            }
+            comp.setFont(useFont);
+            setHorizontalAlignment(SwingConstants.RIGHT);
+            setVerticalAlignment(SwingConstants.CENTER);
+            ((javax.swing.JComponent) comp).setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+            return comp;
+        }
+    }
+}
