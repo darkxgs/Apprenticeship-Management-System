@@ -261,7 +261,8 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                    + "FROM subjects sub "
                    + "CROSS JOIN students s "
                    + "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id "
-                   + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
+                   + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) "
+                   + "AND sub.id NOT IN (SELECT DISTINCT parent_subject_id FROM subjects WHERE parent_subject_id IS NOT NULL)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, seatNo);
             try (ResultSet rs = ps.executeQuery()) {
@@ -353,9 +354,6 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
                 currentImagePath = rs.getString("image_path");
                 currentNationalId = rs.getString("national_id");
-                String round = rs.getString("exam_round");
-                // If there's no label for round, we might want to append it to something or just log it.
-                // For now, let's ensure labels that exist are correct.
                 
                 // If specialization exists and is different from profession, maybe append?
                 String specialization = rs.getString("specialization");

@@ -237,7 +237,8 @@ if (specializationFromDB != null) {
                + "FROM subjects sub "
                + "CROSS JOIN students s "
                + "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id "
-               + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
+               + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) "
+               + "AND sub.id NOT IN (SELECT DISTINCT parent_subject_id FROM subjects WHERE parent_subject_id IS NOT NULL)";
 
     try (Connection con = DatabaseConnection.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
@@ -443,18 +444,18 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel2.setBounds(325, 84, 190, 25);
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel3.setText("تشهد وزارة التجارة والصناعة بأن السيد :");
+        jLabel3.setText("تشهد وزارة الصناعة بأن السيد :");
         jPanel2.add(jLabel3);
-        jLabel3.setBounds(520, 160, 310, 25);
+        jLabel3.setBounds(610, 160, 310, 25);
 
         lblName.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblName);
-        lblName.setBounds(210, 160, 310, 30);
+        lblName.setBounds(300, 160, 310, 20);
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel5.setText("قد نجـح فى إمتحــــان دبلوم التـلـمذة الصنـاعـيـة");
         jPanel2.add(jLabel5);
-        jLabel5.setBounds(60, 210, 350, 25);
+        jLabel5.setBounds(70, 210, 350, 25);
 
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel6.setText("التخصص :");
@@ -463,7 +464,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
 
         lblNationalId.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblNationalId);
-        lblNationalId.setBounds(447, 210, 260, 30);
+        lblNationalId.setBounds(447, 210, 260, 20);
 
         lblProfession.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblProfession);
@@ -472,11 +473,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel10.setText("المجموعة المهنية :");
         jPanel2.add(jLabel10);
-        jLabel10.setBounds(270, 270, 140, 25);
+        jLabel10.setBounds(310, 250, 140, 25);
 
         lblGroup.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblGroup);
-        lblGroup.setBounds(11, 270, 250, 30);
+        lblGroup.setBounds(50, 250, 250, 20);
 
         jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel12.setText("دور  :");
@@ -491,17 +492,17 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel15.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel15.setText("سنه الفان واثنان وعشرون");
         jPanel2.add(jLabel15);
-        jLabel15.setBounds(500, 280, 160, 40);
+        jLabel15.setBounds(530, 280, 150, 50);
 
         jLabel16.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel16.setText("بتقديـر:");
         jPanel2.add(jLabel16);
-        jLabel16.setBounds(320, 310, 60, 25);
+        jLabel16.setBounds(320, 290, 60, 25);
 
         lblGrade.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblGrade.setText("ناجح");
         jPanel2.add(lblGrade);
-        lblGrade.setBounds(290, 300, 30, 50);
+        lblGrade.setBounds(290, 280, 30, 50);
 
         jLabel18.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel18.setText("مركز / محطة :");
@@ -515,11 +516,11 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel20.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel20.setText("منطقة :");
         jPanel2.add(jLabel20);
-        jLabel20.setBounds(260, 380, 80, 25);
+        jLabel20.setBounds(250, 360, 80, 25);
 
         lblRegion.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel2.add(lblRegion);
-        lblRegion.setBounds(43, 380, 210, 30);
+        lblRegion.setBounds(30, 360, 210, 20);
 
         jLabel22.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel22.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية والتعليم ");
@@ -563,14 +564,14 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
         jLabel8.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel8.setText("بنسبه:");
         jPanel2.add(jLabel8);
-        jLabel8.setBounds(150, 310, 50, 40);
+        jLabel8.setBounds(160, 280, 50, 50);
 
         jLabel9.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel9.setText("jLabel9");
         jPanel2.add(jLabel9);
-        jLabel9.setBounds(60, 320, 90, 20);
+        jLabel9.setBounds(70, 290, 90, 30);
         jPanel2.add(qRCodeComponent2);
-        qRCodeComponent2.setBounds(30, 20, 160, 160);
+        qRCodeComponent2.setBounds(0, 0, 160, 150);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);

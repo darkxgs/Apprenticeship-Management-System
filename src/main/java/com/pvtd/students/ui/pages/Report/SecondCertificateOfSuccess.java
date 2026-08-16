@@ -265,7 +265,8 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
                    + "FROM subjects sub "
                    + "CROSS JOIN students s "
                    + "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id "
-                   + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
+                   + "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) "
+                   + "AND sub.id NOT IN (SELECT DISTINCT parent_subject_id FROM subjects WHERE parent_subject_id IS NOT NULL)";
 
         try (Connection con = DatabaseConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
