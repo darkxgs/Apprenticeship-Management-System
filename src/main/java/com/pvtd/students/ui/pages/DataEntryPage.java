@@ -1025,8 +1025,10 @@ public class DataEntryPage extends JPanel {
         if (currentStudent == null) return;
         String user = parentFrame != null ? parentFrame.getLoggedInUser().getUsername() : "SYSTEM";
         Map<Integer, Integer> grades = extractGradesFromUI();
+        // رفع درجات الرأفة قبل الحفظ وقبل حساب الحالة، حتى تنعكس على الدرجات المخزنة والنتيجة معاً
+        grades = GradeCalculationService.applyMercyRaises(currentSubjects, grades);
         Map<Integer, Integer> resolvedGrades = GradeCalculationService.resolveCompositeGrades(currentSubjects, grades);
-        
+
         boolean ok = StudentService.updateStudentGrades(currentStudent.getId(), resolvedGrades, user);
         if (ok) {
             // Use RAW grades here: calculateStatus() resolves composite subjects internally,

@@ -576,6 +576,12 @@ public class StudentService {
             // Handle Secret Number Auto Generation
             s.setSecretNo(generateSecretNo(s));
 
+            // رفع درجات الرأفة قبل الحفظ وقبل حساب الحالة
+            if (s.getGrades() != null) {
+                s.setGrades(GradeCalculationService.applyMercyRaises(
+                        SubjectService.getSubjectsByProfession(s.getProfession()), s.getGrades()));
+            }
+
             stmt.setString(1, s.getSerial());
             stmt.setString(2, s.getName());
             stmt.setString(3, s.getRegistrationNo());
@@ -638,6 +644,12 @@ public class StudentService {
             // Handle Secret Number Auto Generation
             if (s.getSecretNo() == null || s.getSecretNo().trim().isEmpty()) {
                 s.setSecretNo(generateSecretNo(s));
+            }
+
+            // رفع درجات الرأفة قبل الحفظ وقبل حساب الحالة
+            if (s.getGrades() != null) {
+                s.setGrades(GradeCalculationService.applyMercyRaises(
+                        SubjectService.getSubjectsByProfession(s.getProfession()), s.getGrades()));
             }
 
             stmt.setString(1, s.getSerial());
@@ -747,9 +759,7 @@ public class StudentService {
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                saveStudentGrades(conn, studentId, grades);
-                
-                // Recalculate and update status automatically
+                // Fetch the profession first: mercy raises need its subject list
                 String prof = "";
                 try (PreparedStatement ps = conn.prepareStatement("SELECT profession FROM students WHERE id = ?")) {
                     ps.setInt(1, studentId);
@@ -757,7 +767,14 @@ public class StudentService {
                         if (rs.next()) prof = rs.getString("profession");
                     }
                 }
-                
+
+                // رفع درجات الرأفة قبل الحفظ وقبل حساب الحالة
+                grades = GradeCalculationService.applyMercyRaises(
+                        SubjectService.getSubjectsByProfession(prof), grades);
+
+                saveStudentGrades(conn, studentId, grades);
+
+                // Recalculate and update status automatically
                 String newStatus = calculateStatus(prof, grades);
                 try (PreparedStatement ps = conn.prepareStatement("UPDATE students SET status = ? WHERE id = ?")) {
                     ps.setString(1, newStatus);
@@ -821,7 +838,9 @@ public class StudentService {
                 }
             }
 
-            try (PreparedStatement upd = conn.prepareStatement("UPDATE students SET status = ? WHERE id = ?")) {
+            try (PreparedStatement upd = conn.prepareStatement("UPDATE students SET status = ? WHERE id = ?");
+                    PreparedStatement updGrade = conn.prepareStatement(
+                            "UPDATE student_grades SET obtained_mark=? WHERE student_id=? AND subject_id=?")) {
                 for (Map.Entry<Integer, Map<Integer, Integer>> entry : gradesMap.entrySet()) {
                     int id = entry.getKey();
                     String oldStatus = statuses.get(id) == null ? "" : statuses.get(id).trim();
@@ -833,7 +852,22 @@ public class StudentService {
                     }
 
                     checked++;
-                    String newStatus = calculateStatus(professions.get(id), entry.getValue());
+
+                    // رفع درجات الرأفة على الدرجات المخزنة، مع حفظ أي درجة تغيرت
+                    Map<Integer, Integer> stored = entry.getValue();
+                    List<com.pvtd.students.models.Subject> subjects =
+                            SubjectService.getSubjectsByProfession(professions.get(id));
+                    Map<Integer, Integer> adjusted = GradeCalculationService.applyMercyRaises(subjects, stored);
+                    for (Map.Entry<Integer, Integer> g : adjusted.entrySet()) {
+                        if (!g.getValue().equals(stored.get(g.getKey()))) {
+                            updGrade.setInt(1, g.getValue());
+                            updGrade.setInt(2, id);
+                            updGrade.setInt(3, g.getKey());
+                            updGrade.executeUpdate();
+                        }
+                    }
+
+                    String newStatus = calculateStatus(professions.get(id), adjusted);
                     if (!newStatus.equals(oldStatus)) {
                         upd.setString(1, newStatus);
                         upd.setInt(2, id);

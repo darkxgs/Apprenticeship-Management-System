@@ -35,6 +35,76 @@ public class GradeCalculationService {
     }
 
     /**
+     * تطبيق رفع درجات الرأفة (تعليمات مكتب الامتحانات):
+     * لأي مادة، إذا كانت الدرجة المتحصلة أقل من درجة النجاح وكان الفارق
+     * (pass - obtained) لا يتجاوز (max / 20) بالقسمة الصحيحة، تُرفع الدرجة إلى درجة النجاح.
+     * مثال: نهاية 100 ونجاح 50 → تُرفع 45..49 إلى 50، ونهاية 50 ونجاح 25 → تُرفع 23..24 إلى 25.
+     *
+     * The band is decided per TOP-LEVEL subject. For composite subjects (30/70 parts)
+     * it is evaluated on the summed children values, and the deficit is added to the
+     * graded child with the largest max mark so the total reaches the pass mark.
+     * Negative marks are status marker codes (غائب...) and are never touched.
+     * Returns a NEW adjusted map; the input map is not modified. Idempotent:
+     * a grade at or above pass is never inside the band, so re-applying changes nothing.
+     */
+    public static Map<Integer, Integer> applyMercyRaises(List<Subject> subjects, Map<Integer, Integer> grades) {
+        if (grades == null) return null;
+        Map<Integer, Integer> adjusted = new java.util.HashMap<>(grades);
+        if (subjects == null || subjects.isEmpty() || grades.isEmpty()) return adjusted;
+
+        // Group children under their parent (same style as resolveCompositeGrades).
+        Map<Integer, List<Subject>> childrenByParent = new java.util.HashMap<>();
+        for (Subject sub : subjects) {
+            if (sub.getParentSubjectId() != null) {
+                childrenByParent.computeIfAbsent(sub.getParentSubjectId(), k -> new java.util.ArrayList<>()).add(sub);
+            }
+        }
+
+        for (Subject sub : subjects) {
+            if (sub.getParentSubjectId() != null) continue; // mercy is decided per top-level subject
+
+            List<Subject> children = childrenByParent.get(sub.getId());
+            if (children != null && !children.isEmpty()) {
+                // Composite subject: evaluate the band on the summed children values.
+                int effObtained = 0, effPass = 0, effMax = 0;
+                boolean hasGrade = false, hasMarkerCode = false;
+                Subject raiseTarget = null; // graded child with the largest max mark
+                for (Subject child : children) {
+                    effPass += child.getPassMark();
+                    effMax += child.getMaxMark();
+                    Integer g = grades.get(child.getId());
+                    if (g == null) continue;
+                    hasGrade = true;
+                    if (g < 0) hasMarkerCode = true;
+                    effObtained += g;
+                    if (raiseTarget == null || child.getMaxMark() > raiseTarget.getMaxMark()) {
+                        raiseTarget = child;
+                    }
+                }
+                if (!hasGrade || hasMarkerCode) continue; // no marks entered, or غائب-style marker code
+
+                int deficit = effPass - effObtained;
+                if (deficit > 0 && deficit <= effMax / 20) {
+                    adjusted.merge(raiseTarget.getId(), deficit, Integer::sum);
+                    // Keep a stored/resolved parent entry consistent with the new children sum.
+                    if (adjusted.containsKey(sub.getId())) {
+                        adjusted.put(sub.getId(), effObtained + deficit);
+                    }
+                }
+            } else {
+                Integer obtained = grades.get(sub.getId());
+                if (obtained == null || obtained < 0) continue; // no entry / marker code — never touch
+
+                int deficit = sub.getPassMark() - obtained;
+                if (deficit > 0 && deficit <= sub.getMaxMark() / 20) {
+                    adjusted.put(sub.getId(), sub.getPassMark());
+                }
+            }
+        }
+        return adjusted;
+    }
+
+    /**
      * Calculates the total for "Theory" (نظري) subjects.
      * Excludes "التطبيقي" and excludes any subject specifically marked "عملي".
      * Only considers top-level subjects (ignoring individual 30/70 sub-marks).

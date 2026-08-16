@@ -152,6 +152,8 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     }
 
     private String toArabicNumbers(String number) {
+        if (number == null)
+            return "";
         return number
                 .replace("0", "٠")
                 .replace("1", "١")
@@ -229,6 +231,13 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
                     ImageIcon icon = new ImageIcon(imgFile.getAbsolutePath());
 
+                    // لو ملف الصورة تالف أو مش صورة صالحة → مربع فاضي بدل ما نرسم حاجة بايظة
+                    if (icon.getIconWidth() <= 0 || icon.getIconHeight() <= 0) {
+                        studentImageLbl.setIcon(null);
+                        System.out.println("❌ Broken image file: " + imagePath);
+                        return;
+                    }
+
                     java.awt.Image img = icon.getImage().getScaledInstance(
                             170, // explicitly use 170 instead of getWidth()
                             230, // explicitly use 230 instead of getHeight()
@@ -247,6 +256,8 @@ public class sucsseccFromPage extends javax.swing.JFrame {
             }
 
         } catch (Exception e) {
+            // مهما حصل: مربع الصورة يفضل فاضي (أبيض) بدل صورة طالب سابق
+            studentImageLbl.setIcon(null);
             e.printStackTrace();
         }
     }
@@ -602,74 +613,84 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                 String seatNo    = student[0];
                 String profession = student[1];
 
-                // تنظيف البيانات القديمة
-                clearLabels();
-                specLbl.setText(profession);
+                // فشل طالب واحد (صورة بايظة/بيانات ناقصة/ملف مقفول) ميوقفش باقي الاستمارات
+                try {
+                    // تنظيف البيانات القديمة
+                    clearLabels();
+                    specLbl.setText(profession);
 
-                // تحميل البيانات من DB
-                loadStudentInfo(seatNo, con);
-                loadStudentSubjects(seatNo, con);
-                loadStudentImage(currentImagePath);
+                    // تحميل البيانات من DB
+                    loadStudentInfo(seatNo, con);
+                    loadStudentSubjects(seatNo, con);
+                    loadStudentImage(currentImagePath);
 
-                // تحديث الـ layout
-                jPanel1.revalidate();
-                jPanel1.repaint();
-                jPanel1.doLayout();
+                    // تحديث الـ layout
+                    jPanel1.revalidate();
+                    jPanel1.repaint();
+                    jPanel1.doLayout();
 
-                // رسم الاستمارة على الصورة
-                g2.clearRect(0, 0, width, height);
-                jPanel1.printAll(g2);
+                    // رسم الاستمارة على الصورة
+                    g2.clearRect(0, 0, width, height);
+                    jPanel1.printAll(g2);
 
-                // تحديد اسم المركز وتنظيفه
-                String centerName = centerLbl.getText() != null ? centerLbl.getText().trim() : "بدون مركز";
-                if (centerName.isEmpty()) centerName = "بدون مركز";
-                centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
+                    // تحديد اسم المركز وتنظيفه
+                    String centerName = centerLbl.getText() != null ? centerLbl.getText().trim() : "بدون مركز";
+                    if (centerName.isEmpty()) centerName = "بدون مركز";
+                    centerName = centerName.replaceAll("[\\\\/:*?\"<>|]", "_");
 
-                // إنشاء مجلد المركز إن لم يكن موجوداً
-                if (!centerFolders.containsKey(centerName)) {
-                    File centerFolder = new File(formFolder, centerName);
-                    if (!centerFolder.exists()) centerFolder.mkdirs();
-                    centerFolders.put(centerName, centerFolder);
+                    // إنشاء مجلد المركز إن لم يكن موجوداً
+                    if (!centerFolders.containsKey(centerName)) {
+                        File centerFolder = new File(formFolder, centerName);
+                        if (!centerFolder.exists()) centerFolder.mkdirs();
+                        centerFolders.put(centerName, centerFolder);
+                    }
+                    File centerFolder = centerFolders.get(centerName);
+
+                    // إنشاء ملف PDF للمركز إن لم يكن موجوداً بعد
+                    if (!combinedDocs.containsKey(centerName)) {
+                        Document doc = new Document(PageSize.A4);
+                        String pdfPath = centerFolder.getAbsolutePath() + File.separator
+                                + "استمارة طلاب مركز " + centerName + ".pdf";
+                        PdfWriter.getInstance(doc, new FileOutputStream(pdfPath));
+                        doc.open();
+                        combinedDocs.put(centerName, doc);
+                        combinedPaths.put(centerName, pdfPath);
+                    } else {
+                        // صفحة جديدة لكل طالب إضافي في نفس المركز
+                        combinedDocs.get(centerName).newPage();
+                    }
+
+                    // إضافة صورة الاستمارة إلى ملف PDF الخاص بالمركز
+                    Image imgForCenter = Image.getInstance(image, null);
+                    imgForCenter.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+                    imgForCenter.setAbsolutePosition(0, 0);
+                    combinedDocs.get(centerName).add(imgForCenter);
+
+                    // إنشاء ملف PDF فردي لكل طالب داخل مجلد المركز
+                    String fileName = (currentNationalId != null && !currentNationalId.isEmpty())
+                            ? currentNationalId : "student_" + seatNo;
+                    String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
+                    Document singleDoc = new Document(PageSize.A4);
+                    PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
+                    singleDoc.open();
+                    Image imgForSingle = Image.getInstance(image, null);
+                    imgForSingle.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
+                    imgForSingle.setAbsolutePosition(0, 0);
+                    singleDoc.add(imgForSingle);
+                    singleDoc.close();
+                } catch (Exception exStudent) {
+                    logger.severe("فشل توليد استمارة الطالب رقم جلوس " + seatNo + ": " + exStudent);
+                    exStudent.printStackTrace();
                 }
-                File centerFolder = centerFolders.get(centerName);
-
-                // إنشاء ملف PDF للمركز إن لم يكن موجوداً بعد
-                if (!combinedDocs.containsKey(centerName)) {
-                    Document doc = new Document(PageSize.A4);
-                    String pdfPath = centerFolder.getAbsolutePath() + File.separator
-                            + "استمارة طلاب مركز " + centerName + ".pdf";
-                    PdfWriter.getInstance(doc, new FileOutputStream(pdfPath));
-                    doc.open();
-                    combinedDocs.put(centerName, doc);
-                    combinedPaths.put(centerName, pdfPath);
-                } else {
-                    // صفحة جديدة لكل طالب إضافي في نفس المركز
-                    combinedDocs.get(centerName).newPage();
-                }
-
-                // إضافة صورة الاستمارة إلى ملف PDF الخاص بالمركز
-                Image imgForCenter = Image.getInstance(image, null);
-                imgForCenter.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
-                imgForCenter.setAbsolutePosition(0, 0);
-                combinedDocs.get(centerName).add(imgForCenter);
-
-                // إنشاء ملف PDF فردي لكل طالب داخل مجلد المركز
-                String fileName = (currentNationalId != null && !currentNationalId.isEmpty())
-                        ? currentNationalId : "student_" + seatNo;
-                String singlePath = centerFolder.getAbsolutePath() + File.separator + fileName + ".pdf";
-                Document singleDoc = new Document(PageSize.A4);
-                PdfWriter.getInstance(singleDoc, new FileOutputStream(singlePath));
-                singleDoc.open();
-                Image imgForSingle = Image.getInstance(image, null);
-                imgForSingle.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
-                imgForSingle.setAbsolutePosition(0, 0);
-                singleDoc.add(imgForSingle);
-                singleDoc.close();
             }
 
             // إغلاق جميع ملفات PDF بعد انتهاء معالجة جميع الطلاب
             for (Document doc : combinedDocs.values()) {
-                if (doc.isOpen()) doc.close();
+                try {
+                    if (doc.isOpen()) doc.close();
+                } catch (Exception exClose) {
+                    exClose.printStackTrace();
+                }
             }
 
             g2.dispose();
@@ -751,6 +772,11 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         jLabel41.setText("");
 
         studentImageLbl.setIcon(null);
+
+        // تصفير بيانات الطالب السابق عشان الطالب اللي معهوش صورة/بيانات
+        // ميرثش صورة أو رقم قومي من اللي قبله (كان بيتسبب في استمارات بتتكتب فوق بعض)
+        currentImagePath = null;
+        currentNationalId = null;
     }
 
     @SuppressWarnings("unchecked")

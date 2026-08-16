@@ -83,6 +83,7 @@
 .\src\main\java\com\pvtd\students\ui\pages\Report\DetailersFRamepage.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\EltaSoeda.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\EltaSoeda3070.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\EltaSoedaSecondRound.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\Failed.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\FailedFramePage.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReport.java
@@ -93,6 +94,7 @@
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSequential.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportSucc.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportTasoeda.java
+.\src\main\java\com\pvtd\students\ui\pages\Report\gradReportTasoedaSecondRound.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradReportWithdrawal.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\gradSecretReport.java
 .\src\main\java\com\pvtd\students\ui\pages\Report\NewJFrame.java

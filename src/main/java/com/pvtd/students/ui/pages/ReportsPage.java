@@ -172,6 +172,16 @@ public class ReportsPage extends JPanel {
                    e.setExtendedState(JFrame.MAXIMIZED_BOTH);
                 }));
 
+        gridPanel.add(createReportCard("تسويدة الدور الثاني",
+                "إخراج مسودة رصد درجات الدور الثاني — درجات الدور الأول ظاهرة والمادة الراسب فيها فاضية",
+                "icons/reports.svg",
+                () -> {
+                   com.pvtd.students.ui.pages.Report.EltaSoedaSecondRound e = new com.pvtd.students.ui.pages.Report.EltaSoedaSecondRound();
+                   e.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                   e.setVisible(true);
+                   e.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                }));
+
         gridPanel.add(createReportCard("كشف ناجحي الدور الثاني",
                 "استخراج تقرير بجميع الطلاب الناجحين من الدور الثاني",
                 "icons/dashboard.svg", () -> {

@@ -310,21 +310,18 @@ public class Failed extends javax.swing.JFrame {
 			boolean failedPractical = false;
 			boolean failedApplied = false;
 
-			// Query: join subjects with student_grades to find failed ones
-			String sql = """
-					SELECT s.name, s.type,
-					       NVL(sg.obtained_mark, 0) as obtained_mark,
-					       s.pass_mark,
-					       s.id as subject_id,
-					       s.subject_type
-					FROM subjects s
-					LEFT JOIN student_grades sg ON sg.subject_id = s.id AND sg.student_id = ?
-					WHERE s.subject_type IS NULL OR s.subject_type != 'child'
-					ORDER BY s.id
-					""";
+			// Children-aware query: for split 30/70 subjects the marks live on CHILD
+			// rows, so aggregate child pass marks / obtained marks up to the parent.
 			String sql2 = """
-					SELECT sub.id, sub.name, sub.type, sub.pass_mark,
-					       NVL(sg.obtained_mark, 0) as mark
+					SELECT sub.id, sub.name, sub.type,
+					       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id)
+					            THEN (SELECT NVL(SUM(ch.pass_mark),0) FROM subjects ch WHERE ch.parent_subject_id = sub.id)
+					            ELSE sub.pass_mark END AS eff_pass,
+					       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id)
+					            THEN (SELECT NVL(SUM(NVL(sg2.obtained_mark,0)),0) FROM subjects ch
+					                  LEFT JOIN student_grades sg2 ON sg2.subject_id = ch.id AND sg2.student_id = st.id
+					                  WHERE ch.parent_subject_id = sub.id)
+					            ELSE NVL(sg.obtained_mark,0) END AS mark
 					FROM subjects sub
 					JOIN students st ON TRIM(st.profession) = TRIM(sub.profession)
 					LEFT JOIN student_grades sg ON sg.subject_id = sub.id AND sg.student_id = st.id
@@ -338,7 +335,7 @@ public class Failed extends javax.swing.JFrame {
 						String sName = rs2.getString("name");
 						String sType = rs2.getString("type");
 						int mark = rs2.getInt("mark");
-						int passMark = rs2.getInt("pass_mark");
+						int passMark = rs2.getInt("eff_pass");
 						if (mark < passMark && sName != null && !sName.isBlank()) {
 							if ("نظري".equals(sType))
 								theoryFailed.add(sName);
@@ -455,7 +452,7 @@ public class Failed extends javax.swing.JFrame {
 				for (int i = 0; i < 6; i++) {
 					failedLabels[i] = new javax.swing.JLabel();
 					failedLabels[i].setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-					failedLabels[i].setVerticalAlignment(javax.swing.SwingConstants.TOP); // Start from the same vertical level
+					failedLabels[i].setVerticalAlignment(javax.swing.SwingConstants.CENTER);
 					failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 12));
 					failedLabels[i].setOpaque(true);
 					if (i > 0)
@@ -468,16 +465,24 @@ public class Failed extends javax.swing.JFrame {
 			public Component getTableCellRendererComponent(JTable t, Object val,
 					boolean sel, boolean foc, int row, int col) {
 				String[] arr = val instanceof String[] ? (String[]) val : new String[6];
+				int cellW = t.getColumnModel().getColumn(0).getWidth() / 6 - 4;
 				for (int i = 0; i < 6; i++) {
 					String text = (arr.length > i && arr[i] != null) ? arr[i] : "";
-					// Wrap in div with padding-top to ensure they start at the same level neatly
-					failedLabels[i].setText("<html><div style='text-align: center; padding-top: 3px;'>" + text + "</div></html>");
+					failedLabels[i].setText(text);
+					// Auto-shrink font per cell so the subject name fits its box
+					int fs = 12;
+					Font f = new Font("Tahoma", Font.BOLD, fs);
+					while (fs > 7 && !text.isEmpty() && cellW > 0
+							&& failedLabels[i].getFontMetrics(f).stringWidth(text) > cellW) {
+						fs--;
+						f = new Font("Tahoma", Font.BOLD, fs);
+					}
+					failedLabels[i].setFont(f);
 					failedLabels[i].setBackground(Color.WHITE);
 					failedLabels[i].setForeground(Color.BLACK);
 				}
 				failedPanel.setBackground(Color.WHITE);
-				// top=0, left=1, bottom=1, right=1 — right side faces حالة التلميذ in RTL table
-				failedPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 1, 1, 1, Color.GRAY));
+				failedPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, Color.BLACK));
 				return failedPanel;
 			}
 		});

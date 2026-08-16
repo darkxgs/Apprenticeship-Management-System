@@ -282,14 +282,22 @@ public class NewJFrame1 extends javax.swing.JFrame {
     }
 
     public void loadStudentGrades(String seatNo, Connection con) throws Exception {
-        // فقط أول 4 أعمدة (مواد نظرية) تُملأ من قاعدة البيانات
+        // استعلام واحد على مستوى المادة الأم: المواد المقسمة (نظام 30/70)
+        // تُجمع درجات أجزائها الفرعية في صف واحد (30+70=100) بدلاً من ظهور
+        // كل جزء منفصلاً — والنهاية العظمى/الصغرى من صف المادة الأم نفسها
         String sql =
-            "SELECT sub.id, sub.name AS subject_name, sub.type, sub.max_mark, sub.pass_mark, sg.obtained_mark " +
+            "SELECT sub.id, sub.name AS subject_name, sub.type, sub.max_mark, sub.pass_mark, " +
+            "       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id) " +
+            "            THEN (SELECT NVL(SUM(NVL(sg2.obtained_mark,0)),0) " +
+            "                  FROM subjects ch " +
+            "                  LEFT JOIN student_grades sg2 ON sg2.subject_id = ch.id AND sg2.student_id = s.id " +
+            "                  WHERE ch.parent_subject_id = sub.id) " +
+            "            ELSE NVL(sg.obtained_mark,0) END AS eff_mark " +
             "FROM subjects sub " +
             "CROSS JOIN students s " +
             "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
             "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) " +
-            "AND (LOWER(sub.type) LIKE '%نظري%' OR LOWER(sub.type) LIKE '%theory%') " +
+            "AND sub.parent_subject_id IS NULL " +
             "ORDER BY sub.display_order ASC, sub.id ASC";
 
         // أسماء المواد الرأسية — 4 أعمدة نظرية (jLabel6..9)
@@ -313,33 +321,58 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel28.setText("-"); jLabel29.setText("-");
         jLabel46.setText("-"); jLabel37.setText("-");
 
-        // ── العمود 7: مجموع الدرجات النظرية (كما في الورقة المؤمنة) ──────────
-        String theorySql =
-            "SELECT sub.max_mark, sub.pass_mark, sg.obtained_mark " +
-            "FROM subjects sub " +
-            "CROSS JOIN students s " +
-            "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
-            "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) " +
-            "AND (LOWER(sub.type) LIKE '%نظري%' OR LOWER(sub.type) LIKE '%theory%')";
-
+        // ── لفة واحدة على المواد الأم: تملأ الأعمدة النظرية وتجمع النظري
+        //    والعملي/التطبيقي والمجموع الكلي معاً ───────────────────────────
+        int idx = 0;
         int theoryMax = 0, theoryPass = 0, theoryObtained = 0;
-        boolean hasTheoryData = false;
+        int pracMax = 0, pracPass = 0, pracObtained = 0;
+        int grandMax = 0, grandPass = 0, grandObtained = 0;
+        boolean hasTheoryData = false, hasPracData = false, hasGrandData = false;
 
-        try (PreparedStatement psTheory = con.prepareStatement(theorySql)) {
-            psTheory.setString(1, seatNo);
-            try (ResultSet rsTheory = psTheory.executeQuery()) {
-                while (rsTheory.next()) {
-                    hasTheoryData = true;
-                    theoryMax      += rsTheory.getInt("max_mark");
-                    theoryPass     += rsTheory.getInt("pass_mark");
-                    theoryObtained += Math.max(rsTheory.getInt("obtained_mark"), 0);
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, seatNo);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String subName = orEmpty(rs.getString("subject_name")).trim();
+                    String type    = orEmpty(rs.getString("type")).toLowerCase();
+                    int maxMark    = rs.getInt("max_mark");
+                    int passMark   = rs.getInt("pass_mark");
+                    int obtained   = Math.max(rs.getInt("eff_mark"), 0);
+
+                    hasGrandData   = true;
+                    grandMax      += maxMark;
+                    grandPass     += passMark;
+                    grandObtained += obtained;
+
+                    boolean isTheory = type.contains("نظري") || type.contains("theory");
+                    boolean isPrac   = type.contains("عملي") || type.contains("تطبيقي")
+                                    || type.contains("practical") || type.contains("applied");
+
+                    if (isTheory) {
+                        hasTheoryData   = true;
+                        theoryMax      += maxMark;
+                        theoryPass     += passMark;
+                        theoryObtained += obtained;
+
+                        if (idx < 4) {
+                            nameLbls[idx].setText(subName);
+                            maxLbls[idx].setText(toArabic(String.valueOf(maxMark)));
+                            passLbls[idx].setText(toArabic(String.valueOf(passMark)));
+                            markLbls[idx].setText(toArabic(String.valueOf(obtained)));
+                            idx++;
+                        }
+                    } else if (isPrac) {
+                        hasPracData   = true;
+                        pracMax      += maxMark;
+                        pracPass     += passMark;
+                        pracObtained += obtained;
+                    }
                 }
             }
         }
 
-        // jLabel12 = رأس عمود «مجموع الدرجات النظرية» (رأسي، سطران)
+        // ── العمود 7: مجموع الدرجات النظرية (كما في الورقة المؤمنة) ──────────
         jLabel12.setText("مجموع الدرجات\nالنظرية");
-
         if (hasTheoryData) {
             jLabel21.setText(toArabic(String.valueOf(theoryMax)));
             jLabel30.setText(toArabic(String.valueOf(theoryPass)));
@@ -350,32 +383,20 @@ public class NewJFrame1 extends javax.swing.JFrame {
             jLabel38.setText("-");
         }
 
-        // ── العمود 9: المجموع الكلي لكافة المواد ──────────────────────────────
-        String grandTotalSql =
-            "SELECT sub.max_mark, sub.pass_mark, sg.obtained_mark " +
-            "FROM subjects sub " +
-            "CROSS JOIN students s " +
-            "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
-            "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession)";
-
-        int grandMax = 0, grandPass = 0, grandObtained = 0;
-        boolean hasGrandData = false;
-
-        try (PreparedStatement psGrand = con.prepareStatement(grandTotalSql)) {
-            psGrand.setString(1, seatNo);
-            try (ResultSet rsGrand = psGrand.executeQuery()) {
-                while (rsGrand.next()) {
-                    hasGrandData = true;
-                    grandMax      += rsGrand.getInt("max_mark");
-                    grandPass     += rsGrand.getInt("pass_mark");
-                    grandObtained += Math.max(rsGrand.getInt("obtained_mark"), 0);
-                }
-            }
+        // ── العمود 8: مجموع مواد العملي والتطبيقي ────────────────────────────
+        jLabel13.setText("مجموع درجات\nالتطبيقي\nوالامتحان العملي");
+        if (hasPracData) {
+            jLabel22.setText(toArabic(String.valueOf(pracMax)));
+            jLabel31.setText(toArabic(String.valueOf(pracPass)));
+            jLabel39.setText(toArabic(String.valueOf(pracObtained)));
+        } else {
+            jLabel22.setText("-");
+            jLabel31.setText("-");
+            jLabel39.setText("-");
         }
 
-        // jLabel14 = رأس عمود «المجموع الكلي» (رأسي ثابت)
+        // ── العمود 9: المجموع الكلي لكافة المواد ──────────────────────────────
         jLabel14.setText("المجموع الكلي");
-
         if (hasGrandData) {
             jLabel23.setText(toArabic(String.valueOf(grandMax)));
             jLabel32.setText(toArabic(String.valueOf(grandPass)));
@@ -388,66 +409,6 @@ public class NewJFrame1 extends javax.swing.JFrame {
             jLabel32.setText("-");
             jLabel40.setText("-");
             jLabel41.setText("-");
-        }
-
-        // ── ملء الأعمدة الـ4 النظرية ─────────────────────────────────────────
-        int idx = 0;
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, seatNo);
-            try (ResultSet rs = ps.executeQuery()) {
-                // نقرأ فقط أول 4 مواد نظرية
-                while (rs.next() && idx < 4) {
-                    String subName = orEmpty(rs.getString("subject_name"));
-                    int maxMark    = rs.getInt("max_mark");
-                    int passMark   = rs.getInt("pass_mark");
-                    int obtained   = Math.max(rs.getInt("obtained_mark"), 0);
-
-                    nameLbls[idx].setText(subName.trim());
-                    maxLbls[idx].setText(toArabic(String.valueOf(maxMark)));
-                    passLbls[idx].setText(toArabic(String.valueOf(passMark)));
-                    markLbls[idx].setText(toArabic(String.valueOf(obtained)));
-
-                    idx++;
-                }
-            }
-        }
-
-        // ── العمود 8: مجموع مواد العملي والتطبيقي ────────────────────────────
-        String practicalSql =
-            "SELECT sub.name AS subject_name, sub.type, sub.max_mark, sub.pass_mark, sg.obtained_mark " +
-            "FROM subjects sub " +
-            "CROSS JOIN students s " +
-            "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
-            "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) " +
-            "AND (LOWER(sub.type) LIKE '%عملي%' OR LOWER(sub.type) LIKE '%تطبيقي%' " +
-            "     OR LOWER(sub.type) LIKE '%practical%' OR LOWER(sub.type) LIKE '%applied%')";
-
-        int totalMaxPrac = 0, totalPassPrac = 0, totalObtainedPrac = 0;
-        boolean hasPracData = false;
-
-        try (PreparedStatement psPrac = con.prepareStatement(practicalSql)) {
-            psPrac.setString(1, seatNo);
-            try (ResultSet rsPrac = psPrac.executeQuery()) {
-                while (rsPrac.next()) {
-                    hasPracData = true;
-                    totalMaxPrac      += rsPrac.getInt("max_mark");
-                    totalPassPrac     += rsPrac.getInt("pass_mark");
-                    totalObtainedPrac += Math.max(rsPrac.getInt("obtained_mark"), 0);
-                }
-            }
-        }
-
-        // jLabel13 = رأس عمود «مجموع درجات التطبيقي والامتحان العملي» (رأسي، 3 أسطر)
-        jLabel13.setText("مجموع درجات\nالتطبيقي\nوالامتحان العملي");
-
-        if (hasPracData) {
-            jLabel22.setText(toArabic(String.valueOf(totalMaxPrac)));
-            jLabel31.setText(toArabic(String.valueOf(totalPassPrac)));
-            jLabel39.setText(toArabic(String.valueOf(totalObtainedPrac)));
-        } else {
-            jLabel22.setText("-");
-            jLabel31.setText("-");
-            jLabel39.setText("-");
         }
     }
 

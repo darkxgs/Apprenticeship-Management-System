@@ -533,12 +533,60 @@ public class StudentsPage extends JPanel {
                 return;
             }
 
+            // اختيار طريقة الطباعة: الكل (اللي معهوش صورة يطلع بمربع صورة فاضي) أو اللي معاهم صور فقط
+            Object[] printOptions = { "الكل", "اللي معاهم صور فقط", "إلغاء" };
+            int printChoice = JOptionPane.showOptionDialog(
+                    this,
+                    "تطبع استمارات النجاح لمين؟",
+                    "طباعة استمارات النجاح",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    printOptions,
+                    printOptions[0]);
+
+            if (printChoice == 2 || printChoice == JOptionPane.CLOSED_OPTION) {
+                return; // إلغاء
+            }
+            boolean photosOnly = (printChoice == 1);
+
             List<String[]> studentsData = new ArrayList<>();
 
             for (int modelRow : selectedRows) {
-                String seatNo = tableModel.getValueAt(modelRow, 4).toString(); // رقم الجلوس (Was index 9 incorrectly)
-                String profession = tableModel.getValueAt(modelRow, 8).toString(); // المهنة (Was index 7 incorrectly)
+                Object seatCell = tableModel.getValueAt(modelRow, 4); // رقم الجلوس (Was index 9 incorrectly)
+                if (seatCell == null || seatCell.toString().trim().isEmpty())
+                    continue; // من غير رقم جلوس مفيش استمارة
+                String seatNo = seatCell.toString();
+                String profession = tableModel.getValueAt(modelRow, 8) != null
+                        ? tableModel.getValueAt(modelRow, 8).toString() : ""; // المهنة (Was index 7 incorrectly)
                 studentsData.add(new String[] { seatNo, profession });
+            }
+
+            if (photosOnly) {
+                // استعلام واحد يجيب أرقام جلوس الطلاب اللي عندهم صورة مسجلة
+                java.util.Set<String> seatsWithPhotos = new java.util.HashSet<>();
+                try (java.sql.Connection con = com.pvtd.students.db.DatabaseConnection.getConnection();
+                     java.sql.PreparedStatement ps = con.prepareStatement(
+                             "SELECT TRIM(seat_no) FROM students WHERE seat_no IS NOT NULL AND TRIM(image_path) IS NOT NULL");
+                     java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String seat = rs.getString(1);
+                        if (seat != null)
+                            seatsWithPhotos.add(seat);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "حصل خطأ أثناء التحقق من صور الطلاب");
+                    return;
+                }
+
+                studentsData.removeIf(sd -> !seatsWithPhotos.contains(sd[0].trim()));
+            }
+
+            if (studentsData.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        photosOnly ? "لا يوجد طلاب لديهم صور من المحدد" : "لا يوجد طلاب صالحين للطباعة من المحدد");
+                return;
             }
 
             LoadingDialog loading = new LoadingDialog(parentFrame, "توليد الاستمارات");

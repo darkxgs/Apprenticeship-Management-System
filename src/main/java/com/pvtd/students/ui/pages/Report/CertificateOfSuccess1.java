@@ -53,8 +53,9 @@ String arabicYear = convertYearToArabicWWords(year);
 // حطهم في الليبلز
 jLabel13.setText(arabicMonth + " " + year + " م");
 jLabel15.setText(arabicYear);
-        
-        
+
+        // الرص الثابت المنسق (بنفس أسلوب شهادة إدارة الامتحانات)
+        applyExactLayout();
     }
     
     
@@ -261,6 +262,101 @@ if (specializationFromDB != null) {
     
     
     
+    // ═══════════════════════════════════════════════════════════════════════
+    // الرص الثابت المنسق (بنفس أسلوب شهادة إدارة الامتحانات):
+    //   كل سطر يبدأ من حافة يمنى ثابتة والقيم تلتصق بعناوينها مباشرة
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static final int PAGE_W = 934;
+    private static final int PAGE_H = 686;
+    private static final int RIGHT_EDGE = 894;
+    /** الحافة اليمنى للعمود الأيسر (المجموعة المهنية / بتقدير / منطقة) */
+    private static final int LEFT_COL_RIGHT_EDGE = 430;
+
+    /** يضع الـ label بحيث تكون حافته اليمنى عند rightX (النص ينمو لليسار) */
+    private void placeRight(javax.swing.JLabel l, int rightX, int y) {
+        java.awt.FontMetrics fm = l.getFontMetrics(l.getFont());
+        int w = fm.stringWidth(l.getText() == null ? "" : l.getText()) + 8;
+        int h = fm.getHeight() + 2;
+        l.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        l.setBounds(rightX - w, y, w, h);
+    }
+
+    /** يضع الـ label ممركزاً حول centerX */
+    private void placeCenter(javax.swing.JLabel l, int centerX, int y) {
+        java.awt.FontMetrics fm = l.getFontMetrics(l.getFont());
+        int w = fm.stringWidth(l.getText() == null ? "" : l.getText()) + 8;
+        int h = fm.getHeight() + 2;
+        l.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        l.setBounds(centerX - w / 2, y, w, h);
+    }
+
+    private void applyExactLayout() {
+
+        // خطوط موحدة: عناوين 18 عريض، قيم 16 عريض، عنوان الشهادة أكبر
+        java.awt.Font valueFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16);
+        javax.swing.JLabel[] valueLbls = {
+            lblName, lblNationalId, lblProfession, lblGroup, lblcenter,
+            lblRegion, lblGrade, jLabel9, jLabel13, jLabel15
+        };
+        for (javax.swing.JLabel l : valueLbls) l.setFont(valueFont);
+        jLabel1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 30));
+        jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 20));
+
+        // ── الشعار أعلى اليمين + QR أعلى اليسار ─────────────────────────
+        jLabel4.setBounds(800, 30, 60, 70);
+        qRCodeComponent2.setBounds(20, 20, 160, 150);
+
+        // ── العنوان في المنتصف ──────────────────────────────────────────
+        placeCenter(jLabel1, PAGE_W / 2, 30);   // شهادة
+        placeCenter(jLabel2, PAGE_W / 2, 78);   // دبلوم التلمذة الصناعية
+
+        int y1 = 170, y2 = 215, y3 = 260, y4 = 305, y5 = 350;
+
+        // السطر 1: تشهد وزارة الصناعة بأن السيد : [الاسم]
+        placeRight(jLabel3, RIGHT_EDGE, y1);
+        placeRight(lblName, jLabel3.getX() - 4, y1);
+
+        // السطر 2: الرقم القومى : [الرقم]   |   قد نجح فى إمتحان دبلوم التلمذة الصناعية
+        placeRight(jLabel7, RIGHT_EDGE, y2);
+        placeRight(lblNationalId, jLabel7.getX() - 4, y2);
+        placeRight(jLabel5, LEFT_COL_RIGHT_EDGE + 40, y2);
+
+        // السطر 3: التخصص : [المهنة]   |   المجموعة المهنية : [المجموعة]
+        placeRight(jLabel6, RIGHT_EDGE, y3);
+        placeRight(lblProfession, jLabel6.getX() - 4, y3);
+        placeRight(jLabel10, LEFT_COL_RIGHT_EDGE, y3);
+        placeRight(lblGroup, jLabel10.getX() - 4, y3);
+
+        // السطر 4: دور : [الشهر والسنة] [السنة بالحروف]  |  بتقديـر: [التقدير] بنسبه: [النسبة]
+        placeRight(jLabel12, RIGHT_EDGE, y4);
+        placeRight(jLabel13, jLabel12.getX() - 4, y4);
+        placeRight(jLabel15, jLabel13.getX() - 10, y4);
+        placeRight(jLabel16, LEFT_COL_RIGHT_EDGE, y4);
+        placeRight(lblGrade, jLabel16.getX() - 4, y4);
+        placeRight(jLabel8, lblGrade.getX() - 20, y4);
+        placeRight(jLabel9, jLabel8.getX() - 4, y4);
+
+        // السطر 5: مركز / محطة : [المركز]   |   منطقة : [المنطقة]
+        placeRight(jLabel18, RIGHT_EDGE, y5);
+        placeRight(lblcenter, jLabel18.getX() - 4, y5);
+        placeRight(jLabel20, LEFT_COL_RIGHT_EDGE, y5);
+        placeRight(lblRegion, jLabel20.getX() - 4, y5);
+
+        // ── سطور المعادلة والقرار والأيزو ───────────────────────────────
+        placeRight(jLabel22, RIGHT_EDGE, 430);
+        placeRight(jLabel23, RIGHT_EDGE, 458);
+        placeRight(jLabel24, RIGHT_EDGE, 486);
+
+        // ── التوقيعات ───────────────────────────────────────────────────
+        placeRight(jLabel14, RIGHT_EDGE, 545);          // تحريرا فى :
+        placeCenter(jLabel25, PAGE_W / 2, 545);         // المدير العام
+        placeCenter(jLabel26, 160, 545);                // رئيس المصلحة
+
+        jPanel2.revalidate();
+        jPanel2.repaint();
+    }
+
 public void printCertificates(List<Student> students, java.util.function.BiConsumer<Integer, Integer> progressCallback) {
 
     String selectedMonth = chooseMonth();
@@ -307,6 +403,9 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
                 lblProfession.setText("—");
             }
             String nationalId = lblNationalId.getText();
+
+            // إعادة الرص بعد ملء القيم حتى تلتصق القيم بعناوينها
+            applyExactLayout();
 
             // رسم الشهادة كصورة
             BufferedImage image = new BufferedImage(934, 686, BufferedImage.TYPE_INT_RGB);
