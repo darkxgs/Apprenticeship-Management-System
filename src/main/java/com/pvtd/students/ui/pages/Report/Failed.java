@@ -310,41 +310,52 @@ public class Failed extends javax.swing.JFrame {
 			boolean failedPractical = false;
 			boolean failedApplied = false;
 
-			// Children-aware query: for split 30/70 subjects the marks live on CHILD
-			// rows, so aggregate child pass marks / obtained marks up to the parent.
+			// استعلام مسطّح (متوافق مع كل إصدارات أوراكل): يجلب المواد الأم
+			// والفرعية بدرجاتها، والتجميع لمستوى المادة الأم يتم في الجافا —
+			// درجات مواد 30/70 المقسمة محفوظة على الصفوف الفرعية
 			String sql2 = """
-					SELECT sub.id, sub.name, sub.type,
-					       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id)
-					            THEN (SELECT NVL(SUM(ch.pass_mark),0) FROM subjects ch WHERE ch.parent_subject_id = sub.id)
-					            ELSE sub.pass_mark END AS eff_pass,
-					       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id)
-					            THEN (SELECT NVL(SUM(NVL(sg2.obtained_mark,0)),0) FROM subjects ch
-					                  LEFT JOIN student_grades sg2 ON sg2.subject_id = ch.id AND sg2.student_id = st.id
-					                  WHERE ch.parent_subject_id = sub.id)
-					            ELSE NVL(sg.obtained_mark,0) END AS mark
+					SELECT sub.id, sub.name, sub.type, sub.pass_mark,
+					       sub.parent_subject_id, NVL(sg.obtained_mark,0) AS mark
 					FROM subjects sub
 					JOIN students st ON TRIM(st.profession) = TRIM(sub.profession)
 					LEFT JOIN student_grades sg ON sg.subject_id = sub.id AND sg.student_id = st.id
-					WHERE st.id = ? AND sub.parent_subject_id IS NULL
+					WHERE st.id = ?
 					ORDER BY sub.display_order NULLS LAST, sub.id
 					""";
+			java.util.List<Object[]> parents = new java.util.ArrayList<>(); // {id, name, type, passMark, ownMark}
+			java.util.Map<Integer, Integer> childMarkSum = new java.util.HashMap<>();
+			java.util.Map<Integer, Integer> childPassSum = new java.util.HashMap<>();
 			try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
 				ps2.setInt(1, studentId);
 				try (ResultSet rs2 = ps2.executeQuery()) {
 					while (rs2.next()) {
-						String sName = rs2.getString("name");
-						String sType = rs2.getString("type");
-						int mark = rs2.getInt("mark");
-						int passMark = rs2.getInt("eff_pass");
-						if (mark < passMark && sName != null && !sName.isBlank()) {
-							if ("نظري".equals(sType))
-								theoryFailed.add(sName);
-							else if ("تطبيقي".equals(sType))
-								failedApplied = true;
-							else
-								failedPractical = true;
+						int parentId = rs2.getInt("parent_subject_id");
+						boolean isChild = !rs2.wasNull();
+						if (isChild) {
+							childMarkSum.merge(parentId, Math.max(rs2.getInt("mark"), 0), Integer::sum);
+							childPassSum.merge(parentId, rs2.getInt("pass_mark"), Integer::sum);
+						} else {
+							parents.add(new Object[]{ rs2.getInt("id"), rs2.getString("name"),
+									rs2.getString("type"), rs2.getInt("pass_mark"),
+									Math.max(rs2.getInt("mark"), 0) });
 						}
 					}
+				}
+			}
+			for (Object[] p : parents) {
+				int sid = (Integer) p[0];
+				String sName = (String) p[1];
+				String sType = (String) p[2];
+				boolean split = childPassSum.containsKey(sid);
+				int passMark = split ? childPassSum.get(sid) : (Integer) p[3];
+				int mark = split ? childMarkSum.getOrDefault(sid, 0) : (Integer) p[4];
+				if (mark < passMark && sName != null && !sName.isBlank()) {
+					if ("نظري".equals(sType))
+						theoryFailed.add(sName);
+					else if ("تطبيقي".equals(sType))
+						failedApplied = true;
+					else
+						failedPractical = true;
 				}
 			}
 			for (int i = 0; i < 4 && i < theoryFailed.size(); i++)

@@ -282,22 +282,16 @@ public class NewJFrame1 extends javax.swing.JFrame {
     }
 
     public void loadStudentGrades(String seatNo, Connection con) throws Exception {
-        // استعلام واحد على مستوى المادة الأم: المواد المقسمة (نظام 30/70)
-        // تُجمع درجات أجزائها الفرعية في صف واحد (30+70=100) بدلاً من ظهور
-        // كل جزء منفصلاً — والنهاية العظمى/الصغرى من صف المادة الأم نفسها
+        // استعلام مسطّح واحد (متوافق مع كل إصدارات أوراكل — بدون استعلامات
+        // فرعية مترابطة): يجلب كل المواد الأم والفرعية بدرجاتها، والتجميع
+        // على مستوى المادة الأم (30+70=100) يتم في الجافا
         String sql =
-            "SELECT sub.id, sub.name AS subject_name, sub.type, sub.max_mark, sub.pass_mark, " +
-            "       CASE WHEN EXISTS (SELECT 1 FROM subjects ch WHERE ch.parent_subject_id = sub.id) " +
-            "            THEN (SELECT NVL(SUM(NVL(sg2.obtained_mark,0)),0) " +
-            "                  FROM subjects ch " +
-            "                  LEFT JOIN student_grades sg2 ON sg2.subject_id = ch.id AND sg2.student_id = s.id " +
-            "                  WHERE ch.parent_subject_id = sub.id) " +
-            "            ELSE NVL(sg.obtained_mark,0) END AS eff_mark " +
+            "SELECT sub.id, sub.name AS subject_name, sub.type, sub.max_mark, " +
+            "       sub.pass_mark, sub.parent_subject_id, NVL(sg.obtained_mark,0) AS mark " +
             "FROM subjects sub " +
             "CROSS JOIN students s " +
             "LEFT JOIN student_grades sg ON sub.id = sg.subject_id AND sg.student_id = s.id " +
             "WHERE TRIM(s.seat_no) = TRIM(?) AND TRIM(sub.profession) = TRIM(s.profession) " +
-            "AND sub.parent_subject_id IS NULL " +
             "ORDER BY sub.display_order ASC, sub.id ASC";
 
         // أسماء المواد الرأسية — 4 أعمدة نظرية (jLabel6..9)
@@ -321,53 +315,80 @@ public class NewJFrame1 extends javax.swing.JFrame {
         jLabel28.setText("-"); jLabel29.setText("-");
         jLabel46.setText("-"); jLabel37.setText("-");
 
-        // ── لفة واحدة على المواد الأم: تملأ الأعمدة النظرية وتجمع النظري
-        //    والعملي/التطبيقي والمجموع الكلي معاً ───────────────────────────
+        // ── قراءة كل الصفوف ثم التجميع على مستوى المادة الأم في الجافا ──────
+        // صف المادة الأم يحمل النهاية العظمى/الصغرى، ودرجة الطالب الفعلية =
+        // مجموع درجات الأجزاء الفرعية إن وُجدت وإلا درجة الصف نفسه
+        java.util.List<int[]> parentNums = new java.util.ArrayList<>();   // {id, max, pass, ownMark}
+        java.util.List<String[]> parentTxt = new java.util.ArrayList<>(); // {name, type}
+        java.util.Map<Integer, Integer> childSum = new java.util.HashMap<>();
+        java.util.Set<Integer> hasChildren = new java.util.HashSet<>();
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, seatNo);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int id       = rs.getInt("id");
+                    int parentId = rs.getInt("parent_subject_id");
+                    boolean isChild = !rs.wasNull();
+                    int mark     = Math.max(rs.getInt("mark"), 0);
+
+                    if (isChild) {
+                        childSum.merge(parentId, mark, Integer::sum);
+                        hasChildren.add(parentId);
+                    } else {
+                        parentNums.add(new int[]{ id, rs.getInt("max_mark"), rs.getInt("pass_mark"), mark });
+                        parentTxt.add(new String[]{
+                            orEmpty(rs.getString("subject_name")).trim(),
+                            orEmpty(rs.getString("type")).toLowerCase()
+                        });
+                    }
+                }
+            }
+        }
+
         int idx = 0;
         int theoryMax = 0, theoryPass = 0, theoryObtained = 0;
         int pracMax = 0, pracPass = 0, pracObtained = 0;
         int grandMax = 0, grandPass = 0, grandObtained = 0;
         boolean hasTheoryData = false, hasPracData = false, hasGrandData = false;
 
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, seatNo);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String subName = orEmpty(rs.getString("subject_name")).trim();
-                    String type    = orEmpty(rs.getString("type")).toLowerCase();
-                    int maxMark    = rs.getInt("max_mark");
-                    int passMark   = rs.getInt("pass_mark");
-                    int obtained   = Math.max(rs.getInt("eff_mark"), 0);
+        for (int i = 0; i < parentNums.size(); i++) {
+            int id       = parentNums.get(i)[0];
+            int maxMark  = parentNums.get(i)[1];
+            int passMark = parentNums.get(i)[2];
+            int obtained = hasChildren.contains(id)
+                    ? childSum.getOrDefault(id, 0)
+                    : parentNums.get(i)[3];
+            String subName = parentTxt.get(i)[0];
+            String type    = parentTxt.get(i)[1];
 
-                    hasGrandData   = true;
-                    grandMax      += maxMark;
-                    grandPass     += passMark;
-                    grandObtained += obtained;
+            hasGrandData   = true;
+            grandMax      += maxMark;
+            grandPass     += passMark;
+            grandObtained += obtained;
 
-                    boolean isTheory = type.contains("نظري") || type.contains("theory");
-                    boolean isPrac   = type.contains("عملي") || type.contains("تطبيقي")
-                                    || type.contains("practical") || type.contains("applied");
+            boolean isTheory = type.contains("نظري") || type.contains("theory");
+            boolean isPrac   = type.contains("عملي") || type.contains("تطبيقي")
+                            || type.contains("practical") || type.contains("applied");
 
-                    if (isTheory) {
-                        hasTheoryData   = true;
-                        theoryMax      += maxMark;
-                        theoryPass     += passMark;
-                        theoryObtained += obtained;
+            if (isTheory) {
+                hasTheoryData   = true;
+                theoryMax      += maxMark;
+                theoryPass     += passMark;
+                theoryObtained += obtained;
 
-                        if (idx < 4) {
-                            nameLbls[idx].setText(subName);
-                            maxLbls[idx].setText(toArabic(String.valueOf(maxMark)));
-                            passLbls[idx].setText(toArabic(String.valueOf(passMark)));
-                            markLbls[idx].setText(toArabic(String.valueOf(obtained)));
-                            idx++;
-                        }
-                    } else if (isPrac) {
-                        hasPracData   = true;
-                        pracMax      += maxMark;
-                        pracPass     += passMark;
-                        pracObtained += obtained;
-                    }
+                if (idx < 4) {
+                    nameLbls[idx].setText(subName);
+                    maxLbls[idx].setText(toArabic(String.valueOf(maxMark)));
+                    passLbls[idx].setText(toArabic(String.valueOf(passMark)));
+                    markLbls[idx].setText(toArabic(String.valueOf(obtained)));
+                    idx++;
                 }
+            } else if (isPrac) {
+                hasPracData   = true;
+                pracMax      += maxMark;
+                pracPass     += passMark;
+                pracObtained += obtained;
             }
         }
 

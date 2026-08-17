@@ -50,8 +50,8 @@ String arabicMonth = getArabicMonth(month);
 // السنة بالحروف
 String arabicYear = convertYearToArabicWWords(year);
 
-// حطهم في الليبلز
-jLabel13.setText(arabicMonth + " " + year + " م");
+// حطهم في الليبلز — السنة بأرقام عربية
+jLabel13.setText(arabicMonth + " " + toArabicDigits(String.valueOf(year)) + " م");
 jLabel15.setText(arabicYear);
 
         // الرص الثابت المنسق (بنفس أسلوب شهادة إدارة الامتحانات)
@@ -154,7 +154,8 @@ jLabel9.setText(percentArabic + "٪");
                 }
                 
                 lblName.setText(rs.getString("name"));
-                lblNationalId.setText(rs.getString("national_id"));
+                // الرقم القومي بأرقام عربية
+                lblNationalId.setText(toArabicDigits(rs.getString("national_id")));
                 lblcenter.setText(rs.getString("center_name"));
 String specializationFromDB = rs.getString("specialization");
 
@@ -273,6 +274,15 @@ if (specializationFromDB != null) {
     /** الحافة اليمنى للعمود الأيسر (المجموعة المهنية / بتقدير / منطقة) */
     private static final int LEFT_COL_RIGHT_EDGE = 430;
 
+    /** تحويل الأرقام الإنجليزية إلى أرقام عربية */
+    private String toArabicDigits(String s) {
+        if (s == null) return "";
+        return s.replace("0", "٠").replace("1", "١").replace("2", "٢")
+                .replace("3", "٣").replace("4", "٤").replace("5", "٥")
+                .replace("6", "٦").replace("7", "٧").replace("8", "٨")
+                .replace("9", "٩");
+    }
+
     /** يضع الـ label بحيث تكون حافته اليمنى عند rightX (النص ينمو لليسار) */
     private void placeRight(javax.swing.JLabel l, int rightX, int y) {
         java.awt.FontMetrics fm = l.getFontMetrics(l.getFont());
@@ -365,7 +375,7 @@ public void printCertificates(List<Student> students, java.util.function.BiConsu
     if (selectedYear == null) return;
     
     int yearInt = Integer.parseInt(selectedYear);
-    jLabel13.setText(selectedMonth + " " + yearInt + " م");
+    jLabel13.setText(selectedMonth + " " + toArabicDigits(String.valueOf(yearInt)) + " م");
     jLabel15.setText(convertYearToArabicWords(yearInt));
 
     try {

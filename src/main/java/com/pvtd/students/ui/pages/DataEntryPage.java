@@ -61,11 +61,13 @@ public class DataEntryPage extends JPanel {
     private java.util.Map<String, String> regionCodeToNameMap = new java.util.LinkedHashMap<>();
     private boolean isDirty = false;
 
-    // وضع الدور الثاني: يعرض فقط طلاب (دور ثاني / مؤجل / ناجح دور ثاني) للمركز المختار،
-    // وعند النجاح الكامل يحفظ الحالة كـ "ناجح دور ثاني" بدل "ناجح".
+    // وضع الدور الثاني: يعرض طلاب الدور الثاني للمركز المختار،
+    // وبعد الرصد تتسجل الحالة «ناجح من الدور الثاني» أو «راسب من الدور الثاني»
+    // (وهي الحالات التي تعتمد عليها كشوف الدور الثاني)
     private final boolean secondRoundMode;
     private static final java.util.List<String> SECOND_ROUND_STATUSES =
-            java.util.Arrays.asList("دور ثاني", "مؤجل", "ناجح دور ثاني");
+            java.util.Arrays.asList("دور ثاني", "مؤجل", "ناجح دور ثاني",
+                    "ناجح من الدور الثاني", "راسب من الدور الثاني");
 
     // Colors matched from screenshot
     private final Color CLR_BG = new Color(0xF1F5F9); // Slightly cleaner tailwind slate-100
@@ -1005,8 +1007,12 @@ public class DataEntryPage extends JPanel {
         // would double-count the children into the parent (e.g. 0+25 -> 25, then 25+25 -> 50)
         // and wrongly mark a failing composite subject (25 < pass 50) as passed.
         String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
-        if (secondRoundMode && "ناجح".equals(status)) {
-            status = "ناجح دور ثاني";
+        if (secondRoundMode) {
+            if ("ناجح".equals(status)) {
+                status = "ناجح من الدور الثاني";
+            } else if ("راسب".equals(status) || "دور ثاني".equals(status)) {
+                status = "راسب من الدور الثاني";
+            }
         }
         statusPill.setText(status);
         if (status.startsWith("ناجح")) {
@@ -1035,9 +1041,14 @@ public class DataEntryPage extends JPanel {
             // so passing resolvedGrades would double-count the 30/70 children into the parent
             // and store a wrong status (e.g. "ناجح" instead of "دور ثاني").
             String status = StudentService.calculateStatus(currentStudent.getProfession(), grades);
-            // في وضع الدور الثاني: النجاح الكامل يتسجل كـ "ناجح دور ثاني" بدل "ناجح".
-            if (secondRoundMode && "ناجح".equals(status)) {
-                status = "ناجح دور ثاني";
+            // في وضع الدور الثاني: النتيجة تتسجل بحالات الدور الثاني التي
+            // تعتمد عليها الكشوف («ناجح من الدور الثاني» / «راسب من الدور الثاني»)
+            if (secondRoundMode) {
+                if ("ناجح".equals(status)) {
+                    status = "ناجح من الدور الثاني";
+                } else if ("راسب".equals(status) || "دور ثاني".equals(status)) {
+                    status = "راسب من الدور الثاني";
+                }
             }
             StudentService.updateStudentStatusDirectly(currentStudent.getId(), status);
             currentStudent.setGrades(resolvedGrades);
