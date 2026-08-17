@@ -871,11 +871,11 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         centerLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         centerLbl.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jPanel1.add(centerLbl);
-        centerLbl.setBounds(460, 440, 220, 20);
+        centerLbl.setBounds(460, 454, 220, 20);
 
         govLbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jPanel1.add(govLbl);
-        govLbl.setBounds(187, 430, 160, 30);
+        govLbl.setBounds(142, 444, 160, 30);
 
         sub1Lbl.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
         jPanel1.add(sub1Lbl);
