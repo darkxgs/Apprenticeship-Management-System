@@ -822,6 +822,15 @@ public class StudentService {
         Map<Integer, String> statuses = new HashMap<>();
         Map<Integer, Map<Integer, Integer>> gradesMap = new HashMap<>();
 
+        // أولاً: دمج أي مواد مكررة نتجت عن الإدراج المزدوج أثناء أعطال الاتصال
+        // (تُنقل الدرجات إلى النسخة الأصلية وتحذف المكررة) قبل إعادة الحساب
+        int mergedDup = SubjectService.mergeDuplicateSubjects();
+
+        // قوائم مخبأة تُجلب مرة واحدة — تمنع عاصفة الاتصالات التي كانت
+        // تسبب أخطاء ORA-12519 أثناء إعادة الحساب الجماعية
+        Map<String, List<com.pvtd.students.models.Subject>> subjectsCache = new HashMap<>();
+        Map<Integer, String> codeMap = StatusesService.getCodeToStatusMap();
+
         int checked = 0, changed = 0;
         try (Connection conn = DatabaseConnection.getConnection()) {
 
@@ -855,8 +864,9 @@ public class StudentService {
 
                     // رفع درجات الرأفة على الدرجات المخزنة، مع حفظ أي درجة تغيرت
                     Map<Integer, Integer> stored = entry.getValue();
+                    String prof = professions.get(id) == null ? "" : professions.get(id).trim();
                     List<com.pvtd.students.models.Subject> subjects =
-                            SubjectService.getSubjectsByProfession(professions.get(id));
+                            subjectsCache.computeIfAbsent(prof, SubjectService::getSubjectsByProfession);
                     Map<Integer, Integer> adjusted = GradeCalculationService.applyMercyRaises(subjects, stored);
                     for (Map.Entry<Integer, Integer> g : adjusted.entrySet()) {
                         if (!g.getValue().equals(stored.get(g.getKey()))) {
@@ -867,7 +877,7 @@ public class StudentService {
                         }
                     }
 
-                    String newStatus = calculateStatus(professions.get(id), adjusted);
+                    String newStatus = calculateStatus(prof, adjusted, subjects, codeMap);
                     if (!newStatus.equals(oldStatus)) {
                         upd.setString(1, newStatus);
                         upd.setInt(2, id);
@@ -878,7 +888,8 @@ public class StudentService {
             }
 
             LogService.logAction(username, "RECALC_STATUSES",
-                    "إعادة حساب حالات الطلاب: تم فحص " + checked + " طالب وتغيير حالة " + changed + " طالب");
+                    "إعادة حساب حالات الطلاب: تم فحص " + checked + " طالب وتغيير حالة " + changed
+                    + " طالب" + (mergedDup > 0 ? " — وتم دمج " + mergedDup + " مادة مكررة" : ""));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -886,12 +897,22 @@ public class StudentService {
     }
 
     public static String calculateStatus(String profession, Map<Integer, Integer> grades) {
+        return calculateStatus(profession, grades, null, null);
+    }
+
+    /**
+     * نسخة تقبل قوائم مخبأة (المواد وخريطة الأكواد) لتجنب فتح اتصالات
+     * كثيرة عند إعادة الحساب الجماعية — تمرير null يجلبها من القاعدة.
+     */
+    public static String calculateStatus(String profession, Map<Integer, Integer> grades,
+            List<com.pvtd.students.models.Subject> cachedSubjects, Map<Integer, String> cachedCodeMap) {
         if (grades == null || grades.isEmpty())
             return "غير محدد";
 
         // Check for specific negative markers first (global status override)
         // Dynamic lookup from student_statuses table (status_code column)
-        Map<Integer, String> codeToStatus = StatusesService.getCodeToStatusMap();
+        Map<Integer, String> codeToStatus = cachedCodeMap != null
+                ? cachedCodeMap : StatusesService.getCodeToStatusMap();
         for (Integer mark : grades.values()) {
             if (mark != null && mark < 0) {
                 String mappedStatus = codeToStatus.get(mark);
@@ -902,7 +923,8 @@ public class StudentService {
         }
 
         // Fetch passing rules for the subjects of this profession
-        List<com.pvtd.students.models.Subject> subjects = SubjectService.getSubjectsByProfession(profession);
+        List<com.pvtd.students.models.Subject> subjects = cachedSubjects != null
+                ? cachedSubjects : SubjectService.getSubjectsByProfession(profession);
         if (subjects.isEmpty())
             return "غير محدد";
 

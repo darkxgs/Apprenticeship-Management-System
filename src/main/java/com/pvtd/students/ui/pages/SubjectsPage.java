@@ -292,7 +292,8 @@ public class SubjectsPage extends JPanel {
         }
         currentSubjectsList = SubjectService.getSubjectsByProfession(sel);
         if (currentSubjectsList.isEmpty()) {
-            SubjectService.autoGenerateStandardSubjects(sel);
+            // التوليد عبر الفحص الآمن فقط — لا إدراج إذا كان الفراغ بسبب خطأ اتصال
+            SubjectService.ensureStandardSubjectsExist(sel);
             currentSubjectsList = SubjectService.getSubjectsByProfession(sel);
         }
 

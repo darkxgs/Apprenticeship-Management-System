@@ -20,7 +20,10 @@ public class SubjectService {
             if (rs.next())
                 return rs.getInt(1);
         } catch (Exception e) {
+            // خطأ اتصال — العدد الحقيقي غير معروف؛ نرجع -1 حتى لا يُفهم الخطأ
+            // على أنه «لا توجد مواد» فتُدرج المواد القياسية مكررة فوق الموجودة
             e.printStackTrace();
+            return -1;
         }
         return 0;
     }
@@ -186,13 +189,102 @@ public class SubjectService {
 
     public static void autoGenerateStandardSubjects(String profession) {
         // New order: 2 dynamic (user-editable) → 2 fixed theory → practical → applied
-        addSubject(profession, "تكنولوجيا", "نظري", 50, 100, 1);
-        addSubject(profession, "رسم", "نظري", 50, 100, 2);
-        addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 3);
-        addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 4);
+        // كل مادة تُدرج فقط إذا لم يكن لها نظير بنفس الاسم — حماية مزدوجة من التكرار
+        if (topLevelSubjectMissing(profession, "تكنولوجيا"))
+            addSubject(profession, "تكنولوجيا", "نظري", 50, 100, 1);
+        if (topLevelSubjectMissing(profession, "رسم"))
+            addSubject(profession, "رسم", "نظري", 50, 100, 2);
+        if (topLevelSubjectMissing(profession, "ميكانيكا عامة"))
+            addSubject(profession, "ميكانيكا عامة", "نظري", 25, 50, 3);
+        if (topLevelSubjectMissing(profession, "لغة انجليزية"))
+            addSubject(profession, "لغة انجليزية", "نظري", 25, 50, 4);
 
-        addSubject(profession, "عملي", "عملي", 120, 200, 5);
-        addSubject(profession, "تطبيقي", "تطبيقي", 50, 100, 6);
+        if (topLevelSubjectMissing(profession, "عملي"))
+            addSubject(profession, "عملي", "عملي", 120, 200, 5);
+        if (topLevelSubjectMissing(profession, "تطبيقي"))
+            addSubject(profession, "تطبيقي", "تطبيقي", 50, 100, 6);
+    }
+
+    /**
+     * true إذا لم توجد مادة رئيسية بهذا الاسم للمهنة — وعند أي خطأ اتصال
+     * نرجع false (نعتبرها موجودة) حتى لا تُدرج نسخة مكررة أبداً.
+     */
+    private static boolean topLevelSubjectMissing(String profession, String name) {
+        String sql = "SELECT COUNT(*) FROM subjects WHERE TRIM(profession) = TRIM(?) "
+                + "AND TRIM(name) = TRIM(?) AND parent_subject_id IS NULL";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, profession != null ? profession.trim() : "");
+            ps.setString(2, name);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+                return rs.getInt(1) == 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * دمج المواد المكررة تماماً (نفس المهنة والاسم والنوع والنهايتين ونفس الأب
+     * ونفس sub_name) الناتجة عن الإدراج المزدوج أثناء أعطال الاتصال:
+     * تُنقل درجات الطلاب إلى النسخة الأقدم (وعند وجود درجة في النسختين
+     * تُؤخذ الأكبر) ثم تُحذف النسخة المكررة. تُرجع عدد المواد المدموجة.
+     */
+    public static int mergeDuplicateSubjects() {
+        int merged = 0;
+        String dupSql = "SELECT a.id AS keep_id, b.id AS dup_id FROM subjects a JOIN subjects b ON a.id < b.id "
+                + "AND TRIM(a.profession) = TRIM(b.profession) AND TRIM(a.name) = TRIM(b.name) "
+                + "AND NVL(TRIM(a.type),'-') = NVL(TRIM(b.type),'-') "
+                + "AND NVL(a.parent_subject_id,-1) = NVL(b.parent_subject_id,-1) "
+                + "AND NVL(TRIM(a.sub_name),'-') = NVL(TRIM(b.sub_name),'-') "
+                + "AND a.max_mark = b.max_mark AND a.pass_mark = b.pass_mark "
+                + "ORDER BY b.id, a.id";
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            java.util.LinkedHashMap<Integer, Integer> pairs = new java.util.LinkedHashMap<>(); // مكرر -> أصل
+            try (PreparedStatement ps = conn.prepareStatement(dupSql);
+                    ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    pairs.putIfAbsent(rs.getInt("dup_id"), rs.getInt("keep_id"));
+                }
+            }
+            try (PreparedStatement mergeBoth = conn.prepareStatement(
+                        "UPDATE student_grades k SET obtained_mark = "
+                        + "(SELECT GREATEST(k.obtained_mark, d.obtained_mark) FROM student_grades d "
+                        + " WHERE d.student_id = k.student_id AND d.subject_id = ?) "
+                        + "WHERE k.subject_id = ? AND EXISTS (SELECT 1 FROM student_grades d2 "
+                        + " WHERE d2.student_id = k.student_id AND d2.subject_id = ?)");
+                    PreparedStatement moveOnly = conn.prepareStatement(
+                        "UPDATE student_grades SET subject_id = ? WHERE subject_id = ? "
+                        + "AND student_id NOT IN (SELECT student_id FROM student_grades WHERE subject_id = ?)");
+                    PreparedStatement delGrades = conn.prepareStatement(
+                        "DELETE FROM student_grades WHERE subject_id = ?");
+                    PreparedStatement delSubject = conn.prepareStatement(
+                        "DELETE FROM subjects WHERE id = ?")) {
+                for (java.util.Map.Entry<Integer, Integer> p : pairs.entrySet()) {
+                    int dup = p.getKey();
+                    int keep = p.getValue();
+                    if (pairs.containsKey(keep))
+                        continue; // الأصل نفسه مكرر لغيره — يُعالج في تشغيلة تالية
+                    mergeBoth.setInt(1, dup);
+                    mergeBoth.setInt(2, keep);
+                    mergeBoth.setInt(3, dup);
+                    mergeBoth.executeUpdate();
+                    moveOnly.setInt(1, keep);
+                    moveOnly.setInt(2, dup);
+                    moveOnly.setInt(3, keep);
+                    moveOnly.executeUpdate();
+                    delGrades.setInt(1, dup);
+                    delGrades.executeUpdate();
+                    delSubject.setInt(1, dup);
+                    delSubject.executeUpdate();
+                    merged++;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return merged;
     }
 
     /**
