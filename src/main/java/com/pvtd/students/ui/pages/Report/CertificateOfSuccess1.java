@@ -137,6 +137,21 @@ String percentArabic = formatted
 // حطه في الليبل
 jLabel9.setText(percentArabic + "٪");
 
+// التقدير من النسبة المئوية (نفس سلم التقديرات في باقي الشهادات)
+String gradeText;
+if (percentage >= 85) {
+    gradeText = "ممتاز";
+} else if (percentage >= 75) {
+    gradeText = "جيد جداً";
+} else if (percentage >= 65) {
+    gradeText = "جيد";
+} else if (percentage >= 50) {
+    gradeText = "مقبول";
+} else {
+    gradeText = "ناجح";
+}
+lblGrade.setText(gradeText);
+
                 int stuId = rs.getInt("id");
                 String gradesText = "لا توجد درجات\n";
                 String gradesSql = "SELECT sub.name, sg.obtained_mark FROM student_grades sg JOIN subjects sub ON sg.subject_id = sub.id WHERE sg.student_id = ?";
@@ -303,6 +318,11 @@ if (specializationFromDB != null) {
 
     private void applyExactLayout() {
 
+        // نصوص مصححة (طلب إدارة الامتحانات): بدون كلمة «محطة» + نظام الثلاث سنوات
+        jLabel18.setText("مركز :");
+        jLabel5.setText("قد نجـح فى إمتحان دبلوم التلمذة الصناعية بنظام الثلاث سنوات");
+        jLabel5.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 17));
+
         // خطوط موحدة: عناوين 18 عريض، قيم 16 عريض، عنوان الشهادة أكبر
         java.awt.Font valueFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16);
         javax.swing.JLabel[] valueLbls = {
@@ -327,10 +347,11 @@ if (specializationFromDB != null) {
         placeRight(jLabel3, RIGHT_EDGE, y1);
         placeRight(lblName, jLabel3.getX() - 4, y1);
 
-        // السطر 2: الرقم القومى : [الرقم]   |   قد نجح فى إمتحان دبلوم التلمذة الصناعية
+        // السطر 2: الرقم القومى : [الرقم]  |  قد نجح فى إمتحان دبلوم التلمذة
+        // الصناعية بنظام الثلاث سنوات
         placeRight(jLabel7, RIGHT_EDGE, y2);
         placeRight(lblNationalId, jLabel7.getX() - 4, y2);
-        placeRight(jLabel5, LEFT_COL_RIGHT_EDGE + 40, y2);
+        placeRight(jLabel5, 575, y2);
 
         // السطر 3: التخصص : [المهنة]   |   المجموعة المهنية : [المجموعة]
         placeRight(jLabel6, RIGHT_EDGE, y3);
