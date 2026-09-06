@@ -748,6 +748,25 @@ public class StudentService {
         }
     }
 
+    /**
+     * يحذف درجات المواد التي لم تَعد لها قيمة في شاشة الإدخال (خانة أُفرغت).
+     * يقتصر الحذف على مواد مهنة الطالب المعروضة في الشاشة، فلا يمس أي درجات أخرى.
+     */
+    private static void deleteClearedGrades(Connection conn, int studentId,
+            List<com.pvtd.students.models.Subject> profSubjects,
+            Map<Integer, Integer> submittedGrades) throws SQLException {
+        if (profSubjects == null || profSubjects.isEmpty()) return;
+        String del = "DELETE FROM student_grades WHERE student_id = ? AND subject_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(del)) {
+            for (com.pvtd.students.models.Subject sub : profSubjects) {
+                if (submittedGrades != null && submittedGrades.containsKey(sub.getId())) continue;
+                ps.setInt(1, studentId);
+                ps.setInt(2, sub.getId());
+                ps.executeUpdate();
+            }
+        }
+    }
+
     private static void deleteStudentGrades(Connection conn, int studentId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM student_grades WHERE student_id=?")) {
             ps.setInt(1, studentId);
@@ -768,9 +787,16 @@ public class StudentService {
                     }
                 }
 
+                List<com.pvtd.students.models.Subject> profSubjects =
+                        SubjectService.getSubjectsByProfession(prof);
+
                 // رفع درجات الرأفة قبل الحفظ وقبل حساب الحالة
-                grades = GradeCalculationService.applyMercyRaises(
-                        SubjectService.getSubjectsByProfession(prof), grades);
+                grades = GradeCalculationService.applyMercyRaises(profSubjects, grades);
+
+                // حذف درجات المواد التي أُفرغت خاناتها: الخانة الفارغة تعني
+                // «امسح هذه الدرجة»، وبدون هذا الحذف كانت الدرجة الخاطئة تبقى
+                // مخزنة إلى الأبد ولا يمكن تصحيحها بمسح الخانة
+                deleteClearedGrades(conn, studentId, profSubjects, grades);
 
                 saveStudentGrades(conn, studentId, grades);
 

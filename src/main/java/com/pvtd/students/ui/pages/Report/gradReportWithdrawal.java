@@ -392,10 +392,12 @@ public class gradReportWithdrawal extends JFrame {
         }
         if (!tPassAdded)
             minRow[colIdx++] = theoryPassSum;
-        minRow[colIdx++] = (int) Math.ceil(practicalMax * 0.5);
-        minRow[colIdx++] = (int) Math.ceil(appliedMax * 0.5);
-        minRow[colIdx++] = (int) Math.ceil((practicalMax + appliedMax) * 0.5);
-        minRow[colIdx] = (int) Math.ceil((theoryMaxSum + practicalMax + appliedMax) * 0.5);
+        // درجات النجاح الحقيقية للمواد وليست 50% من النهاية العظمى —
+        // العملي مثلاً نجاحه 120 من 200 (60%) وليس 100
+        minRow[colIdx++] = practicalPass;
+        minRow[colIdx++] = appliedPass;
+        minRow[colIdx++] = practicalPass + appliedPass;
+        minRow[colIdx] = theoryPassSum + practicalPass + appliedPass;
         model.addRow(minRow);
 
         // 3. Students Rows

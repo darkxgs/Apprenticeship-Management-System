@@ -802,14 +802,20 @@ public class StudentFormPage extends JPanel {
         return true;
     }
 
+    /**
+     * الخانة الفارغة تعني «لم تُرصد درجة» ولا تُحفظ إطلاقاً — وليست صفراً.
+     * حفظ صفر وهمي كان يحوّل الطالب الذي لم تُرصد درجاته بعد إلى «راسب»
+     * بمجرد تعديل أي بيان آخر (نفس سلوك شاشة إدخال الدرجات السريع).
+     */
     private Map<Integer, Integer> collectGrades() {
         Map<Integer, Integer> map = new HashMap<>();
         for (Map.Entry<Integer, JTextField> e : dynamicGradeFields.entrySet()) {
+            String raw = e.getValue().getText();
+            if (raw == null || raw.trim().isEmpty()) continue; // فارغة = غير مرصودة
             try {
-                int mark = Integer.parseInt(e.getValue().getText().trim());
-                map.put(e.getKey(), mark);
+                map.put(e.getKey(), Integer.parseInt(raw.trim()));
             } catch (NumberFormatException ex) {
-                map.put(e.getKey(), 0);
+                // نص غير رقمي — نتجاهله بدلاً من حفظه صفراً
             }
         }
         return map;
@@ -889,12 +895,18 @@ public class StudentFormPage extends JPanel {
         Object selectedCenter = centerNameCombo.getSelectedItem();
         student.setCenterName(selectedCenter != null ? selectedCenter.toString() : "");
 
+        // الحالة: لا توجد خانة اختيار للحالة في هذه الشاشة، لذا في وضع التعديل
+        // نُبقي حالة الطالب كما هي بالضبط — تعديل بيانات مثل الرقم القومي أو
+        // التليفون يجب ألا يغيّر حالة الطالب. عند إضافة طالب جديد فقط نترك
+        // الحالة فارغة ليحسبها النظام من الدرجات.
         String sStatus = (statusCombo != null) ? (String) statusCombo.getSelectedItem() : null;
-        if (sStatus == null || "تلقائي (حسب الدرجات)".equals(sStatus)) {
-            student.setStatus(null); // Let the service auto-gen
-        } else {
+        if (sStatus != null && !"تلقائي (حسب الدرجات)".equals(sStatus)) {
             student.setStatus(sStatus);
+        } else if (!isEditMode) {
+            student.setStatus(null); // طالب جديد — يحسبها النظام من الدرجات
         }
+        // في وضع التعديل بدون خانة حالة: student.setStatus لا تُستدعى إطلاقاً،
+        // فتبقى الحالة المحمّلة من قاعدة البيانات كما هي
 
         Object regObj = regionCombo.getSelectedItem();
         student.setRegion(regObj != null ? regObj.toString().trim() : "");

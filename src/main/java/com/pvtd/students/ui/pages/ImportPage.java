@@ -325,7 +325,31 @@ public class ImportPage extends JPanel {
                 progressBar.setValue(100);
                 try {
                     ExcelService.ImportResult result = get();
-                    if (result != null && result.errors.isEmpty() && result.importedCount > 0) {
+                    if (result != null && result.fatalError) {
+                        // The import was rolled back: never report success for discarded rows.
+                        statusLabel.setText("❌ فشل الاستيراد! تم التراجع عن البيانات غير المحفوظة.");
+
+                        StringBuilder msg = new StringBuilder();
+                        msg.append("فشل الاستيراد ولم يتم حفظ باقي البيانات.\n");
+                        msg.append("عدد السجلات المحفوظة فعلياً: ").append(result.importedCount).append("\n\n");
+                        msg.append("الأسباب:\n\n");
+                        for (int i = 0; i < Math.min(10, result.errors.size()); i++) {
+                            msg.append("- ").append(result.errors.get(i)).append("\n");
+                        }
+                        if (result.errors.size() > 10) {
+                            msg.append("\n... والمزيد من الأخطاء.");
+                        }
+
+                        JTextArea ta = new JTextArea(msg.toString());
+                        ta.setEditable(false);
+                        ta.setFont(UITheme.FONT_BODY);
+                        JScrollPane scroll = new JScrollPane(ta);
+                        scroll.setPreferredSize(new Dimension(450, 200));
+
+                        JOptionPane.showMessageDialog(ImportPage.this, scroll,
+                                "فشل الاستيراد", JOptionPane.ERROR_MESSAGE);
+
+                    } else if (result != null && result.errors.isEmpty() && result.importedCount > 0) {
                         statusLabel.setText("✅ تم الانتهاء! تم معالجة " + result.importedCount + " سجل بنجاح.");
                         JOptionPane.showMessageDialog(ImportPage.this,
                                 "تم استيراد/تحديث " + result.importedCount + " طالب بنجاح.",

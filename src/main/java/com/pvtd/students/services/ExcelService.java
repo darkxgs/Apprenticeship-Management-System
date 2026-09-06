@@ -20,8 +20,11 @@ public class ExcelService {
     }
 
     public static class ImportResult {
+        /** Number of rows that were actually COMMITTED to the database. */
         public int importedCount = 0;
         public int skippedCount = 0;
+        /** True when the import failed and the uncommitted work was rolled back. */
+        public boolean fatalError = false;
         public java.util.List<String> errors = new java.util.ArrayList<>();
     }
 
@@ -29,6 +32,8 @@ public class ExcelService {
             String username, ProgressCallback callback) {
         ImportResult result = new ImportResult();
         int totalRows = 0;
+        // Rows confirmed durably committed to the database (last successful commit checkpoint).
+        int committedCount = 0;
 
         String mergeQuery = "MERGE INTO students s " +
                 "USING (SELECT ? as seat FROM DUAL) src " +
@@ -73,182 +78,208 @@ public class ExcelService {
 
             conn.setAutoCommit(false);
             Sheet sheet = workbook.getSheetAt(0);
-            totalRows = sheet.getLastRowNum();
+            // getLastRowNum() is a 0-based INDEX, not a count. Count the real data rows
+            // (header excluded, blank rows excluded) so the progress total matches the
+            // number of rows the loop below will actually process.
+            int lastRowIndex = sheet.getLastRowNum();
+            totalRows = 0;
+            for (int i = 1; i <= lastRowIndex; i++) {
+                if (!isRowEmpty(sheet.getRow(i))) totalRows++;
+            }
             if (totalRows <= 0) return result;
 
             boolean isFirstRow = true;
             int currentRowCount = 0;
 
-            for (Row row : sheet) {
-                if (isFirstRow) {
-                    isFirstRow = false;
-                    continue;
-                }
-
-                if (isRowEmpty(row)) continue;
-
-                currentRowCount++;
-
-                String serial = getCellValue(row.getCell(0));
-                String name = getCellValue(row.getCell(1));
-                String registrationNo = getCellValue(row.getCell(2));
-                String nationalId = normalizeImportedText(getCellValue(row.getCell(3)));
-                String region = normalizeImportedText(getCellValue(row.getCell(4)));
-                String centerName = normalizeImportedText(getCellValue(row.getCell(5)));
-                String examSystem = normalizeImportedText(getCellValue(row.getCell(7)));
-                String seatNo = normalizeImportedText(getCellValue(row.getCell(8)));
-
-                String profGroup = normalizeImportedText(getCellValue(row.getCell(10)));
-                String profession = normalizeImportedText(getCellValue(row.getCell(6)));
-                
-                // Cached DB Sync
-                String syncKey = profession + "@@" + profGroup;
-                if (!syncedProfGroups.contains(syncKey)) {
-                    StudentService.syncProfessionAndGroup(conn, profession, profGroup);
-                    SubjectService.ensureStandardSubjectsExist(profession);
-                    syncedProfGroups.add(syncKey);
-                }
-                
-                // Sync region and center to their tables so they appear in SystemSettings
-                if (region != null && !region.trim().isEmpty() && !syncedRegions.contains(region.trim())) {
-                    syncRegionToTable(conn, region.trim());
-                    syncedRegions.add(region.trim());
-                }
-                String centerKey = region + "@@" + centerName;
-                if (centerName != null && !centerName.trim().isEmpty() && !syncedCenters.contains(centerKey)) {
-                    syncCenterToTable(conn, centerName.trim(), region != null ? region.trim() : null);
-                    syncedCenters.add(centerKey);
-                }
-                
-                // Secret Number Generation (Requirement: always auto-generate during import)
-                String secretNo = SecretNumberService.generateSecretNumber(region, centerName, seatNo);
-                
-                String coordNo = normalizeImportedText(getCellValue(row.getCell(11)));
-                String dobDay = normalizeImportedText(getCellValue(row.getCell(12)));
-                String dobMonth = normalizeImportedText(getCellValue(row.getCell(13)));
-                String dobYear = normalizeImportedText(getCellValue(row.getCell(14)));
-                String gender = normalizeImportedText(getCellValue(row.getCell(15)));
-                String neighborhood = normalizeImportedText(getCellValue(row.getCell(16)));
-                String governorate = normalizeImportedText(getCellValue(row.getCell(17)));
-                String religion = normalizeImportedText(getCellValue(row.getCell(18)));
-                String nationality = normalizeImportedText(getCellValue(row.getCell(19)));
-                String address = normalizeImportedText(getCellValue(row.getCell(20)));
-                String picRef = normalizeImportedText(getCellValue(row.getCell(23)));
-                String phoneNumber = normalizeImportedText(getCellValue(row.getCell(24)));
-                String otherNotes = normalizeImportedText(getCellValue(row.getCell(22)));
-
-                // Basic Validation (Phase 4)
-                if (nationalId != null && !nationalId.isEmpty()) {
-                    ValidationService.NationalIdInfo info = ValidationService.validateNationalId(nationalId);
-                    if (!info.valid) {
-                        result.errors.add("الصف " + currentRowCount + " (" + name + "): الرقم القومي غير صحيح - " + info.errorMessage);
-                    } else {
-                        // National ID is authoritative — always override dob/gender/governorate
-                        dobDay = info.dobDay;
-                        dobMonth = info.dobMonth;
-                        dobYear = info.dobYear;
-                        // Only override gender & governorate if missing in excel
-                        if (gender == null || gender.isEmpty()) gender = info.gender;
-                        if (governorate == null || governorate.isEmpty()) governorate = info.governorate;
-                    }
-                }
-                String phoneErr = ValidationService.validatePhoneNumber(phoneNumber);
-                if (phoneErr != null) {
-                    result.errors.add("الصف " + currentRowCount + " (" + name + "): " + phoneErr);
-                }
-
-                if (seatNo.isEmpty()) {
-                    seatNo = "AUTO_" + nationalId;
-                    if (seatNo.equals("AUTO_")) {
-                        result.skippedCount++;
+            try {
+                for (Row row : sheet) {
+                    if (isFirstRow) {
+                        isFirstRow = false;
                         continue;
                     }
+
+                    if (isRowEmpty(row)) continue;
+
+                    currentRowCount++;
+
+                    String serial = getCellValue(row.getCell(0));
+                    String name = getCellValue(row.getCell(1));
+                    String registrationNo = getCellValue(row.getCell(2));
+                    String nationalId = normalizeImportedText(getCellValue(row.getCell(3)));
+                    String region = normalizeImportedText(getCellValue(row.getCell(4)));
+                    String centerName = normalizeImportedText(getCellValue(row.getCell(5)));
+                    String examSystem = normalizeImportedText(getCellValue(row.getCell(7)));
+                    String seatNo = normalizeImportedText(getCellValue(row.getCell(8)));
+
+                    String profGroup = normalizeImportedText(getCellValue(row.getCell(10)));
+                    String profession = normalizeImportedText(getCellValue(row.getCell(6)));
+                
+                    // Cached DB Sync
+                    String syncKey = profession + "@@" + profGroup;
+                    if (!syncedProfGroups.contains(syncKey)) {
+                        StudentService.syncProfessionAndGroup(conn, profession, profGroup);
+                        SubjectService.ensureStandardSubjectsExist(profession);
+                        syncedProfGroups.add(syncKey);
+                    }
+                
+                    // Sync region and center to their tables so they appear in SystemSettings
+                    if (region != null && !region.trim().isEmpty() && !syncedRegions.contains(region.trim())) {
+                        syncRegionToTable(conn, region.trim());
+                        syncedRegions.add(region.trim());
+                    }
+                    String centerKey = region + "@@" + centerName;
+                    if (centerName != null && !centerName.trim().isEmpty() && !syncedCenters.contains(centerKey)) {
+                        syncCenterToTable(conn, centerName.trim(), region != null ? region.trim() : null);
+                        syncedCenters.add(centerKey);
+                    }
+                
+                    // Secret Number Generation (Requirement: always auto-generate during import)
+                    String secretNo = SecretNumberService.generateSecretNumber(region, centerName, seatNo);
+                
+                    String coordNo = normalizeImportedText(getCellValue(row.getCell(11)));
+                    String dobDay = normalizeImportedText(getCellValue(row.getCell(12)));
+                    String dobMonth = normalizeImportedText(getCellValue(row.getCell(13)));
+                    String dobYear = normalizeImportedText(getCellValue(row.getCell(14)));
+                    String gender = normalizeImportedText(getCellValue(row.getCell(15)));
+                    String neighborhood = normalizeImportedText(getCellValue(row.getCell(16)));
+                    String governorate = normalizeImportedText(getCellValue(row.getCell(17)));
+                    String religion = normalizeImportedText(getCellValue(row.getCell(18)));
+                    String nationality = normalizeImportedText(getCellValue(row.getCell(19)));
+                    String address = normalizeImportedText(getCellValue(row.getCell(20)));
+                    String picRef = normalizeImportedText(getCellValue(row.getCell(23)));
+                    String phoneNumber = normalizeImportedText(getCellValue(row.getCell(24)));
+                    String otherNotes = normalizeImportedText(getCellValue(row.getCell(22)));
+
+                    // Basic Validation (Phase 4)
+                    if (nationalId != null && !nationalId.isEmpty()) {
+                        ValidationService.NationalIdInfo info = ValidationService.validateNationalId(nationalId);
+                        if (!info.valid) {
+                            result.errors.add("الصف " + currentRowCount + " (" + name + "): الرقم القومي غير صحيح - " + info.errorMessage);
+                        } else {
+                            // National ID is authoritative — always override dob/gender/governorate
+                            dobDay = info.dobDay;
+                            dobMonth = info.dobMonth;
+                            dobYear = info.dobYear;
+                            // Only override gender & governorate if missing in excel
+                            if (gender == null || gender.isEmpty()) gender = info.gender;
+                            if (governorate == null || governorate.isEmpty()) governorate = info.governorate;
+                        }
+                    }
+                    String phoneErr = ValidationService.validatePhoneNumber(phoneNumber);
+                    if (phoneErr != null) {
+                        result.errors.add("الصف " + currentRowCount + " (" + name + "): " + phoneErr);
+                    }
+
+                    if (seatNo.isEmpty()) {
+                        seatNo = "AUTO_" + nationalId;
+                        if (seatNo.equals("AUTO_")) {
+                            result.skippedCount++;
+                            continue;
+                        }
+                    }
+
+                    boolean hasNatId = (nationalId != null && !nationalId.trim().isEmpty());
+                    boolean hasPicRef = (picRef != null && !picRef.trim().isEmpty());
+
+                    String savedProfilePath = "";
+                    String savedFrontIdPath = "";
+                    String savedBackIdPath = "";
+
+                    if (hasNatId || hasPicRef) {
+                        savedProfilePath = findAndCopyImageUsingCache(profileCache, nationalId, picRef, "profile.jpg");
+                        savedFrontIdPath = findAndCopyImageUsingCache(frontCache, nationalId, picRef, "id_front.jpg");
+                        savedBackIdPath = findAndCopyImageUsingCache(backCache, nationalId, picRef, "id_back.jpg");
+                    }
+
+                    if (callback != null && (currentRowCount % 5 == 0 || currentRowCount == totalRows)) {
+                        callback.onProgress(currentRowCount, totalRows, "جاري معالجة: " + name);
+                    }
+
+                    stmt.setString(1, seatNo);
+                    stmt.setString(2, serial);
+                    stmt.setString(3, name);
+                    stmt.setString(4, registrationNo);
+                    stmt.setString(5, nationalId);
+                    stmt.setString(6, region);
+                    stmt.setString(7, profession);
+                    stmt.setString(8, examSystem);
+                    stmt.setString(9, secretNo);
+                    stmt.setString(10, profGroup);
+                    stmt.setString(11, coordNo);
+                    stmt.setString(12, dobDay);
+                    stmt.setString(13, dobMonth);
+                    stmt.setString(14, dobYear);
+                    stmt.setString(15, gender);
+                    stmt.setString(16, neighborhood);
+                    stmt.setString(17, governorate);
+                    stmt.setString(18, religion);
+                    stmt.setString(19, nationality);
+                    stmt.setString(20, address);
+                    stmt.setString(21, otherNotes);
+                    stmt.setString(22, savedProfilePath);
+                    stmt.setString(23, centerName);
+                    stmt.setString(24, savedFrontIdPath);
+                    stmt.setString(25, savedBackIdPath);
+                    stmt.setString(26, phoneNumber);
+
+                    stmt.setString(27, seatNo);
+                    stmt.setString(28, serial);
+                    stmt.setString(29, name);
+                    stmt.setString(30, registrationNo);
+                    stmt.setString(31, nationalId);
+                    stmt.setString(32, region);
+                    stmt.setString(33, profession);
+                    stmt.setString(34, examSystem);
+                    stmt.setString(35, secretNo);
+                    stmt.setString(36, profGroup);
+                    stmt.setString(37, coordNo);
+                    stmt.setString(38, dobDay);
+                    stmt.setString(39, dobMonth);
+                    stmt.setString(40, dobYear);
+                    stmt.setString(41, gender);
+                    stmt.setString(42, neighborhood);
+                    stmt.setString(43, governorate);
+                    stmt.setString(44, religion);
+                    stmt.setString(45, nationality);
+                    stmt.setString(46, address);
+                    stmt.setString(47, otherNotes);
+                    stmt.setString(48, savedProfilePath);
+                    stmt.setString(49, centerName);
+                    stmt.setString(50, savedFrontIdPath);
+                    stmt.setString(51, savedBackIdPath);
+                    stmt.setString(52, phoneNumber);
+
+                    try {
+                        stmt.execute();
+                        result.importedCount++;
+                    } catch (Exception rowEx) {
+                        System.err.println("Skipping row " + currentRowCount + " (" + name + "): " + rowEx.getMessage());
+                        result.errors.add("الصف " + currentRowCount + " (" + name + "): " + rowEx.getMessage().split("\n")[0]);
+                        result.skippedCount++;
+                    }
+
+                    // Periodic checkpoint: everything up to here is now durable.
+                    if (currentRowCount % 500 == 0) {
+                        conn.commit();
+                        committedCount = result.importedCount;
+                    }
                 }
 
-                boolean hasNatId = (nationalId != null && !nationalId.trim().isEmpty());
-                boolean hasPicRef = (picRef != null && !picRef.trim().isEmpty());
-
-                String savedProfilePath = "";
-                String savedFrontIdPath = "";
-                String savedBackIdPath = "";
-
-                if (hasNatId || hasPicRef) {
-                    savedProfilePath = findAndCopyImageUsingCache(profileCache, nationalId, picRef, "profile.jpg");
-                    savedFrontIdPath = findAndCopyImageUsingCache(frontCache, nationalId, picRef, "id_front.jpg");
-                    savedBackIdPath = findAndCopyImageUsingCache(backCache, nationalId, picRef, "id_back.jpg");
-                }
-
-                if (callback != null && (currentRowCount % 5 == 0 || currentRowCount == totalRows)) {
-                    callback.onProgress(currentRowCount, totalRows, "جاري معالجة: " + name);
-                }
-
-                stmt.setString(1, seatNo);
-                stmt.setString(2, serial);
-                stmt.setString(3, name);
-                stmt.setString(4, registrationNo);
-                stmt.setString(5, nationalId);
-                stmt.setString(6, region);
-                stmt.setString(7, profession);
-                stmt.setString(8, examSystem);
-                stmt.setString(9, secretNo);
-                stmt.setString(10, profGroup);
-                stmt.setString(11, coordNo);
-                stmt.setString(12, dobDay);
-                stmt.setString(13, dobMonth);
-                stmt.setString(14, dobYear);
-                stmt.setString(15, gender);
-                stmt.setString(16, neighborhood);
-                stmt.setString(17, governorate);
-                stmt.setString(18, religion);
-                stmt.setString(19, nationality);
-                stmt.setString(20, address);
-                stmt.setString(21, otherNotes);
-                stmt.setString(22, savedProfilePath);
-                stmt.setString(23, centerName);
-                stmt.setString(24, savedFrontIdPath);
-                stmt.setString(25, savedBackIdPath);
-                stmt.setString(26, phoneNumber);
-
-                stmt.setString(27, seatNo);
-                stmt.setString(28, serial);
-                stmt.setString(29, name);
-                stmt.setString(30, registrationNo);
-                stmt.setString(31, nationalId);
-                stmt.setString(32, region);
-                stmt.setString(33, profession);
-                stmt.setString(34, examSystem);
-                stmt.setString(35, secretNo);
-                stmt.setString(36, profGroup);
-                stmt.setString(37, coordNo);
-                stmt.setString(38, dobDay);
-                stmt.setString(39, dobMonth);
-                stmt.setString(40, dobYear);
-                stmt.setString(41, gender);
-                stmt.setString(42, neighborhood);
-                stmt.setString(43, governorate);
-                stmt.setString(44, religion);
-                stmt.setString(45, nationality);
-                stmt.setString(46, address);
-                stmt.setString(47, otherNotes);
-                stmt.setString(48, savedProfilePath);
-                stmt.setString(49, centerName);
-                stmt.setString(50, savedFrontIdPath);
-                stmt.setString(51, savedBackIdPath);
-                stmt.setString(52, phoneNumber);
-
+                // Final commit for every row processed since the last checkpoint.
+                // Without this the pool's returnConnection() would ROLLBACK them silently.
+                conn.commit();
+                committedCount = result.importedCount;
+            } catch (Exception loopEx) {
+                // Discard the uncommitted tail explicitly, then let the outer handler report it.
                 try {
-                    stmt.execute();
-                    result.importedCount++;
-                } catch (Exception rowEx) {
-                    System.err.println("Skipping row " + currentRowCount + " (" + name + "): " + rowEx.getMessage());
-                    result.errors.add("الصف " + currentRowCount + " (" + name + "): " + rowEx.getMessage().split("\n")[0]);
-                    result.skippedCount++;
+                    conn.rollback();
+                } catch (Exception ignored) {
                 }
-
-                if (currentRowCount % 500 == 0 || currentRowCount == totalRows) {
-                    conn.commit();
-                }
+                throw loopEx;
             }
+
+            // Only committed rows may be reported.
+            result.importedCount = committedCount;
 
             System.out.println("Import complete: " + result.importedCount + " imported, " + result.skippedCount + " skipped.");
             LogService.logAction(username, "EXCEL_IMPORT",
@@ -256,6 +287,10 @@ public class ExcelService {
 
         } catch (Exception e) {
             e.printStackTrace();
+            result.fatalError = true;
+            // The rollback discarded everything after the last checkpoint, so the reported
+            // count must fall back to what was actually committed (0 if nothing was).
+            result.importedCount = committedCount;
             result.errors.add("فشل فادح: " + e.getMessage());
             return result;
         }

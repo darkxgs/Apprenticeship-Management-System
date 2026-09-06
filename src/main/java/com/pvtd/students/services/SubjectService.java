@@ -316,6 +316,29 @@ public class SubjectService {
     }
 
     /**
+     * عدد درجات الطلاب المسجلة على أجزاء مادة مقسمة (أبناء المادة الرئيسية).
+     * تُستخدم للتحذير قبل أي عملية تحذف الأبناء (وبالتالي تحذف الدرجات
+     * تلقائياً بسبب ON DELETE CASCADE). عند أي خطأ اتصال نرجع -1 حتى لا
+     * يُفهم الخطأ على أنه «لا توجد درجات» فتُحذف بيانات الطلاب بلا تحذير.
+     */
+    public static int countGradesOfChildren(int parentId) {
+        String sql = "SELECT COUNT(*) FROM student_grades WHERE subject_id IN "
+                + "(SELECT id FROM subjects WHERE parent_subject_id = ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, parentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next())
+                    return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+        return 0;
+    }
+
+    /**
      * Enables the 30/70 split on a subject.
      * Creates two child records (30 and 70 marks) linked to the parent.
      * 

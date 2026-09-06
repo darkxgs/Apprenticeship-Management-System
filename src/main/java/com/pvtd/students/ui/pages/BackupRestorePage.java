@@ -121,12 +121,12 @@ public class BackupRestorePage extends JPanel {
 
     // --- Backup UI ---
 
-    private JCheckBox cbRegions, cbCenters, cbProfGroups, cbProfessions, cbSubjects, cbSpecializations;
+    private JCheckBox cbRegions, cbCenters, cbProfGroups, cbProfessions, cbSubjects, cbSpecializations, cbGrades;
 
     private JPanel buildBackupPanel() {
         JPanel card = createMainCard();
         card.setLayout(new BorderLayout(0, 35));
-        card.setPreferredSize(new Dimension(1080, 620));
+        card.setPreferredSize(new Dimension(1080, 740));
 
         // Info text
         JPanel infoPanel = new JPanel(new BorderLayout());
@@ -141,7 +141,7 @@ public class BackupRestorePage extends JPanel {
         card.add(infoPanel, BorderLayout.NORTH);
 
         // Grid of options
-        JPanel grid = new JPanel(new GridLayout(2, 3, 25, 25));
+        JPanel grid = new JPanel(new GridLayout(0, 3, 25, 25));
         grid.setOpaque(false);
 
         cbRegions = createOptionCard(grid, "المناطق", "الرموز الجغرافية للمناطق", "map-pin.svg", UITheme.PRIMARY);
@@ -150,6 +150,7 @@ public class BackupRestorePage extends JPanel {
         cbProfessions = createOptionCard(grid, "المهن", "قائمة المهن المسجلة", "briefcase.svg", new Color(0xF59E0B));
         cbSpecializations = createOptionCard(grid, "التخصصات", "تخصصات الأقسام والمهن", "settings.svg", new Color(0x6366F1));
         cbSubjects = createOptionCard(grid, "المواد الدراسية", "المواد والدرجات والترتيب", "book-open.svg", new Color(0xEC4899));
+        cbGrades = createOptionCard(grid, "درجات الطلاب", "درجات الطلاب في كل مادة", "students.svg", new Color(0xEF4444));
 
         card.add(grid, BorderLayout.CENTER);
 
@@ -163,17 +164,23 @@ public class BackupRestorePage extends JPanel {
         btnAll.setForeground(UITheme.PRIMARY);
         btnAll.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnAll.addActionListener(e -> {
-            boolean anyUnselected = !cbRegions.isSelected() || !cbCenters.isSelected() || !cbProfGroups.isSelected() || !cbProfessions.isSelected() || !cbSubjects.isSelected() || !cbSpecializations.isSelected();
+            boolean anyUnselected = !cbRegions.isSelected() || !cbCenters.isSelected() || !cbProfGroups.isSelected() || !cbProfessions.isSelected() || !cbSubjects.isSelected() || !cbSpecializations.isSelected() || !cbGrades.isSelected();
             cbRegions.setSelected(anyUnselected); cbCenters.setSelected(anyUnselected);
             cbProfGroups.setSelected(anyUnselected); cbProfessions.setSelected(anyUnselected);
             cbSubjects.setSelected(anyUnselected); cbSpecializations.setSelected(anyUnselected);
+            cbGrades.setSelected(anyUnselected);
         });
 
         // Dependency Logic
         cbProfessions.addActionListener(e -> { if (cbProfessions.isSelected()) cbProfGroups.setSelected(true); });
         cbCenters.addActionListener(e -> { if (cbCenters.isSelected()) cbRegions.setSelected(true); });
-        cbSubjects.addActionListener(e -> { if (cbSubjects.isSelected()) { cbProfessions.setSelected(true); cbProfGroups.setSelected(true); } });
+        cbSubjects.addActionListener(e -> {
+            if (cbSubjects.isSelected()) { cbProfessions.setSelected(true); cbProfGroups.setSelected(true); }
+            else cbGrades.setSelected(false); // الدرجات بلا معنى بدون المواد
+        });
         cbSpecializations.addActionListener(e -> { if (cbSpecializations.isSelected()) cbProfGroups.setSelected(true); });
+        // الدرجات تتطلب المواد الدراسية دائماً
+        cbGrades.addActionListener(e -> { if (cbGrades.isSelected()) { cbSubjects.setSelected(true); cbProfessions.setSelected(true); cbProfGroups.setSelected(true); } });
 
         JButton btnRun = new JButton("إنشاء نسخة احتياطية (JSON)");
         btnRun.setIcon(new FlatSVGIcon("icons/download.svg", 20, 20));
@@ -300,6 +307,13 @@ public class BackupRestorePage extends JPanel {
             if (cbProfessions.isSelected()) backupData.put("professions", fetchTableData("professions"));
             if (cbSpecializations.isSelected()) backupData.put("specializations", fetchTableData("specializations"));
             if (cbSubjects.isSelected()) backupData.put("subjects", fetchTableData("subjects"));
+            // درجات الطلاب: تُصدَّر مع مفاتيح تعريف الطالب (رقم الجلوس / الرقم القومي)
+            // لأن أرقام الطلاب (id) تختلف من قاعدة بيانات لأخرى.
+            if (cbGrades.isSelected() && cbSubjects.isSelected())
+                backupData.put("student_grades", fetchQueryData(
+                        "SELECT sg.student_id, sg.subject_id, sg.obtained_mark, " +
+                        "s.seat_no AS student_seat_no, s.national_id AS student_national_id " +
+                        "FROM student_grades sg JOIN students s ON s.id = sg.student_id"));
 
             if (backupData.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "يرجى اختيار جدول واحد على الأقل للنسخ.", "تنبيه", JOptionPane.WARNING_MESSAGE);
@@ -310,7 +324,9 @@ public class BackupRestorePage extends JPanel {
             String fileName = "backup_" + new SimpleDateFormat("yyyyMMdd").format(new java.util.Date()) + ".json";
             chooser.setSelectedFile(new File(fileName));
             if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                // serializeNulls: لازم حتى تظهر الأعمدة الفارغة (NULL) في الملف،
+                // وإلا يختفي العمود بالكامل عند الاستعادة (مثل parent_subject_id).
+                Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
                 try (Writer writer = new OutputStreamWriter(new FileOutputStream(chooser.getSelectedFile()), "UTF-8")) {
                     gson.toJson(backupData, writer);
                     JOptionPane.showMessageDialog(this, "تم إنشاء النسخة الاحتياطية بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
@@ -322,9 +338,13 @@ public class BackupRestorePage extends JPanel {
     }
 
     private List<Map<String, Object>> fetchTableData(String table) throws SQLException {
+        return fetchQueryData("SELECT * FROM " + table);
+    }
+
+    private List<Map<String, Object>> fetchQueryData(String sql) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM " + table);
+             PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             ResultSetMetaData meta = rs.getMetaData();
             int cols = meta.getColumnCount();
@@ -347,18 +367,67 @@ public class BackupRestorePage extends JPanel {
                 Map<String, List<Map<String, Object>>> backupData = new Gson().fromJson(reader, type);
 
                 if (backupData == null) return;
-                int confirm = JOptionPane.showConfirmDialog(this, "هل أنت متأكد من استعادة " + backupData.size() + " جداول؟", "تأكيد", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    processRestore(backupData);
-                    JOptionPane.showMessageDialog(this, "تمت الاستعادة بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
+
+                // ── تأكيد يوضّح بالاسم كل جدول سيتم مسحه ──
+                StringBuilder msg = new StringBuilder("سيتم حذف كل البيانات الحالية في الجداول التالية نهائياً ثم استبدالها ببيانات الملف:\n\n");
+                for (String t : tablesToBeErased(backupData)) msg.append("   • ").append(arabicTableName(t)).append("\n");
+                msg.append("\nهل تريد المتابعة؟");
+                if (!confirmDangerous(msg.toString(), "تأكيد الاستعادة")) return;
+
+                // ── ملف قديم لا يحتوي على درجات الطلاب: تحذير قاطع قبل مسح الدرجات ──
+                if (backupData.containsKey("subjects") && !backupData.containsKey("student_grades")) {
+                    String warn = "تحذير خطير: الملف المختار لا يحتوي على قسم \"درجات الطلاب\".\n\n"
+                            + "استعادة المواد الدراسية تمسح درجات جميع الطلاب، والمتابعة الآن ستحذف\n"
+                            + "درجات كل الطلاب نهائياً ولن تكون هناك أي وسيلة لاستعادتها.\n\n"
+                            + "يرجى إنشاء نسخة احتياطية جديدة تشمل \"درجات الطلاب\" قبل المتابعة.\n\n"
+                            + "هل تريد المتابعة رغم ذلك ومسح كل الدرجات؟";
+                    if (!confirmDangerous(warn, "تحذير: سيتم مسح درجات الطلاب")) return;
                 }
+
+                String summary = processRestore(backupData);
+                JOptionPane.showMessageDialog(this, "تمت الاستعادة بنجاح!" + summary, "نجاح", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "خطأ: " + ex.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    private void processRestore(Map<String, List<Map<String, Object>>> data) throws Exception {
+    /** أسماء الجداول التي سيتم مسحها فعلياً بناءً على محتوى الملف (بنفس ترتيب الحذف). */
+    private List<String> tablesToBeErased(Map<String, List<Map<String, Object>>> data) {
+        List<String> t = new ArrayList<>();
+        // حذف المواد الدراسية يستلزم حذف درجات الطلاب أولاً
+        if (data.containsKey("subjects")) { t.add("student_grades"); t.add("subjects"); }
+        if (data.containsKey("centers")) t.add("centers");
+        if (data.containsKey("professions")) t.add("professions");
+        if (data.containsKey("specializations")) t.add("specializations");
+        if (data.containsKey("professional_groups")) t.add("professional_groups");
+        if (data.containsKey("regions")) t.add("regions");
+        return t;
+    }
+
+    private String arabicTableName(String table) {
+        switch (table) {
+            case "regions": return "المناطق";
+            case "centers": return "المراكز";
+            case "professional_groups": return "المجموعات المهنية";
+            case "professions": return "المهن";
+            case "specializations": return "التخصصات";
+            case "subjects": return "المواد الدراسية";
+            case "student_grades": return "درجات الطلاب";
+            default: return table;
+        }
+    }
+
+    /** تأكيد لعملية خطرة، الاختيار الافتراضي هو "لا". */
+    private boolean confirmDangerous(String message, String title) {
+        Object[] options = { "لا، إلغاء", "نعم، متابعة" };
+        int res = JOptionPane.showOptionDialog(this, message, title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+                null, options, options[0]);
+        return res == 1;
+    }
+
+    private String processRestore(Map<String, List<Map<String, Object>>> data) throws Exception {
         // ── Dependency checks ──
         if (data.containsKey("professions") && !data.containsKey("professional_groups"))
             throw new Exception("لا يمكن استعادة 'المهن' بدون 'المجموعات المهنية'.\nيرجى إنشاء نسخة جديدة تشمل كلا الجدولين.");
@@ -366,7 +435,10 @@ public class BackupRestorePage extends JPanel {
             throw new Exception("لا يمكن استعادة 'التخصصات' بدون 'المجموعات المهنية'.\nيرجى إنشاء نسخة جديدة تشمل كلا الجدولين.");
         if (data.containsKey("centers") && !data.containsKey("regions"))
             throw new Exception("لا يمكن استعادة 'المراكز' بدون 'المناطق'.\nيرجى إنشاء نسخة جديدة تشمل كلا الجدولين.");
+        if (data.containsKey("student_grades") && !data.containsKey("subjects"))
+            throw new Exception("لا يمكن استعادة 'درجات الطلاب' بدون 'المواد الدراسية'.\nيرجى إنشاء نسخة جديدة تشمل كلا الجدولين.");
 
+        String summary = "";
         try (Connection conn = DatabaseConnection.getConnection()) {
             try {
                 conn.setAutoCommit(false);
@@ -427,11 +499,22 @@ public class BackupRestorePage extends JPanel {
                 }
 
                 // ── Insert subjects (may reference specializations and/or professions) ──
+                Map<Long, Long> subjectIdMap = new HashMap<>();
                 if (data.containsKey("subjects")) {
                     List<Map<String, Object>> rows = remapFKs(data.get("subjects"),
                         new String[]{"specialization_id", "profession_id"},
                         new Map[]{specializationIdMap, professionIdMap});
                     insertWithIdRemap(conn, "subjects", rows);
+                    buildSubjectIdMap(conn, rows, subjectIdMap);
+                    // إعادة ربط المواد المركّبة (30/70) بأرقامها الجديدة
+                    remapParentSubjects(conn, rows, subjectIdMap);
+                }
+
+                // ── Insert student grades (subject_id remapped, student matched by seat/national no) ──
+                if (data.containsKey("student_grades")) {
+                    int[] r = restoreStudentGrades(conn, data.get("student_grades"), subjectIdMap);
+                    summary = "\n\nتمت استعادة " + r[0] + " درجة.";
+                    if (r[1] > 0) summary += "\nتم تجاهل " + r[1] + " درجة (لم يتم العثور على الطالب أو المادة في قاعدة البيانات الحالية).";
                 }
 
                 conn.commit();
@@ -442,6 +525,172 @@ public class BackupRestorePage extends JPanel {
                 conn.setAutoCommit(true);
             }
         }
+        return summary;
+    }
+
+    /**
+     * بناء خريطة (رقم المادة القديم → الجديد).
+     * الجدول تم إفراغه قبل الإدراج، لذا ترتيب الأرقام الجديدة هو نفس ترتيب الإدراج.
+     * وإن اختلف العدد لأي سبب نرجع للمطابقة بالاسم (الاسم + الاسم الفرعي + النوع).
+     */
+    private void buildSubjectIdMap(Connection conn, List<Map<String, Object>> backupRows,
+                                    Map<Long, Long> idMap) throws SQLException {
+        if (backupRows == null || backupRows.isEmpty()) return;
+
+        List<Long> newIds = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM subjects ORDER BY id");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) newIds.add(rs.getLong(1));
+        }
+
+        if (newIds.size() == backupRows.size()) {
+            for (int i = 0; i < backupRows.size(); i++) {
+                Long oldId = asLong(backupRows.get(i).get("id"));
+                if (oldId != null) idMap.put(oldId, newIds.get(i));
+            }
+            return;
+        }
+
+        // Fallback: مطابقة بالمفتاح المركّب
+        Map<String, Long> keyToOldId = new HashMap<>();
+        for (Map<String, Object> row : backupRows) {
+            Long oldId = asLong(row.get("id"));
+            if (oldId != null) keyToOldId.put(subjectKey(row), oldId);
+        }
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM subjects");
+             ResultSet rs = ps.executeQuery()) {
+            ResultSetMetaData meta = rs.getMetaData();
+            int cols = meta.getColumnCount();
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                for (int i = 1; i <= cols; i++) row.put(meta.getColumnName(i).toLowerCase(), rs.getObject(i));
+                Long oldId = keyToOldId.get(subjectKey(row));
+                Long newId = asLong(row.get("id"));
+                if (oldId != null && newId != null) idMap.put(oldId, newId);
+            }
+        }
+    }
+
+    private String subjectKey(Map<String, Object> row) {
+        return norm(row.get("name")) + "|" + norm(row.get("sub_name")) + "|"
+             + norm(row.get("type")) + "|" + norm(row.get("specialization_id"));
+    }
+
+    /** إعادة ربط parent_subject_id بالأرقام الجديدة (وإفراغه لو المرجع مفقود). */
+    private void remapParentSubjects(Connection conn, List<Map<String, Object>> backupRows,
+                                      Map<Long, Long> subjectIdMap) throws SQLException {
+        if (backupRows == null || backupRows.isEmpty() || subjectIdMap.isEmpty()) return;
+        boolean hasCol = false;
+        for (Map<String, Object> row : backupRows) {
+            if (row.containsKey("parent_subject_id")) { hasCol = true; break; }
+        }
+        if (!hasCol) return;
+        if (!columnTypes(conn, "subjects").containsKey("parent_subject_id")) return;
+
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE subjects SET parent_subject_id = ? WHERE id = ?")) {
+            int n = 0;
+            for (Map<String, Object> row : backupRows) {
+                Long oldParent = asLong(row.get("parent_subject_id"));
+                if (oldParent == null) continue;
+                Long newChild = subjectIdMap.get(asLong(row.get("id")));
+                if (newChild == null) continue;
+                Long newParent = subjectIdMap.get(oldParent);
+                if (newParent != null) ps.setLong(1, newParent); else ps.setNull(1, Types.NUMERIC);
+                ps.setLong(2, newChild);
+                ps.addBatch();
+                n++;
+            }
+            if (n > 0) ps.executeBatch();
+        }
+    }
+
+    /**
+     * استعادة درجات الطلاب: يتم تحويل subject_id بالخريطة الجديدة، ويتم التعرف على
+     * الطالب برقم الجلوس أو الرقم القومي (جدول الطلاب لا يُحذف ولا يُعاد إدراجه).
+     * @return [عدد الدرجات المستعادة, عدد الدرجات المتجاهَلة]
+     */
+    private int[] restoreStudentGrades(Connection conn, List<Map<String, Object>> gradeRows,
+                                        Map<Long, Long> subjectIdMap) throws SQLException {
+        if (gradeRows == null || gradeRows.isEmpty()) return new int[]{0, 0};
+
+        // مفاتيح التعرف على الطلاب الحاليين
+        Map<String, Long> bySeat = new HashMap<>();
+        Map<String, Long> byNational = new HashMap<>();
+        Set<String> dupNational = new HashSet<>();
+        try (PreparedStatement ps = conn.prepareStatement("SELECT id, seat_no, national_id FROM students");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                long id = rs.getLong(1);
+                String seat = rs.getString(2);
+                String nat = rs.getString(3);
+                if (seat != null && !seat.trim().isEmpty()) bySeat.put(seat.trim(), id);
+                if (nat != null && !nat.trim().isEmpty()) {
+                    String k = nat.trim();
+                    if (byNational.containsKey(k)) { dupNational.add(k); byNational.remove(k); }
+                    else if (!dupNational.contains(k)) byNational.put(k, id);
+                }
+            }
+        }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        int skipped = 0;
+        for (Map<String, Object> row : gradeRows) {
+            Long newSubjectId = subjectIdMap.get(asLong(row.get("subject_id")));
+            Long studentId = null;
+            String seat = norm(row.get("student_seat_no"));
+            String nat = norm(row.get("student_national_id"));
+            if (!seat.isEmpty()) studentId = bySeat.get(seat);
+            if (studentId == null && !nat.isEmpty()) studentId = byNational.get(nat);
+
+            Object mark = row.get("obtained_mark");
+            if (newSubjectId == null || studentId == null || mark == null) { skipped++; continue; }
+            if (!seen.add(studentId + "|" + newSubjectId)) { skipped++; continue; }
+
+            Map<String, Object> g = new HashMap<>();
+            g.put("student_id", studentId);
+            g.put("subject_id", newSubjectId);
+            // BigDecimal حفاظاً على الكسور العشرية في الدرجة
+            g.put("obtained_mark", mark instanceof Number
+                    ? new java.math.BigDecimal(mark.toString())
+                    : new java.math.BigDecimal(norm(mark)));
+            out.add(g);
+        }
+
+        insertWithIdRemap(conn, "student_grades", out);
+        return new int[]{ out.size(), skipped };
+    }
+
+    private Long asLong(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number) return ((Number) v).longValue();
+        try { return new java.math.BigDecimal(v.toString().trim()).longValue(); }
+        catch (Exception e) { return null; }
+    }
+
+    /** تحويل القيمة إلى نص موحّد للمقارنة (الأرقام الصحيحة بدون كسور). */
+    private String norm(Object v) {
+        if (v == null) return "";
+        if (v instanceof Number) {
+            double d = ((Number) v).doubleValue();
+            if (d == Math.floor(d) && !Double.isInfinite(d)) return Long.toString((long) d);
+            return Double.toString(d);
+        }
+        return v.toString().trim();
+    }
+
+    /** أنواع أعمدة الجدول (اسم العمود بحروف صغيرة → java.sql.Types). */
+    private Map<String, Integer> columnTypes(Connection conn, String table) {
+        Map<String, Integer> types = new HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + table + " WHERE 1=0");
+             ResultSet rs = ps.executeQuery()) {
+            ResultSetMetaData meta = rs.getMetaData();
+            for (int i = 1; i <= meta.getColumnCount(); i++)
+                types.put(meta.getColumnName(i).toLowerCase(), meta.getColumnType(i));
+        } catch (SQLException ignore) {
+            // لو تعذّر قراءة الأعمدة نكمل بدون فلترة
+        }
+        return types;
     }
 
     /** Execute a simple statement (no params). */
@@ -465,10 +714,21 @@ public class BackupRestorePage extends JPanel {
         skip.clear();
         skip.add("id"); // always exclude the PK so Oracle generates a fresh one
 
-        List<String> cols = new ArrayList<>();
-        for (String col : rows.get(0).keySet()) {
-            if (!skip.contains(col.toLowerCase())) cols.add(col);
+        // أعمدة الجدول الفعلية في قاعدة البيانات (للتعرف على النوع وتجاهل أي عمود غير موجود)
+        Map<String, Integer> dbTypes = columnTypes(conn, tableName);
+
+        // اتحاد أعمدة كل الصفوف — لا يصح الاعتماد على الصف الأول وحده،
+        // فقد يكون عموده فارغاً (NULL) أو ناقصاً في ملف قديم.
+        Set<String> colSet = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            for (String col : row.keySet()) {
+                String lc = col.toLowerCase();
+                if (skip.contains(lc)) continue;
+                if (!dbTypes.isEmpty() && !dbTypes.containsKey(lc)) continue; // عمود غير موجود بالجدول
+                colSet.add(col);
+            }
         }
+        List<String> cols = new ArrayList<>(colSet);
         if (cols.isEmpty()) return;
 
         String sql = "INSERT INTO " + tableName + " (" + String.join(",", cols) + ") VALUES (" +
@@ -479,7 +739,10 @@ public class BackupRestorePage extends JPanel {
                 int i = 1;
                 for (String col : cols) {
                     Object v = row.get(col);
-                    if (v instanceof Double) {
+                    if (v == null) {
+                        Integer t = dbTypes.get(col.toLowerCase());
+                        ps.setNull(i++, t != null ? t.intValue() : Types.VARCHAR);
+                    } else if (v instanceof Double) {
                         Double d = (Double) v;
                         String lc = col.toLowerCase();
                         if (lc.contains("id") || lc.contains("order") || lc.contains("mark") || lc.contains("serial")) {
@@ -535,9 +798,10 @@ public class BackupRestorePage extends JPanel {
             for (int i = 0; i < fkCols.length; i++) {
                 Object v = newRow.get(fkCols[i]);
                 if (v != null) {
-                    long oldId = v instanceof Double ? ((Double) v).longValue() : ((Number) v).longValue();
-                    Long newId = maps[i].get(oldId);
-                    if (newId != null) newRow.put(fkCols[i], newId);
+                    Long oldId = asLong(v);
+                    Long newId = oldId != null ? maps[i].get(oldId) : null;
+                    // لو لم نجد الرقم الجديد نُفرغ الحقل — الرقم القديم يشير الآن لسجل مختلف تماماً
+                    newRow.put(fkCols[i], newId);
                 }
             }
             result.add(newRow);

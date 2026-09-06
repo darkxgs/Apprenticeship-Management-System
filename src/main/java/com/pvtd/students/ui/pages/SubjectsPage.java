@@ -562,36 +562,88 @@ public class SubjectsPage extends JPanel {
                 try { displayOrder = Integer.parseInt(orderF.getText().trim()); } catch (NumberFormatException ignored) {}
 
                 if (name.isEmpty()) { warn("اسم المادة لا يمكن أن يكون فارغاً."); return; }
-                
-                // Update main subject
-                SubjectService.updateSubject(subject.getId(), name, type, ps, mx, displayOrder, null, null);
-                
+
+                // الأبناء الحاليون وقت الحفظ (وليس وقت فتح النافذة)
+                List<Subject> current = SubjectService.getChildrenOf(subject.getId());
+
                 // Handle composite
                 if (compositeCheck.isSelected()) {
                     String sn1 = subName1F.getText().trim();
                     String sn2 = subName2F.getText().trim();
                     int m1 = Integer.parseInt(mark1F.getText().trim());
                     int m2 = Integer.parseInt(mark2F.getText().trim());
-                    
+
                     if (sn1.isEmpty() || sn2.isEmpty()) {
                         warn("يرجى إدخال أسماء للجزئين.");
                         return;
                     }
-                    
-                    // Remove old children and create new ones
-                    SubjectService.disableComposite(subject.getId());
-                    SubjectService.addSubject(selProfession, name, type, (int)(m1 * 0.5), m1, 1, subject.getId(), sn1);
-                    SubjectService.addSubject(selProfession, name, type, (int)(m2 * 0.5), m2, 2, subject.getId(), sn2);
-                } else {
+
+                    // درجات نجاح الجزئين تُشتق بالتناسب من درجة نجاح المادة
+                    // الأصلية حتى يكون مجموعها مساوياً لها تماماً
+                    int total = m1 + m2;
+                    int p1 = total > 0 ? Math.round(ps * (m1 / (float) total)) : 0;
+                    int p2 = ps - p1;
+
+                    if (current.size() == 2) {
+                        // تعديل الأبناء في مكانهم — الحفاظ على المعرفات
+                        // حتى لا تُحذف درجات الطلاب بسبب ON DELETE CASCADE
+                        Subject c1 = childWithOrder(current, 1);
+                        Subject c2 = childWithOrder(current, 2);
+                        SubjectService.updateSubject(c1.getId(), name, type, p1, m1, 1, subject.getId(), sn1);
+                        SubjectService.updateSubject(c2.getId(), name, type, p2, m2, 2, subject.getId(), sn2);
+                    } else if (current.isEmpty()) {
+                        // تفعيل التقسيم لأول مرة — لا توجد درجات لأجزاء لتُفقد
+                        SubjectService.addSubject(selProfession, name, type, p1, m1, 1, subject.getId(), sn1);
+                        SubjectService.addSubject(selProfession, name, type, p2, m2, 2, subject.getId(), sn2);
+                    } else {
+                        // عدد أجزاء غير متوقع — لا مفر من الحذف وإعادة الإنشاء
+                        if (!confirmChildrenDeletion(subject.getId())) return;
+                        SubjectService.disableComposite(subject.getId());
+                        SubjectService.addSubject(selProfession, name, type, p1, m1, 1, subject.getId(), sn1);
+                        SubjectService.addSubject(selProfession, name, type, p2, m2, 2, subject.getId(), sn2);
+                    }
+                } else if (!current.isEmpty()) {
                     // Remove composite if unchecked
+                    if (!confirmChildrenDeletion(subject.getId())) return;
                     SubjectService.disableComposite(subject.getId());
                 }
-                
+
+                // Update main subject
+                SubjectService.updateSubject(subject.getId(), name, type, ps, mx, displayOrder, null, null);
+
                 loadSubjects();
             } catch (NumberFormatException ex) {
                 warn("يرجى إدخال أرقام صحيحة للدرجات.");
             }
         }
+    }
+
+    /** الجزء صاحب ترتيب العرض المطلوب، وإلا الجزء المقابل له بالترتيب. */
+    private Subject childWithOrder(List<Subject> children, int order) {
+        for (Subject c : children) {
+            if (c.getDisplayOrder() == order) return c;
+        }
+        return children.get(Math.min(order - 1, children.size() - 1));
+    }
+
+    /**
+     * تحذير قاطع قبل أي عملية تحذف أجزاء المادة — الحذف يمحو درجات
+     * الطلاب في هذه المادة نهائياً (ON DELETE CASCADE). الافتراضي «لا».
+     */
+    private boolean confirmChildrenDeletion(int parentId) {
+        int grades = SubjectService.countGradesOfChildren(parentId);
+        if (grades == 0) return true; // لا توجد درجات — الحذف آمن
+        String msg = grades > 0
+                ? "تحذير: توجد " + grades + " درجة مسجلة للطلاب على جزئي هذه المادة.\n"
+                        + "المتابعة ستحذف درجات جميع الطلاب في هذه المادة نهائياً ولا يمكن التراجع.\n\n"
+                        + "هل تريد المتابعة؟"
+                : "تعذر التحقق من درجات الطلاب لهذه المادة بسبب خطأ في الاتصال.\n"
+                        + "المتابعة قد تحذف درجات جميع الطلاب في هذه المادة نهائياً ولا يمكن التراجع.\n\n"
+                        + "هل تريد المتابعة؟";
+        Object[] options = { "إلغاء", "متابعة والحذف" };
+        int choice = JOptionPane.showOptionDialog(this, msg, "تحذير: فقدان درجات الطلاب",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+        return choice == 1;
     }
 
     private void warn(String msg) {
