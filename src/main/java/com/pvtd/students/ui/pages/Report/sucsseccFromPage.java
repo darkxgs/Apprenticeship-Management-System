@@ -196,9 +196,11 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         coordinationLbl.setBounds(477, 312, 175, 26);
         nationalIdLbl.setBounds(477, 342, 185, 26);
 
-        styleNumeric(seatNoLbl, 20, R);
-        styleNumeric(coordinationLbl, 20, R);
-        styleNumeric(nationalIdLbl, 20, R);
+        // رقم الجلوس وكود التنسيق والرقم القومي: أصغر قليلاً من خانات الدرجات
+        // (طلب إدارة الامتحانات — كانت كبيرة أوي بعد التكبير)
+        styleNumeric(seatNoLbl, 17, R);
+        styleNumeric(coordinationLbl, 17, R);
+        styleNumeric(nationalIdLbl, 17, R);
         styleNumeric(percentLbl, 18, R);
 
         // خانات جدول الدرجات: النهاية العظمى / الصغرى / درجة الطالب + المجاميع
