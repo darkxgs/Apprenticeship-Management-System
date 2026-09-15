@@ -250,7 +250,7 @@ public class NewJFrame1 extends javax.swing.JFrame {
     public void loadStudentInfo(String seatNo, Connection con) throws Exception {
         String sql =
             "SELECT s.name, s.seat_no, s.national_id, s.coordination_no, " +
-            "       s.professional_group, s.profession, s.center_name, s.region " +
+            "       s.professional_group, s.profession, s.center_name, s.region, s.status " +
             "FROM students s " +
             "WHERE TRIM(s.seat_no) = TRIM(?)";
 
@@ -273,6 +273,12 @@ public class NewJFrame1 extends javax.swing.JFrame {
                     fitLabelToOriginalWidth(jLabel3, 22, 13);
                     // jLabel5 = المهنة / التخصص
                     jLabel5.setText(profession);
+
+                    // سطر الدور يُشتق تلقائياً من إعدادات «بيانات الدور» + حالة
+                    // الطالب: الدور الأول يطبع شهر الدور الأول والدور الثاني شهره
+                    jLabel47.setText(com.pvtd.students.services.ExamSessionService
+                            .sessionLine(orEmpty(rs.getString("status"))));
+                    fitLabelToOriginalWidth(jLabel47, 24, 14);
 
                     currentCenterName = centerName;
                     currentNationalId = nationalId;
@@ -511,6 +517,10 @@ public class NewJFrame1 extends javax.swing.JFrame {
     }
 
     private void clearForm() {
+        // سطر الدور: قيمة افتراضية من الإعدادات، ويستبدلها loadStudentInfo
+        // بدور الطالب الفعلي — حتى لا يظهر نص التصميم الثابت أبداً
+        jLabel47.setText(com.pvtd.students.services.ExamSessionService.sessionLine(null));
+        fitLabelToOriginalWidth(jLabel47, 24, 14);
         jLabel1.setText("");
         jLabel3.setText("");
         jLabel5.setText("");
@@ -536,6 +546,9 @@ public class NewJFrame1 extends javax.swing.JFrame {
 
     public void printForms(List<String[]> studentsData,
                            java.util.function.BiConsumer<Integer, Integer> progressCallback) {
+
+        // قراءة إعدادات «بيانات الدور» من جديد حتى يظهر أي تعديل فوراً
+        com.pvtd.students.services.ExamSessionService.reload();
 
         try (Connection con = DatabaseConnection.getConnection()) {
             File rootFolder = new File("التقارير" + File.separator + "استمارة إدارة الامتحانات");
