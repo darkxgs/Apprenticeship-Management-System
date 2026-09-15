@@ -639,8 +639,12 @@ public class SecondRoundPassedFramePage extends javax.swing.JFrame {
         jPanel2.add(cmdcenter, gridBagConstraints);
 
         // 3. Actions Panel
-        javax.swing.JPanel actionsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
+        // GridLayout بدل FlowLayout: الأخير كان «يلف» الزر الزائد إلى سطر ثانٍ
+        // مخفي فيختفي الزر تماماً عند اختيار منطقة/مركز باسم طويل
+        javax.swing.JPanel actionsPanel = new javax.swing.JPanel(new java.awt.GridLayout(1, 3, 15, 0));
         actionsPanel.setOpaque(false);
+        actionsPanel.setMinimumSize(new java.awt.Dimension(465, 40));
+        actionsPanel.setPreferredSize(new java.awt.Dimension(495, 40));
         
         jButton1.setText("✅ اختيار الكل");
         jButton1.addActionListener(this::jButton1ActionPerformed);

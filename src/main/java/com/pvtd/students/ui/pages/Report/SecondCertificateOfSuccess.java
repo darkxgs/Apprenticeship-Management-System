@@ -49,6 +49,8 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
 
     private String receiptText = "";
     private String groupText = "";
+    /** حالة الطالب الجاري طباعته — منها يُشتق الدور (أول/ثاني) تلقائياً */
+    private String currentStatus = null;
 
     /**
      * حقلا الإدخال الوحيدان في الشهادة (طلب إدارة الامتحانات):
@@ -117,7 +119,8 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
         // نصوص ثابتة مصححة طبقاً للنموذج الرسمي — بأرقام إنجليزية مثله تماماً
         jLabel4.setText("شهـــــادة");
         jLabel12.setText("تخصص /");
-        jLabel16.setText("دور / مايو عام 2026 الميلادية / الفان وسته وعشرون ،،،");
+        // سطر الدور يُشتق تلقائياً من إعدادات «بيانات الدور» + حالة الطالب
+        jLabel16.setText(com.pvtd.students.services.ExamSessionService.sessionLine(currentStatus));
         jLabel21.setText("وهي معادلة لشهادة دبلوم المدارس الصناعية بوزارة التربية والتعليم بجمهورية مصر العربية وذلك طبقا للقرار الوزاري للتربية و التعليم");
         // النقطة الأخيرة مفصولة عن «م» بمسافة حتى لا تلتصق بها
         jLabel22.setText("رقم ( 92 ) الصادر في " + ltrText("17/ 6/ 1968") + " وتم تعديله بالقرار رقم 57 لسنه 1969 م .");
@@ -203,7 +206,7 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
 
         String sql = "SELECT s.id, s.name, s.national_id, s.center_name, "
                 + "s.profession AS specialization, "
-                + "s.professional_group, s.region, s.phone_number "
+                + "s.professional_group, s.region, s.phone_number, s.status "
                 + "FROM students s "
                 + "WHERE TRIM(s.seat_no) = TRIM(?)";
 
@@ -215,6 +218,9 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
+
+                // حالة الطالب — منها يُحدد الدور (أول/ثاني) في سطر الدور
+                currentStatus = rs.getString("status");
 
                 double percentage = getStudentPercentage(seatNo);
 
@@ -310,6 +316,9 @@ public class SecondCertificateOfSuccess extends javax.swing.JFrame {
      */
     public void printCertificates(List<Student> students,
             java.util.function.BiConsumer<Integer, Integer> progressCallback) {
+
+        // الدور والسنة من إعدادات «بيانات الدور» — يُشتقان لكل طالب من حالته
+        com.pvtd.students.services.ExamSessionService.reload();
 
         try {
             // ─── مجلد الجذر ────────────────────────────────────────────────

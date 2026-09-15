@@ -29,6 +29,11 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger(sucsseccFromPage.class.getName());
 
+    /** الحد الأدنى للنسبة المؤهِّلة لتنسيق الدبلومات الفنية */
+    private static final double MIN_COORDINATION_PERCENT = 60.0;
+    /** يُطبع مكان كود التنسيق للطالب غير المؤهَّل */
+    private static final String BELOW_COORDINATION_TEXT = "أقل من 60%";
+
     public sucsseccFromPage() {
         initComponents();
         nameLbl.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -50,26 +55,19 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         sub2Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         sub3Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         sub4Lbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        int year = LocalDate.now().getYear();
-        DateL.setText(toArabicNumbers(String.valueOf(year)));
-        roundLbl.setText(getArabicMonth());
-        String j18 = jLabel18.getText();
-        jLabel18.setText(toArabicNumbers(j18));
+        // الدور والسنة من إعدادات «بيانات الدور» (الدور الأول مبدئياً)
+        applySessionLabels(null);
 
-        String j127 = jLabel27.getText();
-        jLabel27.setText(toArabicNumbers(j127));
+        // خط أرقام أكبر وأوضح (Tahoma عريض) لكل خانات الأرقام في الاستمارة —
+        // مكتب الامتحانات بلّغ إن الأرقام المطبوعة صغيرة ومتلخبطة (٢ شبه ٣ و ٧ شبه ٨)
+        applyNumericFonts();
 
-        String j21 = jLabel21.getText();
-        jLabel21.setText(toArabicNumbers(j21));
-
-        String j30 = jLabel30.getText();
-        jLabel30.setText(toArabicNumbers(j30));
-
-        String j22 = jLabel22.getText();
-        jLabel22.setText(toArabicNumbers(j22));
-
-        String j31 = jLabel31.getText();
-        jLabel31.setText(toArabicNumbers(j31));
+        setNumericText(jLabel18, toArabicNumbers(jLabel18.getText()));
+        setNumericText(jLabel27, toArabicNumbers(jLabel27.getText()));
+        setNumericText(jLabel21, toArabicNumbers(jLabel21.getText()));
+        setNumericText(jLabel30, toArabicNumbers(jLabel30.getText()));
+        setNumericText(jLabel22, toArabicNumbers(jLabel22.getText()));
+        setNumericText(jLabel31, toArabicNumbers(jLabel31.getText()));
 
         // Add filterPanel at the top of the window
         filterPanel = new com.pvtd.students.ui.utils.ReportFilterPanel();
@@ -79,25 +77,17 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         setContentPane(wrapper);
     }
 
-    private String selectedMonth = null;
-    private String selectedYear = null;
+    /** حالة الطالب الجاري طباعته — منها يُشتق الدور (أول/ثاني) */
+    private String currentStatus = null;
 
-    private String chooseMonth() {
-        String[] months = {
-                "يناير", "فبراير", "مارس", "أبريل",
-                "مايو", "يونيو", "يوليو", "أغسطس",
-                "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-        };
-        return (String) JOptionPane.showInputDialog(
-                this, "اختار الشهر:", "اختيار الشهر",
-                JOptionPane.QUESTION_MESSAGE, null, months, "يوليو");
-    }
-
-    private String chooseYear() {
-        String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
-        return (String) JOptionPane.showInputDialog(
-                this, "اختار السنة:", "اختيار السنة",
-                JOptionPane.QUESTION_MESSAGE, null, null, currentYear);
+    /**
+     * ضبط الدور والسنة من إعدادات «بيانات الدور» حسب حالة الطالب —
+     * بدون أي سؤال للمستخدم.
+     */
+    private void applySessionLabels(String status) {
+        roundLbl.setText(com.pvtd.students.services.ExamSessionService.monthForStatus(status));
+        DateL.setText(toArabicNumbers(String.valueOf(
+                com.pvtd.students.services.ExamSessionService.getExamYear())));
     }
 
     // قياس عرض نص بنفس محرك HTML اللي بيرسم فعلياً (عشان القياس يطلع مظبوط)
@@ -149,6 +139,77 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         }
 
         return "<html><div style='text-align:center; direction:rtl; font-family: Segoe UI, Tahoma; font-weight: bold; font-size:" + fontSize + "px; line-height: 1.0; padding-top: 2px;'>" + body + "</div></html>";
+    }
+
+    // ===== خانات الأرقام: خط Tahoma عريض أكبر + تصغير تلقائي عشان النص ميخرجش من الخانة =====
+    /** Tahoma أرقامها واضحة في الطباعة (٢ ≠ ٣ و ٧ ≠ ٨) عكس Segoe UI */
+    private static final String NUM_FONT = "Tahoma";
+    private static final int NUM_MIN_SIZE = 8;
+    /** JLabel → { الحجم الأساسي, عرض الخانة } */
+    private final java.util.Map<javax.swing.JLabel, int[]> numericBase = new java.util.HashMap<>();
+
+    /** يسجّل الخانة كخانة رقمية بحجم خط أساسي ومحاذاة، ويضبط النص الحالي داخلها */
+    private void styleNumeric(javax.swing.JLabel lbl, int size, int align) {
+        lbl.setFont(new java.awt.Font(NUM_FONT, java.awt.Font.BOLD, size));
+        lbl.setHorizontalAlignment(align);
+        int w = (lbl.getWidth() > 0) ? lbl.getWidth() : lbl.getPreferredSize().width;
+        numericBase.put(lbl, new int[] { size, w });
+        fitNumeric(lbl);
+    }
+
+    /** يكتب رقم في خانة رقمية (بدون المسافات القديمة — المحاذاة بقت من الـ bounds) */
+    private void setNumericText(javax.swing.JLabel lbl, String text) {
+        lbl.setText(text == null ? "" : text.trim());
+        fitNumeric(lbl);
+    }
+
+    /**
+     * يصغّر خط الخانة الرقمية درجة درجة لحد ما النص يقع جوه عرض الخانة الأصلي
+     * (نفس فكرة fitLabelToOriginalWidth في NewJFrame1) — الاستمارة مرسومة فوق
+     * صورة قالب ثابتة فممنوع أي رقم يخرج من مربعه أو يركب على اللي جنبه
+     */
+    private void fitNumeric(javax.swing.JLabel lbl) {
+        int[] base = numericBase.get(lbl);
+        if (base == null)
+            return;
+        int size = base[0];
+        String t = lbl.getText();
+        int avail = ((lbl.getWidth() > 0) ? lbl.getWidth() : base[1]) - 4;
+        if (t != null && !t.isEmpty() && avail > 0) {
+            java.awt.Font f = new java.awt.Font(NUM_FONT, java.awt.Font.BOLD, size);
+            while (size > NUM_MIN_SIZE && lbl.getFontMetrics(f).stringWidth(t) > avail) {
+                size--;
+                f = new java.awt.Font(NUM_FONT, java.awt.Font.BOLD, size);
+            }
+        }
+        lbl.setFont(new java.awt.Font(NUM_FONT, java.awt.Font.BOLD, size));
+    }
+
+    /** كل خانات الأرقام في الاستمارة: رقم الجلوس/التنسيق/القومي، الدرجات، المجاميع، النسبة */
+    private void applyNumericFonts() {
+        final int C = javax.swing.SwingConstants.CENTER;
+        final int R = javax.swing.SwingConstants.RIGHT;
+
+        // زيادة بسيطة في ارتفاع الخانات الثلاثة عشان خط 20 ميتقصّش رأسياً
+        // (المسافة بين السطور 30px فالحدود لسه جوه مربعاتها)
+        seatNoLbl.setBounds(480, 282, 175, 26);
+        coordinationLbl.setBounds(477, 312, 175, 26);
+        nationalIdLbl.setBounds(477, 342, 185, 26);
+
+        styleNumeric(seatNoLbl, 20, R);
+        styleNumeric(coordinationLbl, 20, R);
+        styleNumeric(nationalIdLbl, 20, R);
+        styleNumeric(percentLbl, 18, R);
+
+        // خانات جدول الدرجات: النهاية العظمى / الصغرى / درجة الطالب + المجاميع
+        javax.swing.JLabel[] cells = {
+                max1Lbl, max2Lbl, max3Lbl, max4Lbl, jLabel18, amalymax, tatbecMax, jLabel21, jLabel22,
+                pass1Lbl, pass2Lbl, pass3Lbl, pass4Lbl, jLabel27, amalyPass, tatbecPass, jLabel30, jLabel31,
+                mark1Lbl, mark2Lbl, mark3Lbl, mark4Lbl, ee, studgra, studeTa, practicalTotalLbl, eed
+        };
+        for (javax.swing.JLabel c : cells) {
+            styleNumeric(c, 16, C);
+        }
     }
 
     private String toArabicNumbers(String number) {
@@ -303,7 +364,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
             String sql = "SELECT s.name, s.seat_no, s.national_id, s.coordination_no,"
                     + " s.professional_group, s.profession, s.center_name, s.region,"
-                    + " s.image_path,"
+                    + " s.image_path, s.status,"
                     + " sp.name specialization,"
 
                     // ✅ النسبة
@@ -330,7 +391,7 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                     + " WHERE TRIM(s.seat_no) = TRIM(?)"
 
                     + " GROUP BY s.name,s.seat_no,s.national_id,s.coordination_no,"
-                    + " s.professional_group,s.profession,s.center_name,s.region,sp.name,s.image_path";
+                    + " s.professional_group,s.profession,s.center_name,s.region,sp.name,s.image_path,s.status";
 
             ps = con.prepareStatement(sql);
             ps.setString(1, seatNo);
@@ -338,10 +399,14 @@ public class sucsseccFromPage extends javax.swing.JFrame {
 
             if (rs.next()) {
 
+                // حالة الطالب — منها يُشتق الدور (أول/ثاني) وسطر الشهر والسنة
+                currentStatus = rs.getString("status");
+                applySessionLabels(currentStatus);
+
                 nameLbl.setText(rs.getString("name"));
-                seatNoLbl.setText(toArabicNumbers(rs.getString("seat_no")));
-                nationalIdLbl.setText(toArabicNumbers(rs.getString("national_id")));
-                coordinationLbl.setText(toArabicNumbers(rs.getString("coordination_no")));
+                setNumericText(seatNoLbl, toArabicNumbers(rs.getString("seat_no")));
+                setNumericText(nationalIdLbl, toArabicNumbers(rs.getString("national_id")));
+                setNumericText(coordinationLbl, toArabicNumbers(rs.getString("coordination_no")));
 
                 groupLbl.setText(rs.getString("professional_group"));
 
@@ -359,9 +424,15 @@ public class sucsseccFromPage extends javax.swing.JFrame {
                 // تحويل لعربي
                 String percentArabic = toArabicNumbers(formattedPercent);
 
-                percentLbl.setText(percentArabic + "٪");
+                setNumericText(percentLbl, percentArabic + "٪");
 
                 gradeLbl.setText(gradeFromPercentage(percent));
+
+                // تنسيق الدبلومات الفنية: الطالب الحاصل على أقل من 60% غير مؤهل
+                // للتقدم، فيُطبع مكان كود التنسيق تنبيه بدلاً من الكود
+                if (percent < MIN_COORDINATION_PERCENT) {
+                    setNumericText(coordinationLbl, BELOW_COORDINATION_TEXT);
+                }
 
                 currentImagePath = rs.getString("image_path");
                 currentNationalId = rs.getString("national_id");
@@ -508,43 +579,44 @@ public class sucsseccFromPage extends javax.swing.JFrame {
             javax.swing.JLabel[] passLbls = { pass1Lbl, pass2Lbl, pass3Lbl, pass4Lbl };
             javax.swing.JLabel[] markLbls = { mark1Lbl, mark2Lbl, mark3Lbl, mark4Lbl };
 
+            // ملاحظة: المسافات البادئة القديمة ("      " + الرقم) اتشالت — الأرقام
+            // بقت متوسّطة داخل حدود خانتها، عشان الخط الأكبر ما يخرجش من المربع
             for (int i = 0; i < 4; i++) {
                 if (i < theory.size()) {
                     SubData s = theory.get(i);
                     subLbls[i].setText(wrapText(s.name, 48));
-                    maxLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.max)));
-                    passLbls[i].setText("      " + toArabicNumbers(String.valueOf(s.pass)));
-                    markLbls[i].setText(
-                            (i == 0 || i == 3 ? "       " : "      ") + toArabicNumbers(String.valueOf(s.mark)));
+                    setNumericText(maxLbls[i], toArabicNumbers(String.valueOf(s.max)));
+                    setNumericText(passLbls[i], toArabicNumbers(String.valueOf(s.pass)));
+                    setNumericText(markLbls[i], toArabicNumbers(String.valueOf(s.mark)));
                 } else {
                     subLbls[i].setText("");
-                    maxLbls[i].setText("");
-                    passLbls[i].setText("");
-                    markLbls[i].setText("");
+                    setNumericText(maxLbls[i], "");
+                    setNumericText(passLbls[i], "");
+                    setNumericText(markLbls[i], "");
                 }
             }
 
             // Practical / Applied
             if (!practical.isEmpty()) {
                 SubData p = practical.get(0);
-                amalymax.setText("     " + toArabicNumbers(String.valueOf(p.max)));
-                amalyPass.setText("     " + toArabicNumbers(String.valueOf(p.pass)));
-                studgra.setText("     " + toArabicNumbers(String.valueOf(p.mark)));
+                setNumericText(amalymax, toArabicNumbers(String.valueOf(p.max)));
+                setNumericText(amalyPass, toArabicNumbers(String.valueOf(p.pass)));
+                setNumericText(studgra, toArabicNumbers(String.valueOf(p.mark)));
             }
             if (!applied.isEmpty()) {
                 SubData a = applied.get(0);
-                tatbecMax.setText("     " + toArabicNumbers(String.valueOf(a.max)));
-                tatbecPass.setText("     " + toArabicNumbers(String.valueOf(a.pass)));
-                studeTa.setText("     " + toArabicNumbers(String.valueOf(a.mark)));
+                setNumericText(tatbecMax, toArabicNumbers(String.valueOf(a.max)));
+                setNumericText(tatbecPass, toArabicNumbers(String.valueOf(a.pass)));
+                setNumericText(studeTa, toArabicNumbers(String.valueOf(a.mark)));
             }
 
             int finalTa = practicalTotal + appliedTotal;
             int finalTotal = theoryTotal + finalTa;
 
             jLabel41.setText("     " + numberToArabicWords(finalTotal) + " درجة فقط لا غير");
-            ee.setText("     " + toArabicNumbers(String.valueOf(theoryTotal)));
-            practicalTotalLbl.setText("     " + toArabicNumbers(String.valueOf(finalTa)));
-            eed.setText("       " + toArabicNumbers(String.valueOf(finalTotal)));
+            setNumericText(ee, toArabicNumbers(String.valueOf(theoryTotal)));
+            setNumericText(practicalTotalLbl, toArabicNumbers(String.valueOf(finalTa)));
+            setNumericText(eed, toArabicNumbers(String.valueOf(finalTotal)));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -554,25 +626,9 @@ public class sucsseccFromPage extends javax.swing.JFrame {
     public void printSuccessForms(List<String[]> studentsData,
             java.util.function.BiConsumer<Integer, Integer> progressCallback) {
 
-        // إرجاع الاختيار اليدوي للشهر والسنة لضمان ظهوره للمستخدم
-        String selectedYear = null;
-        if (selectedMonth == null || selectedMonth.isEmpty()) {
-            selectedMonth = chooseMonth();
-            if (selectedMonth != null) {
-                selectedYear = chooseYear();
-            }
-        }
-
-        if (selectedMonth == null || selectedYear == null) {
-            JOptionPane.showMessageDialog(this, "لم يتم اختيار الموعد (الشهر أو السنة)");
-            return;
-        }
-
-        // تحديث التسمية بالشهر والسنة المختارين
-        roundLbl.setText(selectedMonth);
-        DateL.setText(toArabicNumbers(selectedYear));
-
-        // باقي الكود زي ما هو...
+        // الدور والسنة يُقرآن من إعدادات «بيانات الدور» ويُضبطان لكل طالب
+        // داخل loadStudentInfo حسب حالته — بدون أي سؤال للمستخدم
+        com.pvtd.students.services.ExamSessionService.reload();
 
         Connection con = null;
 
@@ -726,31 +782,18 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         }
     }
 
-    private String getArabicMonth() {
-
-        String[] months = {
-                "يناير", "فبراير", "مارس", "أبريل",
-                "مايو", "يونيو", "يوليو", "أغسطس",
-                "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-        };
-
-        int monthIndex = LocalDate.now().getMonthValue() - 1;
-
-        return months[monthIndex];
-    }
-
     /**
      * تنظيف العناصر من البيانات القديمة
      */
     private void clearLabels() {
         nameLbl.setText("");
-        seatNoLbl.setText("");
-        nationalIdLbl.setText("");
-        coordinationLbl.setText("");
+        setNumericText(seatNoLbl, "");
+        setNumericText(nationalIdLbl, "");
+        setNumericText(coordinationLbl, "");
         groupLbl.setText("");
         centerLbl.setText("");
         govLbl.setText("");
-        percentLbl.setText("");
+        setNumericText(percentLbl, "");
         gradeLbl.setText("");
 
         // تنظيف المواد النظرية
@@ -758,17 +801,21 @@ public class sucsseccFromPage extends javax.swing.JFrame {
         sub2Lbl.setText("");
         sub3Lbl.setText("");
         sub4Lbl.setText("");
-        mark1Lbl.setText("");
-        mark2Lbl.setText("");
-        mark3Lbl.setText("");
-        mark4Lbl.setText("");
+        setNumericText(mark1Lbl, "");
+        setNumericText(mark2Lbl, "");
+        setNumericText(mark3Lbl, "");
+        setNumericText(mark4Lbl, "");
 
         // تنظيف العملي والتطبيقي
-        studgra.setText("");
-        studeTa.setText("");
-        practicalTotalLbl.setText("");
-        eed.setText("");
-        ee.setText("");
+        setNumericText(amalymax, "");
+        setNumericText(amalyPass, "");
+        setNumericText(tatbecMax, "");
+        setNumericText(tatbecPass, "");
+        setNumericText(studgra, "");
+        setNumericText(studeTa, "");
+        setNumericText(practicalTotalLbl, "");
+        setNumericText(eed, "");
+        setNumericText(ee, "");
         jLabel41.setText("");
 
         studentImageLbl.setIcon(null);

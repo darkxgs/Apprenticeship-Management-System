@@ -369,36 +369,36 @@ public class SecondRound extends javax.swing.JFrame {
         jPanel1.repaint();
     }
 
+    /** عدد خانات عمود «مواد الدور الثاني» الثابتة: ٤ نظري + العملي */
+    private static final int SUBJECT_CELLS = 5;
+
     /**
-     * Creates a custom renderer for the "Materials of Second Round" column.
-     * Uses GridBagLayout for flexible widths and dynamic font scaling.
+     * Renderer عمود «مواد الدور الثاني»: ٥ خانات ثابتة متساوية العرض
+     * (٤ نظري + خانة العملي)، بترسم دايماً حتى لو فاضية، وعرضها مايتغيرش من
+     * صف لصف — GridLayout(1,5) بدون فراغات وباتجاه من اليمين للشمال.
+     * التطبيقي (index 5) بيتدمج جوه خانة العملي كـ «عملي / تطبيقي» عشان
+     * ماتضيعش معلومة ومايزيدش عدد الأعمدة.
      */
     private javax.swing.table.TableCellRenderer createSubjectsRenderer() {
         return new javax.swing.table.DefaultTableCellRenderer() {
-            private javax.swing.JPanel failedPanel;
-            private javax.swing.JLabel[] failedLabels;
+            private final javax.swing.JPanel failedPanel;
+            private final javax.swing.JLabel[] failedLabels;
 
             {
-                failedPanel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+                failedPanel = new javax.swing.JPanel(new java.awt.GridLayout(1, SUBJECT_CELLS, 0, 0));
                 failedPanel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
-                failedLabels = new javax.swing.JLabel[6];
-                java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-                gbc.fill = java.awt.GridBagConstraints.BOTH;
-                gbc.weighty = 1.0;
+                failedLabels = new javax.swing.JLabel[SUBJECT_CELLS];
 
-                for (int i = 0; i < 6; i++) {
+                for (int i = 0; i < SUBJECT_CELLS; i++) {
                     failedLabels[i] = new javax.swing.JLabel();
-                    failedLabels[i].setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                    failedLabels[i].setHorizontalAlignment(SwingConstants.CENTER);
+                    failedLabels[i].setVerticalAlignment(SwingConstants.CENTER);
+                    failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, 12));
                     failedLabels[i].setOpaque(true);
-
-                    gbc.gridx = i;
-                    // First 4 Theory columns get more space (weight 1.2) than Practical/Applied (weight 0.6)
-                    gbc.weightx = (i < 4) ? 1.2 : 0.6;
-
-                    if (i > 0) {
-                        failedLabels[i].setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 0, 1, Color.BLACK));
-                    }
-                    failedPanel.add(failedLabels[i], gbc);
+                    // نفس البرواز 1px لكل خانة → الأعمدة الخمسة تبان متساوية في كل صف
+                    failedLabels[i].setBorder(
+                            javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, Color.BLACK));
+                    failedPanel.add(failedLabels[i]);
                 }
             }
 
@@ -406,23 +406,37 @@ public class SecondRound extends javax.swing.JFrame {
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 String[] arr = value instanceof String[] ? (String[]) value : new String[6];
-                for (int i = 0; i < 6; i++) {
+                int cellW = table.getColumnModel().getColumn(0).getWidth() / SUBJECT_CELLS - 6;
+
+                for (int i = 0; i < SUBJECT_CELLS; i++) {
                     String text = (arr.length > i && arr[i] != null) ? arr[i].trim() : "";
 
-                    // Dynamic font scaling
-                    int fontSize = 14;
-                    if (text.length() > 30) fontSize = 9;
-                    else if (text.length() > 22) fontSize = 11;
-                    else if (text.length() > 15) fontSize = 13;
+                    // خانة العملي (index 4) بتضم التطبيقي (index 5) لو الطالب راسب فيه
+                    if (i == SUBJECT_CELLS - 1) {
+                        String applied = (arr.length > 5 && arr[5] != null) ? arr[5].trim() : "";
+                        if (!applied.isEmpty()) {
+                            text = text.isEmpty() ? applied : text + " / " + applied;
+                        }
+                    }
 
-                    failedLabels[i].setFont(new Font("Tahoma", Font.BOLD, fontSize));
-                    // Using a div with line-height to maximize vertical space
-                    failedLabels[i].setText("<html><center><div style='line-height: 0.9;'>" + text + "</div></center></html>");
+                    failedLabels[i].setText(text);
+
+                    // تصغير تلقائي للخط عشان اسم المادة الطويل يقع جوه الخانة
+                    // من غير ما يتغيّر عرضها
+                    int fs = 12;
+                    Font f = new Font("Tahoma", Font.BOLD, fs);
+                    while (fs > 7 && !text.isEmpty() && cellW > 0
+                            && failedLabels[i].getFontMetrics(f).stringWidth(text) > cellW) {
+                        fs--;
+                        f = new Font("Tahoma", Font.BOLD, fs);
+                    }
+                    failedLabels[i].setFont(f);
                     failedLabels[i].setBackground(Color.WHITE);
                     failedLabels[i].setForeground(Color.BLACK);
                 }
+
                 failedPanel.setBackground(Color.WHITE);
-                failedPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, Color.BLACK));
+                failedPanel.setBorder(null);
                 return failedPanel;
             }
         };

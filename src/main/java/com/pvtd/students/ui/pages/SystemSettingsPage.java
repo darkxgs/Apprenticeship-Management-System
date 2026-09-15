@@ -49,6 +49,11 @@ public class SystemSettingsPage extends JPanel {
 
     // Secret number increment
     private JTextField incrementField;
+
+    // بيانات الدور (شهر الدور الأول / شهر الدور الثاني / سنة الامتحان)
+    private JComboBox<String> round1MonthCombo;
+    private JComboBox<String> round2MonthCombo;
+    private JTextField examYearField;
     
     private final int itemsPerPage = 15;
     
@@ -139,6 +144,7 @@ public class SystemSettingsPage extends JPanel {
         tabs.addTab("المجموعات المهنية", buildProfGroupsTab());
         tabs.addTab("المهن", buildProfessionsTab());
         tabs.addTab("إعدادات الرقم السري", buildSecretSettingsTab());
+        tabs.addTab("بيانات الدور", buildExamSessionTab());
 
         add(tabs, BorderLayout.CENTER);
 
@@ -155,6 +161,7 @@ public class SystemSettingsPage extends JPanel {
         loadProfessions();
         loadProfGroupCombo();
         loadSecretIncrement();
+        loadExamSession();
     }
 
     // ──────────────────────────── REGIONS TAB ────────────────────────────
@@ -1154,6 +1161,111 @@ public class SystemSettingsPage extends JPanel {
             stmt.setString(1, val);
             stmt.executeUpdate();
             JOptionPane.showMessageDialog(this, "تم حفظ الإعداد بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "خطأ: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ──────────────────────────── EXAM SESSION TAB ────────────────────────────
+
+    private static final String[] ARABIC_MONTHS = {
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    };
+
+    private JPanel buildExamSessionTab() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(40, 40, 40, 40));
+
+        JLabel info = new JLabel(
+            "<html><div style='text-align:right; direction:rtl; font-family:Segoe UI; font-size:14px;'>" +
+            "<b>بيانات الدور (تُضبط مرة واحدة لكل عام)</b><br><br>" +
+            "كل الشهادات والاستمارات تأخذ الدور من هنا تلقائياً بدون أي سؤال للمستخدم:<br>" +
+            "• <b>طلاب الدور الأول</b>: يُطبع لهم شهر الدور الأول<br>" +
+            "• <b>طلاب الدور الثاني</b> (دور ثاني / مؤجل / ناجح دور ثاني / ناجح من الدور الثاني / راسب من الدور الثاني): يُطبع لهم شهر الدور الثاني<br>" +
+            "• <b>سنة الامتحان</b>: واحدة للدورين، وتظهر بالأرقام وبالحروف" +
+            "</div></html>",
+            SwingConstants.RIGHT);
+        info.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        info.setBorder(new EmptyBorder(0, 0, 30, 0));
+
+        round1MonthCombo = new JComboBox<>(ARABIC_MONTHS);
+        round1MonthCombo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        round1MonthCombo.setPreferredSize(new Dimension(150, 40));
+        round1MonthCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        round2MonthCombo = new JComboBox<>(ARABIC_MONTHS);
+        round2MonthCombo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        round2MonthCombo.setPreferredSize(new Dimension(150, 40));
+        round2MonthCombo.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        examYearField = new JTextField(8);
+        examYearField.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        examYearField.setHorizontalAlignment(JTextField.CENTER);
+        examYearField.setPreferredSize(new Dimension(120, 40));
+
+        p.add(info);
+        p.add(examSessionRow("شهر الدور الأول:", round1MonthCombo));
+        p.add(examSessionRow("شهر الدور الثاني:", round2MonthCombo));
+        p.add(examSessionRow("سنة الامتحان:", examYearField));
+
+        JPanel saveRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 8));
+        saveRow.setOpaque(false);
+        JButton btnSave = primaryBtn("حفظ بيانات الدور");
+        btnSave.addActionListener(e -> saveExamSession());
+        saveRow.add(btnSave);
+        p.add(saveRow);
+
+        return p;
+    }
+
+    private JPanel examSessionRow(String labelText, JComponent field) {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 8));
+        row.setOpaque(false);
+
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(UITheme.FONT_BODY);
+        lbl.setForeground(UITheme.TEXT_SECONDARY);
+        lbl.setPreferredSize(new Dimension(160, 40));
+        lbl.setHorizontalAlignment(JLabel.RIGHT);
+
+        row.add(field);
+        row.add(lbl);
+        return row;
+    }
+
+    private void loadExamSession() {
+        com.pvtd.students.services.ExamSessionService.reload();
+        round1MonthCombo.setSelectedItem(
+                com.pvtd.students.services.ExamSessionService.getRound1Month());
+        round2MonthCombo.setSelectedItem(
+                com.pvtd.students.services.ExamSessionService.getRound2Month());
+        examYearField.setText(String.valueOf(
+                com.pvtd.students.services.ExamSessionService.getExamYear()));
+    }
+
+    private void saveExamSession() {
+        String m1 = (String) round1MonthCombo.getSelectedItem();
+        String m2 = (String) round2MonthCombo.getSelectedItem();
+        String yearText = examYearField.getText().trim();
+
+        int year;
+        try {
+            year = Integer.parseInt(yearText);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "يرجى إدخال سنة صحيحة (مثال: 2026).", "خطأ", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (year < 1900 || year > 2999) {
+            JOptionPane.showMessageDialog(this, "يرجى إدخال سنة صحيحة (مثال: 2026).", "خطأ", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            com.pvtd.students.services.ExamSessionService.save(m1, m2, year);
+            JOptionPane.showMessageDialog(this, "تم حفظ بيانات الدور بنجاح!", "نجاح", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "خطأ: " + e.getMessage(), "خطأ", JOptionPane.ERROR_MESSAGE);
         }

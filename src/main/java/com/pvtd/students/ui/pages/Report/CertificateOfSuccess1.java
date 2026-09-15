@@ -28,7 +28,10 @@ public class CertificateOfSuccess1 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CertificateOfSuccess1.class.getName());
 
-    
+    /** حالة الطالب الجاري طباعته — منها يُشتق الدور (أول/ثاني) */
+    private String currentStatus = null;
+
+
     public CertificateOfSuccess1() {
         initComponents();
         lblGroup.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -39,20 +42,8 @@ public class CertificateOfSuccess1 extends javax.swing.JFrame {
         lblRegion.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblcenter.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        LocalDate date = LocalDate.now();
-
-int year = date.getYear();
-int month = date.getMonthValue();
-
-// الشهر عربي
-String arabicMonth = getArabicMonth(month);
-
-// السنة بالحروف
-String arabicYear = convertYearToArabicWWords(year);
-
-// حطهم في الليبلز — السنة بأرقام عربية
-jLabel13.setText(arabicMonth + " " + toArabicDigits(String.valueOf(year)) + " م");
-jLabel15.setText(arabicYear);
+        // الدور والسنة يُشتقان من إعدادات «بيانات الدور» — بدون أي سؤال للمستخدم
+        applySessionLabels(null);
 
         // الرص الثابت المنسق (بنفس أسلوب شهادة إدارة الامتحانات)
         applyExactLayout();
@@ -68,42 +59,26 @@ jLabel15.setText(arabicYear);
 }
     
     public String convertYearToArabicWords(int year) {
-        if (year == 2022) return "سنة ألفان واثنان وعشرون";
-        if (year == 2023) return "سنة ألفان وثلاثة وعشرون";
-        if (year == 2024) return "سنة ألفان وأربعة وعشرون";
-        if (year == 2025) return "سنة ألفان وخمسة وعشرون";
-        if (year == 2026) return "سنة ألفان وستة وعشرون";
-        
-        return "سنة " + year; // fallback
+        return com.pvtd.students.services.ExamSessionService.yearInArabicWordsWithPrefix(year);
     }
 
-    private String chooseMonth() {
-        String[] months = {
-            "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-            "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-        };
-        return (String) JOptionPane.showInputDialog(
-                this, "اختار الشهر:", "اختيار الشهر",
-                JOptionPane.QUESTION_MESSAGE, null, months, "يوليو"
-        );
+    /**
+     * ضبط سطر الدور (الشهر + السنة بالأرقام العربية) والسنة بالحروف
+     * من إعدادات «بيانات الدور» حسب حالة الطالب.
+     */
+    private void applySessionLabels(String status) {
+        int year = com.pvtd.students.services.ExamSessionService.getExamYear();
+        String month = com.pvtd.students.services.ExamSessionService.monthForStatus(status);
+        jLabel13.setText(month + " " + toArabicDigits(String.valueOf(year)) + " م");
+        jLabel15.setText(com.pvtd.students.services.ExamSessionService.yearInArabicWordsWithPrefix(year));
     }
 
-    private String chooseYear() {
-        String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
-        return (String) JOptionPane.showInputDialog(
-                this, "اختار السنة:", "اختيار السنة",
-                JOptionPane.QUESTION_MESSAGE, null, null, currentYear
-        );
-    }
-    
-    
-    
 
     public void loadStudentData(String seatNo) {
 
         String sql = "SELECT s.id, s.name, s.national_id, s.center_name, "
                 + "s.profession AS specialization, "
-                + "s.professional_group, s.region, s.phone_number "
+                + "s.professional_group, s.region, s.phone_number, s.status "
                 + "FROM students s "
                 + "WHERE TRIM(s.seat_no) = TRIM(?)";
 
@@ -115,7 +90,11 @@ jLabel15.setText(arabicYear);
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                
+
+                // حالة الطالب — منها يُشتق الدور (أول/ثاني) وسطر الشهر والسنة
+                currentStatus = rs.getString("status");
+                applySessionLabels(currentStatus);
+
                 double percentage = getStudentPercentage(seatNo);
 
 // تنسيق رقمين بعد العلامة
@@ -197,52 +176,10 @@ if (specializationFromDB != null) {
     }
 
     
+    /** محوّل السنة إلى حروف — النسخة الوحيدة موجودة في ExamSessionService */
     public String convertYearToArabicWWords(int year) {
-
-    String[] ones = {
-        "", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة",
-        "ستة", "سبعة", "ثمانية", "تسعة"
-    };
-
-    String[] tens = {
-        "", "عشرة", "عشرون", "ثلاثون", "أربعون",
-        "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"
-    };
-
-    int thousands = year / 1000;
-    int remainder = year % 1000;
-
-    String result = "";
-
-    // آلاف
-    if (thousands == 2) {
-        result += "ألفان";
-    } else if (thousands == 1) {
-        result += "ألف";
-    } else if (thousands > 2) {
-        result += ones[thousands] + " آلاف";
+        return com.pvtd.students.services.ExamSessionService.yearInArabicWordsWithPrefix(year);
     }
-
-    // باقي الرقم (زي 22 في 2022)
-    if (remainder > 0) {
-        int lastTwo = remainder % 100;
-        int t = lastTwo / 10;
-        int o = lastTwo % 10;
-
-        result += " و";
-
-        if (o > 0) {
-            result += ones[o];
-            if (t > 0) result += " و";
-        }
-
-        if (t > 0) {
-            result += tens[t];
-        }
-    }
-
-    return "سنة " + result;
-}
     
     public double getStudentPercentage(String seatNo) {
 
@@ -390,14 +327,9 @@ if (specializationFromDB != null) {
 
 public void printCertificates(List<Student> students, java.util.function.BiConsumer<Integer, Integer> progressCallback) {
 
-    String selectedMonth = chooseMonth();
-    if (selectedMonth == null) return;
-    String selectedYear = chooseYear();
-    if (selectedYear == null) return;
-    
-    int yearInt = Integer.parseInt(selectedYear);
-    jLabel13.setText(selectedMonth + " " + toArabicDigits(String.valueOf(yearInt)) + " م");
-    jLabel15.setText(convertYearToArabicWords(yearInt));
+    // الدور والسنة يُقرآن من إعدادات «بيانات الدور» ويُضبطان لكل طالب
+    // داخل loadStudentData حسب حالته — بدون أي سؤال للمستخدم
+    com.pvtd.students.services.ExamSessionService.reload();
 
     try {
 

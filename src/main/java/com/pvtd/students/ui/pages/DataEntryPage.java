@@ -34,6 +34,7 @@ public class DataEntryPage extends JPanel {
     private JComboBox<String> regionCombo;
     private JComboBox<String> centerCombo;
     private JTextField secretNoField;
+    private JTextField nationalIdField;
 
     // Grade inputs mapped by Subject ID
     private final Map<Integer, JTextField> gradeFieldsMap = new HashMap<>();
@@ -163,6 +164,35 @@ public class DataEntryPage extends JPanel {
         secretPanel.add(secretLbl);
         secretPanel.add(secretNoField);
 
+        // 1.2 National ID Icon + Label + Field (same visual style as the secret-no box)
+        JPanel nationalPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        nationalPanel.setOpaque(false);
+        nationalPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+        JLabel idIcon = new JLabel();
+        idIcon.setIcon(new DrawnIcon(DrawnIcon.Type.ID_CARD, 20, 20, Color.WHITE));
+        idIcon.setOpaque(true);
+        idIcon.setBackground(CLR_DARK_BLUE);
+        idIcon.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        idIcon.putClientProperty("FlatLaf.styleClass", "rounded");
+
+        JLabel nationalLbl = new JLabel("الرقم القومي:");
+        nationalLbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        nationalLbl.setForeground(Color.DARK_GRAY);
+
+        nationalIdField = new JTextField();
+        nationalIdField.setEditable(true); // Allow typing for search
+        nationalIdField.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        nationalIdField.setHorizontalAlignment(JTextField.CENTER);
+        nationalIdField.setPreferredSize(new Dimension(180, 36));
+        nationalIdField.setBackground(new Color(0xF4F7F9));
+        nationalIdField.setBorder(new LineBorder(new Color(0xE0E0E0), 1, true));
+        nationalIdField.addActionListener(e -> searchByNationalId()); // Trigger search on Enter
+
+        nationalPanel.add(idIcon);
+        nationalPanel.add(nationalLbl);
+        nationalPanel.add(nationalIdField);
+
         // 1.5 Region Combo
         JPanel regionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         regionPanel.setOpaque(false);
@@ -202,7 +232,10 @@ public class DataEntryPage extends JPanel {
         // 3. Search Button
         RoundedButton btnSearchSecret = new RoundedButton("بحث بالرقم السري", CLR_DARK_BLUE, Color.WHITE);
         btnSearchSecret.setPreferredSize(new Dimension(160, 40));
-        
+
+        RoundedButton btnSearchNational = new RoundedButton("بحث بالرقم القومي", CLR_DARK_BLUE, Color.WHITE);
+        btnSearchNational.setPreferredSize(new Dimension(160, 40));
+
         if (secondRoundMode) {
             JLabel modeLbl = new JLabel("إدخال درجات الدور الثاني");
             modeLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -218,8 +251,11 @@ public class DataEntryPage extends JPanel {
         topBar.add(Box.createHorizontalStrut(20));
         topBar.add(secretPanel);
         topBar.add(btnSearchSecret);
+        topBar.add(nationalPanel);
+        topBar.add(btnSearchNational);
 
         btnSearchSecret.addActionListener(e -> searchBySecret());
+        btnSearchNational.addActionListener(e -> searchByNationalId());
 
         // Wrapping with shadow
         JPanel shadowWrap = new JPanel(new BorderLayout());
@@ -606,13 +642,40 @@ public class DataEntryPage extends JPanel {
         performGlobalSecretSearch(num);
     }
 
+    private void searchByNationalId() {
+        String num = nationalIdField.getText().trim();
+        if (num.isEmpty()) {
+            num = JOptionPane.showInputDialog(this, "أدخل الرقم القومي للبحث:", "بحث بالرقم القومي", JOptionPane.QUESTION_MESSAGE);
+        }
+        if (num == null || num.trim().isEmpty()) return;
+
+        performGlobalNationalIdSearch(num);
+    }
+
     private void performGlobalSecretSearch(String secretNo) {
         Student s = StudentService.getStudentBySecretNo(secretNo);
         if (s == null) {
             JOptionPane.showMessageDialog(this, "الرقم السري غير موجود.", "خطأ", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        locateAndOpenStudent(s);
+    }
 
+    private void performGlobalNationalIdSearch(String nationalId) {
+        Student s = StudentService.getStudentByNationalId(nationalId);
+        if (s == null) {
+            JOptionPane.showMessageDialog(this, "الرقم القومي غير موجود.", "خطأ", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        locateAndOpenStudent(s);
+    }
+
+    /**
+     * Selects the student's region + center in the combos (which loads
+     * centerStudents) and then navigates to the student so the grade fields
+     * are populated. Shared by the secret-number and national-ID lookups.
+     */
+    private void locateAndOpenStudent(Student s) {
         if (checkDirty()) return;
 
         // 1. Identify and select correct Region
@@ -659,7 +722,7 @@ public class DataEntryPage extends JPanel {
 
         // 3. Find the student in the now-loaded centerStudents and navigate to them
         for (int i = 0; i < centerStudents.size(); i++) {
-            if (s.getSecretNo() != null && s.getSecretNo().equals(centerStudents.get(i).getSecretNo())) {
+            if (s.getId() == centerStudents.get(i).getId()) {
                 navigateTo(i);
                 return;
             }
@@ -683,7 +746,8 @@ public class DataEntryPage extends JPanel {
                 + ", rawProfession='" + currentStudent.getProfession() + "'");
         
         secretNoField.setText(currentStudent.getSecretNo() != null ? currentStudent.getSecretNo() : "غير محدد");
-        
+        nationalIdField.setText(currentStudent.getNationalId() != null ? currentStudent.getNationalId() : "غير محدد");
+
         isDirty = false;
         renderSubjectsForProfession();
         populateGradesIntoUI();
@@ -1080,7 +1144,7 @@ public class DataEntryPage extends JPanel {
     }
 
     private void clearUI() {
-        currentStudent = null; currentIndex = -1; centerStudents.clear(); secretNoField.setText("");
+        currentStudent = null; currentIndex = -1; centerStudents.clear(); secretNoField.setText(""); nationalIdField.setText("");
         subjectsContainer.removeAll(); subjectsContainer.revalidate(); subjectsContainer.repaint();
         gradeFieldsMap.clear();
         theoryTotalField.setText("0"); practicalTotalField.setText("0"); appliedTotalField.setText("0"); sumPracApplField.setText("0");
@@ -1142,7 +1206,7 @@ public class DataEntryPage extends JPanel {
     }
 
     static class DrawnIcon implements Icon {
-        public enum Type { LOCK, BOOK, FLASK, MONITOR, SIGMA }
+        public enum Type { LOCK, BOOK, FLASK, MONITOR, SIGMA, ID_CARD }
         private final Type type;
         private final int width, height;
         private final Color color;
@@ -1184,6 +1248,12 @@ public class DataEntryPage extends JPanel {
                     g2.drawRoundRect(mx-10, my-8, 20, 14, 2, 2);
                     g2.drawLine(mx, my+6, mx, my+10);
                     g2.drawLine(mx-4, my+10, mx+4, my+10);
+                    break;
+                case ID_CARD:
+                    g2.drawRoundRect(mx-9, my-6, 18, 12, 2, 2);
+                    g2.drawOval(mx-6, my-3, 5, 5);
+                    g2.drawLine(mx+1, my-2, mx+6, my-2);
+                    g2.drawLine(mx+1, my+2, mx+6, my+2);
                     break;
                 case SIGMA:
                     g2.drawLine(mx-5, my-6, mx+5, my-6);

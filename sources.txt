@@ -20,6 +20,7 @@
 .\src\main\java\com\pvtd\students\services\AuthService.java
 .\src\main\java\com\pvtd\students\services\DepartmentService.java
 .\src\main\java\com\pvtd\students\services\DictionaryService.java
+.\src\main\java\com\pvtd\students\services\ExamSessionService.java
 .\src\main\java\com\pvtd\students\services\ExcelService.java
 .\src\main\java\com\pvtd\students\services\GradeCalculationService.java
 .\src\main\java\com\pvtd\students\services\ImageImportService.java

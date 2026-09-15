@@ -330,7 +330,16 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
                             while (rs.next()) {
                                 String seatNo = rs.getString("seat_no");
                                 String[] failedSubjects = getFailedSubjectsForSeat(con, seatNo);
-                                String subjectsStr = String.join(" - ", Arrays.stream(failedSubjects).filter(s -> !s.isEmpty()).toArray(String[]::new));
+                                // نفس تجميع الكشف المطبوع (٥ أعمدة): التطبيقي بيتعرض
+                                // جوه خانة العملي كـ «عملي / تطبيقي»
+                                String applied = (failedSubjects.length > 5 && failedSubjects[5] != null)
+                                        ? failedSubjects[5].trim() : "";
+                                if (!applied.isEmpty()) {
+                                    String practical = (failedSubjects[4] == null) ? "" : failedSubjects[4].trim();
+                                    failedSubjects[4] = practical.isEmpty() ? applied : practical + " / " + applied;
+                                    failedSubjects[5] = "";
+                                }
+                                String subjectsStr = String.join(" - ", Arrays.stream(failedSubjects).filter(s -> s != null && !s.isEmpty()).toArray(String[]::new));
                                 
                                 data.add(new Object[]{
                                     subjectsStr,
@@ -647,6 +656,11 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         jPanel2.setLayout(new java.awt.GridBagLayout());
 
         cmdcenter.setLabeText("المركز");
+        // مقاس ثابت: بدون هذا تتمدد القائمة بطول اسم المركز المختار فتضغط
+        // شريط الأزرار ويختفي زر «كشف بالدرجات» خارج الشاشة
+        cmdcenter.setPreferredSize(new java.awt.Dimension(260, 45));
+        cmdcenter.setMinimumSize(new java.awt.Dimension(260, 45));
+        cmdcenter.setMaximumSize(new java.awt.Dimension(260, 45));
         cmdcenter.addActionListener(this::cmdcenterActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2; gridBagConstraints.gridy = 0;
@@ -655,6 +669,9 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         jPanel2.add(cmdcenter, gridBagConstraints);
 
         cmdcenter1.setLabeText("المنطقة");
+        cmdcenter1.setPreferredSize(new java.awt.Dimension(260, 45));
+        cmdcenter1.setMinimumSize(new java.awt.Dimension(260, 45));
+        cmdcenter1.setMaximumSize(new java.awt.Dimension(260, 45));
         cmdcenter1.addActionListener(this::cmdcenter1ActionPerformed);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3; gridBagConstraints.gridy = 0;
@@ -672,8 +689,12 @@ public class ScoundRoundFramePage extends javax.swing.JFrame {
         buttonGradient1.addActionListener(this::buttonGradient1ActionPerformed);
         buttonGradient2.addActionListener(this::buttonGradient2ActionPerformed);
 
-        javax.swing.JPanel actionsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
+        // GridLayout بدل FlowLayout: الأخير كان «يلف» الزر الزائد إلى سطر ثانٍ
+        // مخفي (ارتفاع الشريط 40 فقط) فيختفي زر «كشف بالدرجات» تماماً
+        javax.swing.JPanel actionsPanel = new javax.swing.JPanel(new java.awt.GridLayout(1, 3, 15, 0));
         actionsPanel.setOpaque(false);
+        actionsPanel.setMinimumSize(new java.awt.Dimension(480, 40));
+        actionsPanel.setPreferredSize(new java.awt.Dimension(510, 40));
 
         btnSelectAll.addActionListener(e -> jTable1.selectAll());
         btnSelectAll.setPreferredSize(new java.awt.Dimension(130, 40));

@@ -106,6 +106,24 @@ public class StudentService {
         return null;
     }
 
+    public static Student getStudentByNationalId(String nationalId) {
+        String query = "SELECT * FROM students WHERE TRIM(national_id) = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, nationalId.trim());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Student s = extractStudent(rs);
+                    s.setGrades(getStudentGrades(conn, s.getId()));
+                    return s;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static List<Student> searchStudents(String keyword, String seatNo, String governorate, String region, String profession,
             String status, String centerName) {
         List<Student> students = new ArrayList<>();
@@ -678,9 +696,11 @@ public class StudentService {
             stmt.setString(24, s.getIdFrontPath());
             stmt.setString(25, s.getIdBackPath());
 
+            // تعديل بيانات الطالب لا يغيّر حالته إطلاقاً: الحالة تُحسب فقط إذا
+            // لم تكن مسجلة أصلاً. إعادة الحساب هنا كانت تمسح حالات الدور الثاني
+            // والغياب والحرمان بمجرد تعديل الرقم القومي أو أي بيان آخر.
             String currentStatus = s.getStatus();
-            if (currentStatus == null || currentStatus.trim().isEmpty() || currentStatus.equals("غير محدد")
-                    || currentStatus.equals("ناجح") || currentStatus.equals("راسب") || currentStatus.equals("دور ثاني")) {
+            if (currentStatus == null || currentStatus.trim().isEmpty() || currentStatus.equals("غير محدد")) {
                 currentStatus = calculateStatus(s.getProfession(), s.getGrades());
             }
             stmt.setString(26, currentStatus);
