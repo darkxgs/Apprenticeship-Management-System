@@ -254,6 +254,7 @@ public class NewJFrame1 extends javax.swing.JFrame {
             "FROM students s " +
             "WHERE TRIM(s.seat_no) = TRIM(?)";
 
+        boolean found = false;
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, seatNo);
             try (ResultSet rs = ps.executeQuery()) {
@@ -282,8 +283,12 @@ public class NewJFrame1 extends javax.swing.JFrame {
 
                     currentCenterName = centerName;
                     currentNationalId = nationalId;
+                    found = true;
                 }
             }
+        }
+        if (!found) {
+            throw new IllegalStateException("لا توجد بيانات لهذا الطالب في قاعدة البيانات");
         }
     }
 
@@ -573,6 +578,8 @@ public class NewJFrame1 extends javax.swing.JFrame {
             }
 
             int total = studentsData.size();
+            int printed = 0;
+            java.util.List<String> failures = new java.util.ArrayList<>();
 
             for (int idx = 0; idx < total; idx++) {
                 String[] info   = studentsData.get(idx);
@@ -580,6 +587,9 @@ public class NewJFrame1 extends javax.swing.JFrame {
 
                 if (progressCallback != null) progressCallback.accept(idx + 1, total);
 
+                // عزل كل طالب: خطأ في طالب واحد لا يوقف الباقي ولا يترك
+                // ملف PDF ناقصاً (كان بيطلع استمارة فاضية من غير أي رسالة)
+                try {
                 clearForm();
                 loadStudentInfo(seatNo, con);
                 loadStudentGrades(seatNo, con);
@@ -634,34 +644,53 @@ public class NewJFrame1 extends javax.swing.JFrame {
                 imgCenter.scaleAbsolute(PageSize.A4.getWidth(), PageSize.A4.getHeight());
                 imgCenter.setAbsolutePosition(0, 0);
                 centerDoc.add(imgCenter);
+
+                printed++;
+                } catch (Exception studentEx) {
+                    studentEx.printStackTrace();
+                    failures.add("رقم الجلوس " + seatNo + " : " + studentEx.getMessage());
+                }
             }
 
             g2.dispose();
 
+            // إغلاق الملفات دائماً حتى لو فشل طالب — وإلا يخرج PDF ناقص/فاضي
             for (Document d : centerDocs.values()) {
-                if (d.isOpen()) d.close();
+                try { if (d.isOpen()) d.close(); } catch (Exception ignore) {}
             }
-            if (allDoc.isOpen()) allDoc.close();
+            try { if (allDoc.isOpen()) allDoc.close(); } catch (Exception ignore) {}
 
             final File finalRoot = rootFolder;
             final File finalAll  = allFile;
-            final int  finalN    = total;
+            final int  finalOk   = printed;
+            final java.util.List<String> finalFail = failures;
 
             SwingUtilities.invokeLater(() -> {
                 try {
-                    if (finalN == 1) {
-                        String[] list = finalRoot.list();
-                        if (list != null && list.length > 0) {
-                            Desktop.getDesktop().open(new File(finalRoot, list[0]));
-                        }
-                    } else {
+                    if (finalOk > 0) {
+                        // نفتح الملف المُنتَج فعلاً — لا أول ملف في المجلد
                         Desktop.getDesktop().open(finalRoot);
-                        Desktop.getDesktop().open(finalAll);
+                        if (finalAll.exists() && finalAll.length() > 0) {
+                            Desktop.getDesktop().open(finalAll);
+                        }
                     }
-                    javax.swing.JOptionPane.showMessageDialog(null,
-                        "تم إنشاء " + finalN + " استمارة بنجاح",
-                        "اكتمال العملية",
-                        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    if (finalFail.isEmpty()) {
+                        javax.swing.JOptionPane.showMessageDialog(null,
+                            "تم إنشاء " + finalOk + " استمارة بنجاح",
+                            "اكتمال العملية",
+                            javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        StringBuilder msg = new StringBuilder();
+                        msg.append("تم إنشاء ").append(finalOk).append(" استمارة، وتعذّر إنشاء ")
+                           .append(finalFail.size()).append(":\n\n");
+                        int shown = 0;
+                        for (String fmsg : finalFail) {
+                            if (shown++ >= 10) { msg.append("... وغيرهم\n"); break; }
+                            msg.append("• ").append(fmsg).append("\n");
+                        }
+                        javax.swing.JOptionPane.showMessageDialog(null, msg.toString(),
+                            "تحذير: استمارات لم تُنشأ", javax.swing.JOptionPane.WARNING_MESSAGE);
+                    }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
