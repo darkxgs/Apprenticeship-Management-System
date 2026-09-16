@@ -145,6 +145,7 @@ public class SystemSettingsPage extends JPanel {
         tabs.addTab("المهن", buildProfessionsTab());
         tabs.addTab("إعدادات الرقم السري", buildSecretSettingsTab());
         tabs.addTab("بيانات الدور", buildExamSessionTab());
+        tabs.addTab("الاتصال بقاعدة البيانات", buildDbConnectionTab());
 
         add(tabs, BorderLayout.CENTER);
 
@@ -1172,6 +1173,43 @@ public class SystemSettingsPage extends JPanel {
         "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
         "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
     };
+
+
+    /** تبويب الاتصال بقاعدة البيانات — لتغيير عنوان الخادم عند نقل القاعدة */
+    private JPanel buildDbConnectionTab() {
+        JPanel panel = new JPanel(new java.awt.BorderLayout(0, 14));
+        panel.setBackground(java.awt.Color.WHITE);
+        panel.setBorder(new javax.swing.border.EmptyBorder(24, 24, 24, 24));
+        panel.setComponentOrientation(java.awt.ComponentOrientation.RIGHT_TO_LEFT);
+
+        JLabel info = new JLabel("<html><div style='text-align:right'>"
+                + "لتغيير الجهاز الذي توجد عليه قاعدة البيانات (عند نقلها لجهاز آخر)،"
+                + " اضغط الزر بالأسفل واكتب عنوان الجهاز الجديد.<br>"
+                + "الخادم الحالي: <b>" + com.pvtd.students.db.DatabaseConnection.currentUrl() + "</b><br>"
+                + "ملف الإعدادات: " + com.pvtd.students.db.ConfigManager.activePath()
+                + "</div></html>");
+        info.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        panel.add(info, java.awt.BorderLayout.NORTH);
+
+        JButton open = new JButton("فتح إعدادات الاتصال");
+        open.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        open.setBackground(new java.awt.Color(0x1A5F7A));
+        open.setForeground(java.awt.Color.WHITE);
+        open.setOpaque(true);
+        open.setFocusPainted(false);
+        open.setPreferredSize(new java.awt.Dimension(240, 44));
+        open.addActionListener(e -> {
+            java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(this);
+            com.pvtd.students.db.DbSettingsDialog.showDialog(
+                    (w instanceof java.awt.Frame) ? (java.awt.Frame) w : null);
+        });
+
+        JPanel row = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
+        row.setOpaque(false);
+        row.add(open);
+        panel.add(row, java.awt.BorderLayout.CENTER);
+        return panel;
+    }
 
     private JPanel buildExamSessionTab() {
         JPanel p = new JPanel();

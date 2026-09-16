@@ -11,6 +11,39 @@ public class DatabaseConnection {
     private static final String PASSWORD = ConfigManager.get("db.password", "123");
     private static final int MAX_POOL_SIZE = 20;
 
+    /**
+     * اختبار اتصال مستقل تماماً عن المجمّع — يُستخدم في شاشة الإعدادات.
+     * يرجع null عند النجاح، أو رسالة الخطأ عند الفشل.
+     */
+    public static String testConnection(String url, String user, String password) {
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException e) {
+            return "مشغّل أوراكل غير موجود";
+        }
+        java.util.Properties props = new java.util.Properties();
+        props.put("user", user == null ? "" : user);
+        props.put("password", password == null ? "" : password);
+        props.put("oracle.net.CONNECT_TIMEOUT", "8000");
+        props.put("oracle.jdbc.ReadTimeout", "8000");
+        try (Connection c = DriverManager.getConnection(url, props)) {
+            return c.isValid(5) ? null : "الاتصال غير صالح";
+        } catch (Exception e) {
+            String m = e.getMessage();
+            return (m == null || m.isBlank()) ? e.getClass().getSimpleName() : m.trim();
+        }
+    }
+
+    /** هل قاعدة البيانات المضبوطة حالياً قابلة للوصول؟ */
+    public static String currentConnectionError() {
+        return testConnection(URL, USER, PASSWORD);
+    }
+
+    /** الرابط المستخدم حالياً — يُعرض في رسائل الخطأ */
+    public static String currentUrl() {
+        return URL;
+    }
+
     // Simple connection pool
     private static final List<Connection> pool = new ArrayList<>();
 

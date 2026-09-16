@@ -10,6 +10,7 @@
 .\src\main\java\com\pvtd\students\TestCenters.java
 .\src\main\java\com\pvtd\students\db\ConfigManager.java
 .\src\main\java\com\pvtd\students\db\DatabaseConnection.java
+.\src\main\java\com\pvtd\students\db\DbSettingsDialog.java
 .\src\main\java\com\pvtd\students\debug\ExcelInspector.java
 .\src\main\java\com\pvtd\students\models\Department.java
 .\src\main\java\com\pvtd\students\models\Specialization.java
