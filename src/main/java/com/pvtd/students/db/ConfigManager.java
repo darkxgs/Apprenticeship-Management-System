@@ -101,8 +101,31 @@ public class ConfigManager {
         System.out.println("Saved config to: " + target.getAbsolutePath());
     }
 
-    /** بناء رابط اتصال أوراكل من عنوان الخادم والمنفذ واسم القاعدة */
+    /** رابط بصيغة SID (أوراكل XE 11g والأقدم): @host:port:SID */
     public static String buildUrl(String host, String port, String sid) {
         return "jdbc:oracle:thin:@" + host.trim() + ":" + port.trim() + ":" + sid.trim();
+    }
+
+    /** رابط بصيغة Service Name (أوراكل XE 18c وما بعده): @host:port/SERVICE */
+    public static String buildServiceUrl(String host, String port, String service) {
+        return "jdbc:oracle:thin:@" + host.trim() + ":" + port.trim() + "/" + service.trim();
+    }
+
+    /**
+     * كل صيغ الاتصال المحتملة بالترتيب — إصدارات أوراكل المختلفة تحتاج صيغاً
+     * مختلفة: الإصدارات الحديثة (18c فأحدث) قاعدتها الافتراضية XEPDB1 بصيغة
+     * Service Name، والقديمة (11g) تستخدم SID باسم XE.
+     */
+    public static java.util.List<String> candidateUrls(String host, String port, String name) {
+        java.util.LinkedHashSet<String> urls = new java.util.LinkedHashSet<>();
+        String n = name == null ? "" : name.trim();
+        if (!n.isEmpty()) {
+            urls.add(buildUrl(host, port, n));          // SID كما كتبه المستخدم
+            urls.add(buildServiceUrl(host, port, n));   // Service Name بنفس الاسم
+        }
+        urls.add(buildServiceUrl(host, port, "XEPDB1")); // أوراكل XE 18c فأحدث
+        urls.add(buildServiceUrl(host, port, "XE"));
+        urls.add(buildUrl(host, port, "XE"));            // أوراكل XE 11g
+        return new java.util.ArrayList<>(urls);
     }
 }

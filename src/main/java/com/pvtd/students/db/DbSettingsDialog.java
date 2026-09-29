@@ -17,6 +17,8 @@ public class DbSettingsDialog extends JDialog {
     private final JPasswordField passField = new JPasswordField(12);
     private final JLabel statusLbl = new JLabel(" ");
     private boolean saved = false;
+    /** الرابط الذي نجح في آخر اختبار — هو الذي يُحفظ */
+    private String workingUrl = null;
 
     public DbSettingsDialog(Frame owner) {
         super(owner, "إعدادات الاتصال بقاعدة البيانات", true);
@@ -118,27 +120,84 @@ public class DbSettingsDialog extends JDialog {
         return ConfigManager.buildUrl(hostField.getText(), portField.getText(), sidField.getText());
     }
 
+    /**
+     * يجرّب كل صيغ الاتصال المعروفة — إصدارات أوراكل المختلفة تحتاج صيغاً
+     * مختلفة، فبدل ما يفشل المستخدم بسبب الصيغة نجرّبها له كلها.
+     * يرجع الرابط الذي نجح، أو null مع تعبئة lastError.
+     */
+    private String lastError = "";
+
+    private String findWorkingUrl() {
+        String user = userField.getText();
+        String pass = new String(passField.getPassword());
+        String firstError = null;
+        for (String url : ConfigManager.candidateUrls(
+                hostField.getText(), portField.getText(), sidField.getText())) {
+            String err = DatabaseConnection.testConnection(url, user, pass);
+            if (err == null) return url;
+            if (firstError == null) firstError = err;
+            // كلمة مرور أو مستخدم خطأ: لا فائدة من تجربة باقي الصيغ
+            if (err.contains("ORA-01017") || err.contains("invalid username")) {
+                firstError = err;
+                break;
+            }
+        }
+        lastError = firstError == null ? "سبب غير معروف" : firstError;
+        return null;
+    }
+
     private void testConnection() {
         statusLbl.setForeground(Color.DARK_GRAY);
         statusLbl.setText("جاري الاختبار...");
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         SwingUtilities.invokeLater(() -> {
-            String err = DatabaseConnection.testConnection(currentUrl(),
-                    userField.getText(), new String(passField.getPassword()));
+            String ok = findWorkingUrl();
             setCursor(Cursor.getDefaultCursor());
-            if (err == null) {
+            if (ok != null) {
+                workingUrl = ok;
                 statusLbl.setForeground(new Color(0x15803D));
-                statusLbl.setText("تم الاتصال بنجاح ✔");
+                statusLbl.setText("تم الاتصال بنجاح ✔   (" + ok + ")");
             } else {
+                workingUrl = null;
                 statusLbl.setForeground(new Color(0xC0392B));
-                statusLbl.setText("فشل الاتصال: " + err);
+                statusLbl.setText("<html><div style='text-align:center'>فشل الاتصال:<br>"
+                        + lastError + "<br><b>" + hintFor(lastError) + "</b></div></html>");
             }
         });
     }
 
+    /** ترجمة رسالة أوراكل إلى سبب مفهوم وخطوة عملية */
+    private static String hintFor(String err) {
+        if (err == null) return "";
+        if (err.contains("ORA-01017") || err.contains("invalid username"))
+            return "اسم المستخدم أو كلمة المرور غير صحيحة — جرّب كلمة المرور التي وضعتها أثناء تنصيب أوراكل.";
+        if (err.contains("ORA-12505") || err.contains("ORA-12514"))
+            return "اسم القاعدة غير صحيح — في أوراكل الحديث اكتب XEPDB1 بدل XE.";
+        if (err.contains("ORA-12541") || err.contains("no listener"))
+            return "خدمة أوراكل غير مشغّلة على الجهاز — شغّل خدمة OracleServiceXE و Listener.";
+        if (err.contains("Network Adapter") || err.contains("ORA-12170") || err.contains("timed out"))
+            return "لا يمكن الوصول للجهاز — راجع العنوان وجدار الحماية على منفذ 1521.";
+        if (err.contains("ORA-28000")) return "الحساب مقفول — افتحه من أوراكل.";
+        if (err.contains("ORA-28001")) return "كلمة المرور منتهية — غيّرها من أوراكل.";
+        return "";
+    }
+
     private void saveAndClose() {
         try {
-            ConfigManager.saveDbSettings(currentUrl(), userField.getText(),
+            // إن لم يُختبر الاتصال بعد، نبحث عن صيغة ناجحة قبل الحفظ
+            String url = workingUrl;
+            if (url == null) url = findWorkingUrl();
+            if (url == null) {
+                int go = JOptionPane.showConfirmDialog(this,
+                        "تعذّر الاتصال بالإعدادات المكتوبة:\n" + lastError
+                        + "\n\n" + hintFor(lastError)
+                        + "\n\nهل تريد حفظها رغم ذلك؟",
+                        "الاتصال غير ناجح", JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+                if (go != JOptionPane.YES_OPTION) return;
+                url = currentUrl();
+            }
+            ConfigManager.saveDbSettings(url, userField.getText(),
                     new String(passField.getPassword()));
             saved = true;
             JOptionPane.showMessageDialog(this,
