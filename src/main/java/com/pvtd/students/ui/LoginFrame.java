@@ -532,7 +532,10 @@ public class LoginFrame extends JFrame {
                         loginButton.setEnabled(true);
                     }
                 } catch (Exception ex) {
-                    showError("خطأ في الاتصال بقاعدة البيانات");
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    String why = cause.getMessage() != null ? cause.getMessage() : "";
+                    if (why.length() > 90) why = why.substring(0, 90) + "…";
+                    showError("خطأ في الاتصال بقاعدة البيانات: " + why);
                     loginButton.setText("تسجيل الدخول");
                     loginButton.setEnabled(true);
                 }

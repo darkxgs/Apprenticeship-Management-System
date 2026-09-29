@@ -33,6 +33,9 @@ public class AuthService {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            // فشل الاتصال ليس «كلمة مرور خاطئة»: نرفعه حتى تعرض شاشة الدخول
+            // رسالة «خطأ في الاتصال بقاعدة البيانات» مع السبب الحقيقي
+            throw new RuntimeException(e.getMessage(), e);
         }
         return null;
     }
