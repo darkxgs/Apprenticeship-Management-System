@@ -40,9 +40,9 @@ public class ExcelService {
                 "ON (s.seat_no = src.seat) " +
                 "WHEN MATCHED THEN " +
                 "  UPDATE SET serial=?, name=?, registration_no=?, national_id=?, region=?, profession=?, " +
-                "  exam_system=?, secret_no=?, professional_group=?, coordination_no=?, dob_day=?, dob_month=?, " +
+                "  exam_system=?, secret_no=NVL(s.secret_no, ?), professional_group=?, coordination_no=?, dob_day=?, dob_month=?, " +
                 "  dob_year=?, gender=?, neighborhood=?, governorate=?, religion=?, nationality=?, address=?, " +
-                "  other_notes=?, image_path=?, center_name=?, id_front_path=?, id_back_path=?, phone_number=? " +
+                "  other_notes=?, image_path=NVL(?, s.image_path), center_name=?, id_front_path=NVL(?, s.id_front_path), id_back_path=NVL(?, s.id_back_path), phone_number=? " +
                 "WHEN NOT MATCHED THEN " +
                 "  INSERT (seat_no, serial, name, registration_no, national_id, region, profession, " +
                 "  exam_system, secret_no, professional_group, coordination_no, dob_day, dob_month, dob_year, " +
@@ -133,7 +133,8 @@ public class ExcelService {
                         syncedCenters.add(centerKey);
                     }
                 
-                    // Secret Number Generation (Requirement: always auto-generate during import)
+                    // Secret Number Generation: new students get one; an existing student keeps
+                    // theirs (NVL in the MERGE) so re-importing never renumbers the second round
                     String secretNo = SecretNumberService.generateSecretNumber(region, centerName, seatNo);
                 
                     String coordNo = normalizeImportedText(getCellValue(row.getCell(11)));

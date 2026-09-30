@@ -161,7 +161,7 @@ public class DatabaseConnection {
                     "END;";
             stmt.execute(createUsersTable);
 
-            String userTrigger = "CREATE OR REPLACE TRIGGER trg_users_seq BEFORE INSERT ON users FOR EACH ROW BEGIN :new.id := users_seq.nextval; END;";
+            String userTrigger = "CREATE OR REPLACE TRIGGER trg_users_seq BEFORE INSERT ON users FOR EACH ROW BEGIN IF :new.id IS NULL THEN :new.id := users_seq.nextval; END IF; END;";
             stmt.execute(userTrigger);
 
             createSequence(stmt, "departments_seq");
@@ -564,7 +564,7 @@ public class DatabaseConnection {
 
     private static void createTrigger(Statement stmt, String tableName) {
         String trigger = "CREATE OR REPLACE TRIGGER trg_" + tableName + "_seq BEFORE INSERT ON " + tableName +
-                " FOR EACH ROW BEGIN :new.id := " + tableName + "_seq.nextval; END;";
+                " FOR EACH ROW BEGIN IF :new.id IS NULL THEN :new.id := " + tableName + "_seq.nextval; END IF; END;";
         try {
             stmt.execute(trigger);
         } catch (Exception e) {

@@ -6,6 +6,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.pvtd.students.db.DatabaseConnection;
+import com.pvtd.students.services.DataTransferService;
+import com.pvtd.students.ui.components.LoadingDialog;
 import com.pvtd.students.ui.AppFrame;
 import com.pvtd.students.ui.utils.UITheme;
 
@@ -24,9 +26,11 @@ public class BackupRestorePage extends JPanel {
     private CardLayout cardLayout;
 
     // Segmented control buttons
-    private JButton btnTabBackup, btnTabRestore;
+    private JButton btnTabBackup, btnTabRestore, btnTabTransfer;
+    private final AppFrame parentFrame;
 
     public BackupRestorePage(AppFrame parent) {
+        this.parentFrame = parent;
         setLayout(new BorderLayout());
         setBackground(UITheme.BG_LIGHT);
         setBorder(new EmptyBorder(24, 30, 30, 30));
@@ -46,9 +50,12 @@ public class BackupRestorePage extends JPanel {
 
         btnTabBackup = createSegmentBtn("نسخ احتياطي", true);
         btnTabRestore = createSegmentBtn("استعادة البيانات", false);
+        btnTabTransfer = createSegmentBtn("نقل كامل بين الأجهزة", false);
+        btnTabTransfer.setPreferredSize(new Dimension(240, 45));
 
         segmentedPanel.add(btnTabBackup);
         segmentedPanel.add(btnTabRestore);
+        segmentedPanel.add(btnTabTransfer);
         topArea.add(segmentedPanel, BorderLayout.CENTER);
 
         add(topArea, BorderLayout.NORTH);
@@ -61,6 +68,7 @@ public class BackupRestorePage extends JPanel {
         // Wrap panels in a container that prevents excessive stretching
         contentPane.add(wrapInCenteringPanel(buildBackupPanel()), "BACKUP");
         contentPane.add(wrapInCenteringPanel(buildRestorePanel()), "RESTORE");
+        contentPane.add(wrapInCenteringPanel(buildTransferPanel()), "TRANSFER");
 
         JScrollPane scrollPane = new JScrollPane(contentPane);
         scrollPane.setBorder(null);
@@ -71,7 +79,7 @@ public class BackupRestorePage extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         // Default view
-        switchTab(true);
+        switchTab(0);
     }
 
     private JPanel wrapInCenteringPanel(JPanel panel) {
@@ -97,26 +105,23 @@ public class BackupRestorePage extends JPanel {
         btn.putClientProperty("JButton.arc", 12);
         btn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
 
-        btn.addActionListener(e -> switchTab(text.contains("نسخ")));
+        btn.addActionListener(e -> switchTab(text.contains("نقل") ? 2 : text.contains("نسخ") ? 0 : 1));
         return btn;
     }
 
-    private void switchTab(boolean isBackup) {
-        // Update Backup Tab
-        btnTabBackup.setBackground(isBackup ? UITheme.PRIMARY : new Color(0xE2E8F0));
-        btnTabBackup.setForeground(isBackup ? Color.WHITE : UITheme.TEXT_SECONDARY);
-        FlatSVGIcon backupIcon = new FlatSVGIcon("icons/download.svg", 20, 20);
-        backupIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> isBackup ? Color.WHITE : UITheme.TEXT_SECONDARY));
-        btnTabBackup.setIcon(backupIcon);
-        
-        // Update Restore Tab
-        btnTabRestore.setBackground(!isBackup ? UITheme.PRIMARY : new Color(0xE2E8F0));
-        btnTabRestore.setForeground(!isBackup ? Color.WHITE : UITheme.TEXT_SECONDARY);
-        FlatSVGIcon restoreIcon = new FlatSVGIcon("icons/upload.svg", 20, 20);
-        restoreIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> !isBackup ? Color.WHITE : UITheme.TEXT_SECONDARY));
-        btnTabRestore.setIcon(restoreIcon);
-        
-        cardLayout.show(contentPane, isBackup ? "BACKUP" : "RESTORE");
+    private void switchTab(int tab) {
+        styleSegment(btnTabBackup, tab == 0, "icons/download.svg");
+        styleSegment(btnTabRestore, tab == 1, "icons/upload.svg");
+        styleSegment(btnTabTransfer, tab == 2, "icons/import.svg");
+        cardLayout.show(contentPane, tab == 0 ? "BACKUP" : tab == 1 ? "RESTORE" : "TRANSFER");
+    }
+
+    private void styleSegment(JButton btn, boolean active, String iconPath) {
+        btn.setBackground(active ? UITheme.PRIMARY : new Color(0xE2E8F0));
+        btn.setForeground(active ? Color.WHITE : UITheme.TEXT_SECONDARY);
+        FlatSVGIcon icon = new FlatSVGIcon(iconPath, 20, 20);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> active ? Color.WHITE : UITheme.TEXT_SECONDARY));
+        btn.setIcon(icon);
     }
 
     // --- Backup UI ---
@@ -286,6 +291,183 @@ public class BackupRestorePage extends JPanel {
         gbc.gridy = 4; gbc.insets = new Insets(0, 150, 0, 150); card.add(btnSelect, gbc);
 
         return card;
+    }
+
+    // --- Full transfer UI ---
+
+    private JPanel buildTransferPanel() {
+        JPanel card = createMainCard();
+        card.setPreferredSize(new Dimension(1080, 640));
+        card.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+
+        JLabel head = new JLabel("نقل كل بيانات البرنامج إلى جهاز آخر", SwingConstants.CENTER);
+        head.setFont(UITheme.FONT_CARD_TITLE);
+        gbc.gridy = 0; gbc.insets = new Insets(0, 0, 10, 0); card.add(head, gbc);
+
+        JLabel sub = new JLabel("<html><div style='text-align:center;'>ملف واحد فيه كل شيء: الطلاب وبياناتهم وصورهم، الدرجات، المواد والمواد المركبة (30/70)،<br>"
+                + "الحالات، الأرقام السرية، الدور الثاني، المستخدمين، القوائم، الإعدادات، سجل العمليات والأرشيف.</div></html>", SwingConstants.CENTER);
+        sub.setFont(UITheme.FONT_BODY);
+        sub.setForeground(UITheme.TEXT_SECONDARY);
+        gbc.gridy = 1; gbc.insets = new Insets(0, 60, 40, 60); card.add(sub, gbc);
+
+        JPanel steps = new JPanel(new GridLayout(1, 2, 30, 0));
+        steps.setOpaque(false);
+        steps.add(transferStep("1) على الجهاز القديم",
+                "يُنشئ ملفاً واحداً فيه كل البيانات والصور<br>انقله بفلاشة أو على الشبكة للجهاز الجديد.",
+                "تصدير كل البيانات", UITheme.PRIMARY, "icons/download.svg", e -> runFullExport()));
+        steps.add(transferStep("2) على الجهاز الجديد",
+                "يستبدل كل بيانات هذا الجهاز بمحتوى الملف<br>(مع حفظ نسخة أمان من بياناته تلقائياً أولاً).",
+                "استيراد كل البيانات", new Color(0x10B981), "icons/upload.svg", e -> runFullImport()));
+        gbc.gridy = 2; gbc.insets = new Insets(0, 20, 40, 20); card.add(steps, gbc);
+
+        JPanel warnBox = new JPanel(new BorderLayout());
+        warnBox.setBackground(new Color(0xFEF2F2));
+        warnBox.setBorder(new EmptyBorder(18, 30, 18, 30));
+        warnBox.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
+        JLabel warnTxt = new JLabel("<html><div style='text-align:right;'><b>تنبيه:</b> الاستيراد يمسح كل بيانات هذا الجهاز ويضع مكانها بيانات الملف كما هي،<br>"
+                + "بما فيها المستخدمين وكلمات المرور — بعده ادخل بحساب الجهاز القديم. أعد تشغيل البرنامج بعد الاستيراد.</div></html>");
+        warnTxt.setForeground(UITheme.DANGER);
+        warnTxt.setFont(UITheme.FONT_BODY);
+        warnBox.add(warnTxt, BorderLayout.CENTER);
+        gbc.gridy = 3; gbc.insets = new Insets(0, 60, 0, 60); card.add(warnBox, gbc);
+        return card;
+    }
+
+    private JPanel transferStep(String title, String desc, String btnText, Color accent, String icon,
+                                java.awt.event.ActionListener action) {
+        JPanel p = new JPanel(new BorderLayout(0, 14));
+        p.setBackground(new Color(0xF8FAFC));
+        p.setBorder(new EmptyBorder(24, 24, 24, 24));
+        p.putClientProperty(FlatClientProperties.STYLE, "arc: 18");
+        JLabel t = new JLabel(title, SwingConstants.RIGHT);
+        t.setFont(UITheme.FONT_HEADER);
+        t.setForeground(accent);
+        JLabel d = new JLabel("<html><div style='text-align:right;'>" + desc + "</div></html>", SwingConstants.RIGHT);
+        d.setFont(UITheme.FONT_BODY);
+        d.setForeground(UITheme.TEXT_SECONDARY);
+        FlatSVGIcon ic = new FlatSVGIcon(icon, 20, 20);
+        ic.setColorFilter(new FlatSVGIcon.ColorFilter(c -> Color.WHITE));
+        JButton b = new JButton(btnText);
+        b.setIcon(ic);
+        b.setFont(UITheme.FONT_HEADER);
+        b.setBackground(accent);
+        b.setForeground(Color.WHITE);
+        b.setPreferredSize(new Dimension(0, 50));
+        b.putClientProperty(FlatClientProperties.STYLE, "arc: 12");
+        b.addActionListener(action);
+        p.add(t, BorderLayout.NORTH);
+        p.add(d, BorderLayout.CENTER);
+        p.add(b, BorderLayout.SOUTH);
+        return p;
+    }
+
+    private void runFullExport() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("حفظ ملف نقل البيانات");
+        String stamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
+        chooser.setSelectedFile(new File("نقل_بيانات_" + stamp + "." + DataTransferService.EXTENSION));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File f = chooser.getSelectedFile();
+        if (!f.getName().toLowerCase().endsWith("." + DataTransferService.EXTENSION)) {
+            f = new File(f.getParentFile(), f.getName() + "." + DataTransferService.EXTENSION);
+        }
+        final File out = f;
+
+        LoadingDialog loading = new LoadingDialog(parentFrame, "تصدير كل البيانات");
+        SwingWorker<DataTransferService.Summary, Void> w = new SwingWorker<>() {
+            @Override
+            protected DataTransferService.Summary doInBackground() throws Exception {
+                return DataTransferService.exportAll(out, (s, v) -> { loading.setStatus(s); loading.setProgress(v); });
+            }
+
+            @Override
+            protected void done() {
+                loading.dispose();
+                try {
+                    DataTransferService.Summary sum = get();
+                    StringBuilder msg = new StringBuilder("تم تصدير كل البيانات بنجاح.\n\n");
+                    appendCounts(msg, sum);
+                    msg.append("الصور: ").append(sum.images);
+                    if (sum.missingImages > 0) msg.append("  (").append(sum.missingImages).append(" صورة مسجلة لكن ملفها غير موجود على الجهاز)");
+                    msg.append("\n\nالملف:\n").append(out.getAbsolutePath());
+                    JOptionPane.showMessageDialog(BackupRestorePage.this, msg.toString(), "تم التصدير", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    showTransferError("فشل التصدير", ex);
+                }
+            }
+        };
+        w.execute();
+        loading.setVisible(true);
+    }
+
+    private void runFullImport() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("اختيار ملف نقل البيانات");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "ملف نقل بيانات (*." + DataTransferService.EXTENSION + ")", DataTransferService.EXTENSION));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File in = chooser.getSelectedFile();
+
+        DataTransferService.Summary info;
+        try {
+            info = DataTransferService.readInfo(in);
+        } catch (Exception ex) {
+            showTransferError("الملف غير صالح", ex);
+            return;
+        }
+        StringBuilder msg = new StringBuilder("محتوى الملف (صُدّر بتاريخ " + info.createdAt + "):\n\n");
+        appendCounts(msg, info);
+        msg.append("الصور: ").append(info.images).append("\n\n");
+        msg.append("سيتم مسح كل بيانات هذا الجهاز واستبدالها بمحتوى الملف.\n");
+        msg.append("(ستُحفظ نسخة من البيانات الحالية تلقائياً قبل البدء)\n\nهل تريد المتابعة؟");
+        if (!confirmDangerous(msg.toString(), "تأكيد الاستيراد الكامل")) return;
+
+        File backupDir = new File("نسخ احتياطية تلقائية").getAbsoluteFile();
+        LoadingDialog loading = new LoadingDialog(parentFrame, "استيراد كل البيانات");
+        SwingWorker<DataTransferService.Summary, Void> w = new SwingWorker<>() {
+            @Override
+            protected DataTransferService.Summary doInBackground() throws Exception {
+                return DataTransferService.importAll(in, backupDir, (s, v) -> { loading.setStatus(s); loading.setProgress(v); });
+            }
+
+            @Override
+            protected void done() {
+                loading.dispose();
+                try {
+                    DataTransferService.Summary sum = get();
+                    StringBuilder ok = new StringBuilder("تم نقل كل البيانات بنجاح.\n\n");
+                    appendCounts(ok, sum);
+                    ok.append("الصور: ").append(sum.images).append("\n");
+                    if (!sum.warnings.isEmpty()) {
+                        ok.append("\nملاحظات:\n");
+                        for (String wn : sum.warnings) ok.append("• ").append(wn).append("\n");
+                    }
+                    ok.append("\nنسخة البيانات السابقة لهذا الجهاز محفوظة في:\n").append(sum.backupFile.getAbsolutePath());
+                    ok.append("\n\nأغلق البرنامج وافتحه مرة أخرى، وادخل بحساب الجهاز القديم.");
+                    JOptionPane.showMessageDialog(BackupRestorePage.this, ok.toString(), "تم الاستيراد", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    showTransferError("فشل الاستيراد — لم يتغير شيء في بيانات هذا الجهاز", ex);
+                }
+            }
+        };
+        w.execute();
+        loading.setVisible(true);
+    }
+
+    private void appendCounts(StringBuilder msg, DataTransferService.Summary sum) {
+        for (Map.Entry<String, Long> e : sum.rows.entrySet()) {
+            msg.append(DataTransferService.arabicName(e.getKey())).append(": ").append(e.getValue()).append("\n");
+        }
+    }
+
+    private void showTransferError(String title, Exception ex) {
+        Throwable c = ex;
+        while ((c instanceof java.util.concurrent.ExecutionException || c instanceof RuntimeException)
+                && c.getCause() != null) c = c.getCause();
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, title + "\n\n" + c.getMessage(), title, JOptionPane.ERROR_MESSAGE);
     }
 
     private JPanel createMainCard() {
